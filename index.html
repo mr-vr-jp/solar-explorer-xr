@@ -919,8 +919,10 @@
         }
 
         function show3DPlanetInfo(planetData) {
+            // 既存のパネルを即座に完全削除
             if (planetInfoPanel) {
-                hide3DPlanetInfo();
+                console.log('Removing existing panel before showing new one');
+                removePlanetInfoPanel();
             }
             
             // 効果音を再生
@@ -966,38 +968,57 @@
 
         function hide3DPlanetInfo() {
             if (planetInfoPanel) {
+                console.log('Starting panel hide process');
+                
                 // フェードアウトアニメーション開始
                 panelFadeAnimation.target = 0;
+                planetInfoVisible = false; // 即座にフラグを更新
                 
-                // アニメーション完了後にパネルを削除するため、
-                // 実際の削除はanimateループで行う
-                planetInfoVisible = false;
-                
-                console.log('3D Planet info hiding...');
+                console.log('Panel fade out started');
+            } else {
+                console.log('No panel to hide');
+                planetInfoVisible = false; // 念のためフラグをクリア
             }
         }
 
         // パネルを完全に削除する関数
         function removePlanetInfoPanel() {
             if (planetInfoPanel) {
+                console.log('Starting panel removal process');
+                
+                // 親から削除
                 if (planetInfoPanel.parent) {
                     planetInfoPanel.parent.remove(planetInfoPanel);
+                    console.log('Panel removed from parent');
                 }
+                
+                // シーンから直接削除（念のため）
+                scene.remove(planetInfoPanel);
                 
                 // メモリ解放
-                if (planetInfoPanel.material.map) {
-                    planetInfoPanel.material.map.dispose();
+                if (planetInfoPanel.material) {
+                    if (planetInfoPanel.material.map) {
+                        planetInfoPanel.material.map.dispose();
+                        console.log('Texture disposed');
+                    }
+                    planetInfoPanel.material.dispose();
+                    console.log('Material disposed');
                 }
-                planetInfoPanel.material.dispose();
-                planetInfoPanel.geometry.dispose();
                 
+                if (planetInfoPanel.geometry) {
+                    planetInfoPanel.geometry.dispose();
+                    console.log('Geometry disposed');
+                }
+                
+                // 参照をクリア
                 planetInfoPanel = null;
+                planetInfoVisible = false;
                 
                 // フェードアニメーションもリセット
                 panelFadeAnimation.opacity = 0;
                 panelFadeAnimation.target = 0;
                 
-                console.log('3D Planet info panel completely removed');
+                console.log('Panel completely removed and resources disposed');
             }
         }
 
@@ -1148,11 +1169,14 @@
                     
                     // 3D情報パネルをクリーンアップ
                     if (planetInfoPanel) {
-                        hide3DPlanetInfo();
+                        removePlanetInfoPanel(); // hide3DPlanetInfo()の代わりに即座に削除
                     }
                     
                     // ハイライトをクリア
                     clearHighlight();
+                    
+                    // 保留中の惑星情報もクリア
+                    pendingPlanetInfo = null;
                     
                     document.getElementById('xr-button').style.display = 'block';
                     document.getElementById('instructions').style.display = 'block';
@@ -1193,10 +1217,14 @@
             // 情報パネルのフェードアニメーション
             if (planetInfoPanel && Math.abs(panelFadeAnimation.opacity - panelFadeAnimation.target) > 0.001) {
                 panelFadeAnimation.opacity += (panelFadeAnimation.target - panelFadeAnimation.opacity) * panelFadeAnimation.speed;
-                planetInfoPanel.material.opacity = Math.max(0, panelFadeAnimation.opacity);
                 
-                // フェードアウト完了時にパネルを削除
-                if (panelFadeAnimation.target === 0 && panelFadeAnimation.opacity < 0.02) {
+                // 透明度を適用（0以下にならないように）
+                const actualOpacity = Math.max(0, Math.min(1, panelFadeAnimation.opacity));
+                planetInfoPanel.material.opacity = actualOpacity;
+                
+                // フェードアウト完了時にパネルを削除（より確実な判定）
+                if (panelFadeAnimation.target === 0 && (panelFadeAnimation.opacity <= 0.05 || actualOpacity <= 0.01)) {
+                    console.log('Fade out completed, removing panel');
                     removePlanetInfoPanel();
                 }
             }
