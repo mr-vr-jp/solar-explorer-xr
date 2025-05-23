@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebXR MR 太陽系探索</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0c0c1e 0%, #1a1a2e 50%, #16213e 100%);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas {
+            display: block;
+        }
+
+        .overlay {
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            background: rgba(0, 0, 32, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+        }
+
+        #loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        #xr-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            z-index: 100;
+        }
+
+        #xr-button:disabled {
+            background: #666666;
+            cursor: not-allowed;
+        }
+
+        #instructions {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            max-width: 400px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: left;
+            z-index: 100;
+        }
+
+        #info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: none;
+            z-index: 9999;
+        }
+
+        #warning-panel {
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(139, 0, 0, 0.8);
+            text-align: center;
+            display: none;
+        }
+
+        #planet-info {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            background: rgba(0, 20, 40, 0.98) !important;
+            border: 3px solid rgba(0, 255, 136, 1) !important;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.8) !important;
+            max-width: 350px;
+            display: none;
+            z-index: 999999 !important;
+            pointer-events: auto;
+            color: white !important;
+            font-family: 'Courier New', monospace !important;
+            font-size: 14px !important;
+            opacity: 0; /* XRモードでは3D表示を使用するため非表示 */
+            visibility: hidden;
+        }
+
+        .info-title {
+            color: #00ff88;
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .info-item {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .info-label {
+            color: #ffaa00;
+        }
+
+        .info-value {
+            color: #ffffff;
+        }
+
+        .highlight {
+            color: #00ff88;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .warning {
+            color: #ffaa00;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="loading">
+            <div style="text-align: center;">
+                <div>🌌 MR太陽系を準備中...</div>
+                <div style="margin-top: 20px; font-size: 16px;">
+                    WebXRセッションを初期化しています
+                </div>
+            </div>
+        </div>
+
+        <button id="xr-button">
+            🥽 MR太陽系を開始
+        </button>
+
+        <div id="instructions">
+            <h3 class="highlight" style="margin: 0 0 10px 0;">🌟 操作方法</h3>
+            <div>• 移動：片手グリップ+ドラッグ</div>
+            <div>• 拡大/縮小：両手グリップ</div>
+            <div>• 惑星クリック：VR+情報表示</div>
+            <div>• 空間クリック：MR復帰</div>
+        </div>
+
+        <div id="info-panel" class="overlay">
+            <div class="highlight" style="margin-bottom: 10px;">
+                🥽 MRモード：アクティブ
+            </div>
+            <div>スケール: <span id="scale-value">1.00</span>x</div>
+            <div>両手グリップ: <span id="grip-status">OFF</span></div>
+        </div>
+
+        <div id="warning-panel" class="overlay">
+            <div style="margin-bottom: 10px;">⚠️ WebXR非対応環境</div>
+            <div>このデバイスではMR機能を使用できません。</div>
+            <div>Meta Quest、HoloLens、Magic Leap等の対応デバイスをご利用ください。</div>
+        </div>
+
+        <div id="planet-info" class="overlay">
+            <div class="info-title" id="planet-name">惑星名</div>
+            <div class="info-item">
+                <span class="info-label">距離:</span>
+                <span class="info-value" id="planet-distance">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">サイズ:</span>
+                <span class="info-value" id="planet-size">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">公転周期:</span>
+                <span class="info-value" id="planet-period">-</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">特徴:</span>
+                <span class="info-value" id="planet-feature">-</span>
+            </div>
+            <div style="text-align: center; margin-top: 15px; color: #888;">
+                トリガーで閉じる
+            </div>
+        </div>
+
+        <!-- BGM -->
+        <audio id="bgm" loop preload="auto" style="display: none;">
+            <source src="Mystical Cosmos.mp3" type="audio/mpeg">
+        </audio>
+    </div>
+
+    <script>
+        let scene, camera, renderer, solarSystemGroup;
+        let planets = [];
+        let controllers = { left: null, right: null };
+        let gripStates = { left: false, right: false };
+        let lastDistance = 0;
+        let scaleFactor = 1;
+        let xrSupported = false;
+        let xrActive = false;
+        let raycaster = new THREE.Raycaster();
+        let highlightedPlanet = null;
+        let planetInfoVisible = false;
+        let isDragging = false;
+        let dragStartPosition = new THREE.Vector3();
+        let solarSystemStartPosition = new THREE.Vector3();
+        let planetInfoPanel = null;
+        let sunScaleAnimation = { target: 1, current: 1, speed: 0.05 };
+        let panelFadeAnimation = { opacity: 0, target: 0, speed: 0.05 };
+        let spaceMode = false;
+        let spaceStars = null;
+        let originalStars = null;
+        let originalBackground = null;
+        let spaceRotation = 0;
+        let spaceFadeAnimation = { 
+            transitioning: false, 
+            progress: 0, 
+            target: 0, 
+            speed: 0.04,
+            targetMode: false 
+        };
+        let backgroundSphere = null;
+        let pendingPlanetInfo = null; // VRモード切り替え後に表示予定の惑星情報
+        let dataLoaded = false; // データ読み込み完了フラグ
+        let bgMusic = null; // BGM用
+        let audioContext = null; // Web Audio API用
+
+        // 惑星データ
+        const planetData = [
+            { name: '太陽', size: 0.25, distance: 0, color: 0xFFA500, speed: 0, type: 'sun', emissive: 0xFFAA00, rotationSpeed: 0.001, 
+              realDistance: '0', realSize: '1,392,700km', period: '-', 
+              feature: '太陽系の中心に位置する恒星で、水素とヘリウムの核融合により莫大なエネルギーを放出している。表面温度は約5,778K、中心部は1,500万度に達する。太陽風と呼ばれる荷電粒子の流れを常に放出しており、これが地球のオーロラの原因となっている。',
+              discovery: '古代', 
+              fact: '太陽は1秒間に400万トンの質量をエネルギーに変換している。地球に届く太陽光は8分19秒前に太陽表面を出発したもの。太陽の核で作られた光子が表面に到達するまでには10万年から17万年かかる。太陽系の質量の99.86%を占めており、地球130万個分の体積を持つ。' },
+            { name: '水星', size: 0.008, distance: 0.6, color: 0x8C7853, speed: 0.002, type: 'mercury', rotationSpeed: 0.0002,
+              realDistance: '0.39AU', realSize: '4,879km', period: '88日', 
+              feature: '太陽に最も近い惑星で、極端な温度差が特徴。大気がほとんど存在しないため、昼間は427°C、夜間は-173°Cと590°Cもの温度差が生じる。表面はクレーターだらけで月に似ているが、巨大なカロリス盆地という直径1,550kmの衝突クレーターが存在する。',
+              discovery: '古代', 
+              fact: '水星の1日（自転周期）は地球の59日に相当するが、1年（公転周期）は88日しかない。そのため水星では1日が1年の3分の2もの長さになる。また、水星は太陽系で最も軌道離心率が大きく、近日点と遠日点の距離差は2,400万kmもある。氷が存在する可能性のある極地のクレーターがある。' },
+            { name: '金星', size: 0.012, distance: 0.85, color: 0xFFC649, speed: 0.0015, type: 'venus', rotationSpeed: -0.00005,
+              realDistance: '0.72AU', realSize: '12,104km', period: '225日', 
+              feature: '太陽系で最も高温の惑星で、厚い二酸化炭素の大気と硫酸の雲に覆われている。温室効果により表面温度は462°Cに達し、鉛も溶けるほど。大気圧は地球の90倍もある。興味深いことに、他の惑星とは逆方向に自転している。この逆回転により、金星では太陽が西から昇り東に沈む。',
+              discovery: '古代', 
+              fact: '金星の1日は地球の243日に相当し、これは金星の1年（225日）よりも長い。つまり金星では1日が1年より長い唯一の惑星。金星の雲は硫酸でできており、時速350kmという猛烈な風が吹いている。表面には約1,000個の火山があり、現在も活動している可能性がある。' },
+            { name: '地球', size: 0.013, distance: 1.15, color: 0x6B93D6, speed: 0.001, type: 'earth', rotationSpeed: 0.004,
+              realDistance: '1.00AU', realSize: '12,756km', period: '365日', 
+              feature: '太陽系で唯一生命が存在することが確認されている惑星。表面の71%が海で覆われ、酸素と窒素からなる大気に包まれている。月という大きな衛星を持ち、これが潮汐を生み出し地軸を安定させている。プレートテクトニクスにより地表が常に変化し続けている。磁場により太陽風から保護されている。',
+              discovery: '古代', 
+              fact: '地球上の生命は約38億年前に誕生したとされ、最初は単細胞生物だった。地球の核は液体の鉄とニッケルでできており、その流動により磁場が生成される。1日は実際には23時間56分4秒で、これを恒星日という。地球の重力により時空が歪み、GPS衛星は相対性理論の補正が必要。' },
+            { name: '火星', size: 0.009, distance: 1.45, color: 0xCD5C5C, speed: 0.0008, type: 'mars', rotationSpeed: 0.0038,
+              realDistance: '1.52AU', realSize: '6,792km', period: '687日', 
+              feature: '赤い惑星として知られ、酸化鉄（錆）により赤く見える。太陽系最大の火山オリンポス山（高さ21km）と最大の峡谷ヴァレス・マリネリスを持つ。極地には氷が存在し、過去には液体の水が流れていた証拠がある。薄い大気を持ち、巨大な砂嵐が惑星全体を覆うことがある。',
+              discovery: '古代', 
+              fact: '火星には太陽系最大の火山オリンポス山があり、これはエベレストの約3倍の高さ。火星の重力は地球の38%なので、地球で50kg の人は火星では19kgになる。火星の1日は24時間37分と地球とほぼ同じ。火星には「フォボス」と「デイモス」という2つの小さな衛星があり、どちらもジャガイモのような不規則な形をしている。' },
+            { name: '木星', size: 0.11, distance: 2.0, color: 0xD2691E, speed: 0.0005, type: 'jupiter', rotationSpeed: 0.009,
+              realDistance: '5.20AU', realSize: '142,984km', period: '12年', 
+              feature: '太陽系最大の惑星で、地球の1,300倍以上の体積を持つガス巨星。大赤斑という地球2個分の巨大な高気圧の嵐が300年以上続いている。95個の衛星を持ち、その中には氷の下に海があるエウロパや、活火山があるイオなどがある。木星は太陽系の掃除機の役割を果たし、小惑星や彗星を引き寄せて地球を守っている。',
+              discovery: '古代', 
+              fact: '木星は太陽系の他のすべての惑星を合わせたよりも重い。木星の重力により、太陽系外縁部の小天体が内側に侵入するのを防いでいる。木星の衛星イオは太陽系で最も火山活動が活発で、硫黄の噴火により黄色く見える。木星は実は小さな恒星になりそこねた星で、もう少し重ければ第二の太陽になっていた。' },
+            { name: '土星', size: 0.09, distance: 2.6, color: 0xB8860B, speed: 0.0004, type: 'saturn', rotationSpeed: 0.008,
+              realDistance: '9.58AU', realSize: '120,536km', period: '29年', 
+              feature: '美しいリングシステムで有名なガス巨星。リングは氷と岩石の破片でできており、数億個の粒子が軌道を描いている。146個の衛星を持ち、その中には濃い大気と液体メタンの湖があるタイタンや、氷の間欠泉を噴出するエンケラドスがある。密度が水より軽く、理論上は巨大なプールがあれば浮くことができる。',
+              discovery: '古代', 
+              fact: '土星のリングの厚さはわずか10メートルほどしかない。土星の衛星タイタンは太陽系で唯一濃い大気を持つ衛星で、メタンの雨が降り、メタンとエタンの湖がある。土星の北極には六角形の嵐があり、これは他の惑星では見られない現象。土星は太陽系で最も平たい惑星で、極径と赤道径の差が約12,000kmもある。' },
+            { name: '天王星', size: 0.04, distance: 3.2, color: 0x4FD0E7, speed: 0.0003, type: 'uranus', rotationSpeed: 0.007,
+              realDistance: '19.2AU', realSize: '51,118km', period: '84年', 
+              feature: '自転軸が98度傾いており、横倒しに回転している氷の巨星。この特異な自転により、極地では42年間昼が続き、その後42年間夜が続く。メタン氷の雲により美しい青緑色に見える。非常に暗いリングシステムを持ち、27個の衛星がある。磁場が自転軸から59度も傾いている奇妙な惑星。',
+              discovery: '1781年', 
+              fact: '天王星は太陽系で最も寒い惑星で、最低温度は-224°Cに達する。木星や土星よりも遠いのに、なぜか海王星よりも寒い。天王星の発見により太陽系の大きさが一気に2倍になった。天王星の衛星はすべてシェイクスピアの作品の登場人物にちなんで名付けられている。天王星の1年は地球の84年に相当する。' },
+            { name: '海王星', size: 0.04, distance: 3.8, color: 0x4169E1, speed: 0.0002, type: 'neptune', rotationSpeed: 0.006,
+              realDistance: '30.1AU', realSize: '49,528km', period: '165年', 
+              feature: '太陽系最も遠い惑星で、深い青色が美しい氷の巨星。太陽系で最も強い風が吹き、その速度は時速2,100kmに達する。これは音速の1.5倍という驚異的な速さ。大暗斑という巨大な嵐があったが、現在は消失している。16個の衛星を持ち、最大の衛星トリトンは逆行軌道を持つ珍しい衛星。',
+              discovery: '1846年', 
+              fact: '海王星は計算によって発見された唯一の惑星で、天王星の軌道の乱れから存在が予測された。海王星は2011年にようやく発見以来初めての公転を完了した。海王星の衛星トリトンは太陽系で最も寒い場所の一つで、-235°Cという極低温。海王星のコアの温度は約5,000°Cで、太陽の表面とほぼ同じ温度。' }
+        ];
+
+        // 惑星テクスチャ生成
+        function createPlanetTexture(type, size = 1024) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            switch(type) {
+                case 'sun':
+                    // 高品質な太陽テクスチャ
+                    const centerX = size / 2;
+                    const centerY = size / 2;
+                    const radius = size / 2;
+                    
+                    // ベースの放射グラデーション
+                    const sunGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+                    sunGradient.addColorStop(0, '#FFFF88');
+                    sunGradient.addColorStop(0.2, '#FFDD44');
+                    sunGradient.addColorStop(0.4, '#FFAA22');
+                    sunGradient.addColorStop(0.6, '#FF8800');
+                    sunGradient.addColorStop(0.8, '#FF4400');
+                    sunGradient.addColorStop(1, '#CC2200');
+                    ctx.fillStyle = sunGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // コロナ効果
+                    for(let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const coronaX = centerX + Math.cos(angle) * radius * 0.7;
+                        const coronaY = centerY + Math.sin(angle) * radius * 0.7;
+                        const coronaGradient = ctx.createRadialGradient(coronaX, coronaY, 0, coronaX, coronaY, radius * 0.3);
+                        coronaGradient.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
+                        coronaGradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+                        ctx.fillStyle = coronaGradient;
+                        ctx.fillRect(0, 0, size, size);
+                    }
+                    
+                    // プロミネンス（太陽フレア）
+                    for(let i = 0; i < 12; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const flareX = centerX + Math.cos(angle) * radius * 0.8;
+                        const flareY = centerY + Math.sin(angle) * radius * 0.8;
+                        const flareLength = 20 + Math.random() * 40;
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(flareX, flareY);
+                        ctx.lineTo(flareX + Math.cos(angle) * flareLength, flareY + Math.sin(angle) * flareLength);
+                        ctx.strokeStyle = `rgba(255, ${200 + Math.random() * 55}, 100, ${0.4 + Math.random() * 0.4})`;
+                        ctx.lineWidth = 2 + Math.random() * 3;
+                        ctx.stroke();
+                    }
+                    
+                    // 表面の粒状斑
+                    for(let i = 0; i < 200; i++) {
+                        const granuleX = Math.random() * size;
+                        const granuleY = Math.random() * size;
+                        const granuleSize = 2 + Math.random() * 8;
+                        const intensity = 0.2 + Math.random() * 0.3;
+                        
+                        ctx.beginPath();
+                        ctx.arc(granuleX, granuleY, granuleSize, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, ${180 + Math.random() * 75}, 80, ${intensity})`;
+                        ctx.fill();
+                    }
+                    
+                    // 磁場ライン
+                    for(let i = 0; i < 15; i++) {
+                        ctx.beginPath();
+                        const startAngle = Math.random() * Math.PI * 2;
+                        const startX = centerX + Math.cos(startAngle) * radius * 0.6;
+                        const startY = centerY + Math.sin(startAngle) * radius * 0.6;
+                        
+                        ctx.moveTo(startX, startY);
+                        for(let j = 1; j <= 5; j++) {
+                            const t = j / 5;
+                            const currentAngle = startAngle + (Math.random() - 0.5) * 0.5;
+                            const currentRadius = radius * (0.6 + t * 0.3);
+                            const x = centerX + Math.cos(currentAngle) * currentRadius;
+                            const y = centerY + Math.sin(currentAngle) * currentRadius;
+                            ctx.lineTo(x, y);
+                        }
+                        
+                        ctx.strokeStyle = `rgba(255, 255, 150, ${0.2 + Math.random() * 0.2})`;
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'earth':
+                    // 高品質な地球テクスチャ
+                    const earthGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    earthGradient.addColorStop(0, '#5BA3E0');
+                    earthGradient.addColorStop(0.6, '#4A90E2');
+                    earthGradient.addColorStop(0.8, '#2E5A87');
+                    earthGradient.addColorStop(1, '#1A3B5C');
+                    ctx.fillStyle = earthGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // より詳細な大陸配置
+                    const continents = [
+                        // ユーラシア大陸
+                        {x: size*0.4, y: size*0.35, w: 160, h: 80, rotation: 0.1},
+                        {x: size*0.55, y: size*0.4, w: 140, h: 70, rotation: -0.1},
+                        // アフリカ大陸
+                        {x: size*0.45, y: size*0.55, w: 80, h: 120, rotation: 0},
+                        // 北米大陸
+                        {x: size*0.15, y: size*0.4, w: 100, h: 140, rotation: 0.2},
+                        // 南米大陸
+                        {x: size*0.25, y: size*0.65, w: 60, h: 100, rotation: -0.15},
+                        // オーストラリア
+                        {x: size*0.75, y: size*0.7, w: 50, h: 40, rotation: 0},
+                        // その他の島々
+                        {x: size*0.8, y: size*0.5, w: 30, h: 60, rotation: 0.3},
+                        {x: size*0.1, y: size*0.65, w: 25, h: 35, rotation: 0}
+                    ];
+                    
+                    continents.forEach(continent => {
+                        ctx.save();
+                        ctx.translate(continent.x, continent.y);
+                        ctx.rotate(continent.rotation);
+                        
+                        // 大陸の影
+                        ctx.fillStyle = '#1E5A1E';
+                        ctx.beginPath();
+                        ctx.ellipse(2, 2, continent.w/2, continent.h/2, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // メイン大陸
+                        ctx.fillStyle = '#228B22';
+                        ctx.beginPath();
+                        ctx.ellipse(0, 0, continent.w/2, continent.h/2, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // 山脈や高地
+                        ctx.fillStyle = '#8B7355';
+                        for(let i = 0; i < 3; i++) {
+                            const mx = (Math.random() - 0.5) * continent.w * 0.6;
+                            const my = (Math.random() - 0.5) * continent.h * 0.6;
+                            ctx.beginPath();
+                            ctx.ellipse(mx, my, 8 + Math.random() * 15, 4 + Math.random() * 8, Math.random() * Math.PI, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                        
+                        ctx.restore();
+                    });
+                    
+                    // 極地の氷
+                    const northIceGradient = ctx.createRadialGradient(size/2, 20, 0, size/2, 20, 40);
+                    northIceGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                    northIceGradient.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+                    ctx.fillStyle = northIceGradient;
+                    ctx.beginPath();
+                    ctx.arc(size/2, 20, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    const southIceGradient = ctx.createRadialGradient(size/2, size-20, 0, size/2, size-20, 35);
+                    southIceGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                    southIceGradient.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+                    ctx.fillStyle = southIceGradient;
+                    ctx.beginPath();
+                    ctx.arc(size/2, size-20, 35, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 雲のシステム
+                    ctx.globalAlpha = 0.6;
+                    for(let i = 0; i < 30; i++) {
+                        const cloudX = Math.random() * size;
+                        const cloudY = Math.random() * size;
+                        const cloudSize = 20 + Math.random() * 40;
+                        
+                        const cloudGradient = ctx.createRadialGradient(cloudX, cloudY, 0, cloudX, cloudY, cloudSize);
+                        cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                        cloudGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.4)');
+                        cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                        
+                        ctx.fillStyle = cloudGradient;
+                        ctx.beginPath();
+                        ctx.arc(cloudX, cloudY, cloudSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    ctx.globalAlpha = 1;
+                    
+                    // 夜の部分（都市の光）
+                    ctx.globalCompositeOperation = 'multiply';
+                    const nightGradient = ctx.createLinearGradient(0, 0, size, 0);
+                    nightGradient.addColorStop(0, 'rgba(100, 100, 150, 0.3)');
+                    nightGradient.addColorStop(0.3, 'rgba(255, 255, 255, 1)');
+                    nightGradient.addColorStop(1, 'rgba(100, 100, 150, 0.3)');
+                    ctx.fillStyle = nightGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    ctx.globalCompositeOperation = 'source-over';
+                    break;
+                    
+                case 'mars':
+                    const marsGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    marsGradient.addColorStop(0, '#CD853F');
+                    marsGradient.addColorStop(0.5, '#CD5C5C');
+                    marsGradient.addColorStop(1, '#8B0000');
+                    ctx.fillStyle = marsGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // オリンポス山
+                    ctx.fillStyle = '#A0522D';
+                    ctx.beginPath();
+                    ctx.arc(size*0.3, size*0.4, 18, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 極冠
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    ctx.beginPath();
+                    ctx.arc(size/2, 10, 35, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(size/2, size-10, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                    
+                case 'jupiter':
+                    // 高品質な木星テクスチャ
+                    const jupiterBase = ctx.createLinearGradient(0, 0, 0, size);
+                    jupiterBase.addColorStop(0, '#F4E4BC');
+                    jupiterBase.addColorStop(0.15, '#E6B87D');
+                    jupiterBase.addColorStop(0.3, '#D2691E');
+                    jupiterBase.addColorStop(0.45, '#CD853F');
+                    jupiterBase.addColorStop(0.6, '#A0522D');
+                    jupiterBase.addColorStop(0.75, '#8B4513');
+                    jupiterBase.addColorStop(0.9, '#654321');
+                    jupiterBase.addColorStop(1, '#4A2C17');
+                    ctx.fillStyle = jupiterBase;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // より詳細な縞模様
+                    for(let i = 0; i < 40; i++) {
+                        const y = (i / 40) * size;
+                        const beltHeight = 8 + Math.random() * 25;
+                        const opacity = 0.2 + Math.random() * 0.5;
+                        const variation = Math.sin(i * 0.3) * 0.2;
+                        
+                        // ベルトの基本色
+                        const beltColors = [
+                            `rgba(${220 + Math.random() * 35}, ${170 + Math.random() * 50}, ${100 + Math.random() * 40}, ${opacity})`,
+                            `rgba(${180 + Math.random() * 40}, ${120 + Math.random() * 50}, ${80 + Math.random() * 30}, ${opacity})`,
+                            `rgba(${160 + Math.random() * 30}, ${100 + Math.random() * 40}, ${60 + Math.random() * 25}, ${opacity})`
+                        ];
+                        
+                        ctx.fillStyle = beltColors[i % 3];
+                        
+                        // 波打つ縞模様
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        for(let x = 0; x <= size; x += 10) {
+                            const waveY = y + Math.sin(x * 0.02 + i) * (3 + variation * 5);
+                            ctx.lineTo(x, waveY);
+                        }
+                        for(let x = size; x >= 0; x -= 10) {
+                            const waveY = y + beltHeight + Math.sin(x * 0.015 + i + 1) * (2 + variation * 3);
+                            ctx.lineTo(x, waveY);
+                        }
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                    
+                    // 大赤斑（より詳細）
+                    const grsX = size * 0.7;
+                    const grsY = size * 0.45;
+                    const grsWidth = 60;
+                    const grsHeight = 40;
+                    
+                    // 大赤斑の影
+                    ctx.fillStyle = 'rgba(100, 0, 0, 0.4)';
+                    ctx.beginPath();
+                    ctx.ellipse(grsX + 2, grsY + 2, grsWidth/2, grsHeight/2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 大赤斑のメイン
+                    const grsGradient = ctx.createRadialGradient(grsX, grsY, 0, grsX, grsY, grsWidth/2);
+                    grsGradient.addColorStop(0, '#CC4444');
+                    grsGradient.addColorStop(0.3, '#BB2222');
+                    grsGradient.addColorStop(0.6, '#AA1111');
+                    grsGradient.addColorStop(1, '#880000');
+                    ctx.fillStyle = grsGradient;
+                    ctx.beginPath();
+                    ctx.ellipse(grsX, grsY, grsWidth/2, grsHeight/2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 大赤斑の渦巻き
+                    ctx.strokeStyle = 'rgba(150, 50, 50, 0.6)';
+                    ctx.lineWidth = 2;
+                    for(let i = 0; i < 3; i++) {
+                        ctx.beginPath();
+                        const radius = 15 + i * 8;
+                        for(let angle = 0; angle < Math.PI * 4; angle += 0.1) {
+                            const spiralRadius = radius * (1 - angle / (Math.PI * 4)) * 0.8;
+                            const x = grsX + Math.cos(angle) * spiralRadius;
+                            const y = grsY + Math.sin(angle) * spiralRadius * 0.7; // 楕円形に
+                            if(angle === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                    
+                    // 小さな嵐や渦
+                    for(let i = 0; i < 8; i++) {
+                        const stormX = Math.random() * size;
+                        const stormY = Math.random() * size;
+                        const stormSize = 8 + Math.random() * 15;
+                        
+                        const stormGradient = ctx.createRadialGradient(stormX, stormY, 0, stormX, stormY, stormSize);
+                        stormGradient.addColorStop(0, 'rgba(200, 150, 100, 0.6)');
+                        stormGradient.addColorStop(1, 'rgba(200, 150, 100, 0)');
+                        
+                        ctx.fillStyle = stormGradient;
+                        ctx.beginPath();
+                        ctx.arc(stormX, stormY, stormSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                default:
+                    // その他の惑星
+                    const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    gradient.addColorStop(0, '#AAAAAA');
+                    gradient.addColorStop(1, '#666666');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, size, size);
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 星空作成
+        function createStarField() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starPositions = [];
+            const starSizes = [];
+            
+            for (let i = 0; i < 5000; i++) {
+                starPositions.push(
+                    (Math.random() - 0.5) * 200,
+                    (Math.random() - 0.5) * 200,
+                    (Math.random() - 0.5) * 200
+                );
+                starSizes.push(Math.random() * 2 + 0.5);
+            }
+            
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+            starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
+            
+            const starMaterial = new THREE.PointsMaterial({
+                color: 0xFFFFFF,
+                size: 0.05,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            return new THREE.Points(starGeometry, starMaterial);
+        }
+
+        // 宇宙空間の星空作成
+        function createSpaceStarField() {
+            const starGeometry = new THREE.BufferGeometry();
+            const starPositions = [];
+            const starColors = [];
+            const starSizes = [];
+            
+            for (let i = 0; i < 15000; i++) {
+                // より広範囲に星を配置
+                const radius = 50 + Math.random() * 150;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                starPositions.push(
+                    radius * Math.sin(phi) * Math.cos(theta),
+                    radius * Math.sin(phi) * Math.sin(theta),
+                    radius * Math.cos(phi)
+                );
+                
+                // 星の色を多様化
+                const colorType = Math.random();
+                if (colorType < 0.6) {
+                    starColors.push(1, 1, 1); // 白
+                } else if (colorType < 0.8) {
+                    starColors.push(0.8, 0.9, 1); // 青白
+                } else if (colorType < 0.9) {
+                    starColors.push(1, 0.9, 0.7); // 黄色
+                } else {
+                    starColors.push(1, 0.7, 0.5); // オレンジ
+                }
+                
+                starSizes.push(Math.random() * 3 + 0.5);
+            }
+            
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+            starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+            starGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
+            
+            const starMaterial = new THREE.PointsMaterial({
+                vertexColors: true,
+                size: 0.08,
+                transparent: true,
+                opacity: 0, // 初期値を0に設定
+                sizeAttenuation: true
+            });
+            
+            return new THREE.Points(starGeometry, starMaterial);
+        }
+
+        // 背景フェード用の球体を作成
+        function createBackgroundSphere() {
+            const geometry = new THREE.SphereGeometry(300, 32, 16);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0x000000,
+                transparent: true,
+                opacity: 0,
+                side: THREE.BackSide // 内側から見えるように
+            });
+            
+            return new THREE.Mesh(geometry, material);
+        }
+
+        // WebXRサポートチェック
+        async function checkXRSupport() {
+            if ('xr' in navigator) {
+                try {
+                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    xrSupported = supported;
+                } catch (error) {
+                    try {
+                        const supported = await navigator.xr.isSessionSupported('immersive-vr');
+                        xrSupported = supported;
+                    } catch (error) {
+                        xrSupported = false;
+                    }
+                }
+            }
+
+            const button = document.getElementById('xr-button');
+            button.disabled = true; // 初期状態では無効
+            
+            if (!xrSupported) {
+                button.textContent = 'XR非対応デバイス';
+                document.getElementById('warning-panel').style.display = 'block';
+            } else {
+                button.textContent = '読み込み中...';
+            }
+        }
+
+        // 初期化
+        function init() {
+            const container = document.getElementById('container');
+
+            // BGM初期化
+            bgMusic = document.getElementById('bgm');
+            bgMusic.volume = 0.3; // 音量を30%に設定
+            
+            // レイキャスター初期化
+            raycaster = new THREE.Raycaster();
+
+            // シーン作成
+            scene = new THREE.Scene();
+
+            // カメラ作成
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 1000);
+            camera.position.set(0, 1.6, 5);
+
+            // レンダラー作成
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.xr.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            // 太陽系グループ
+            solarSystemGroup = new THREE.Group();
+            solarSystemGroup.position.set(0, 1, -2);
+            scene.add(solarSystemGroup);
+
+            // 星空
+            const stars = createStarField();
+            scene.add(stars);
+            originalStars = stars; // 元の星空を保存
+
+            // 宇宙空間の星空を準備（最初は非表示）
+            spaceStars = createSpaceStarField();
+            spaceStars.visible = false;
+            scene.add(spaceStars);
+
+            // 背景フェード用球体を作成
+            backgroundSphere = createBackgroundSphere();
+            scene.add(backgroundSphere);
+
+            // 太陽光源
+            const sunLight = new THREE.PointLight(0xFFFFAA, 2, 50);
+            sunLight.position.set(0, 0, 0);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            solarSystemGroup.add(sunLight);
+
+            // 環境光
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.3);
+            scene.add(ambientLight);
+
+            // 惑星作成
+            planetData.forEach((data, index) => {
+                const geometry = new THREE.SphereGeometry(data.size, 32, 16);
+                const texture = createPlanetTexture(data.type, 1024);
+                
+                let material;
+                if (data.name === '太陽') {
+                    material = new THREE.MeshBasicMaterial({ 
+                        map: texture,
+                        emissive: new THREE.Color(data.emissive),
+                        emissiveIntensity: 0.5
+                    });
+                } else {
+                    material = new THREE.MeshLambertMaterial({ 
+                        map: texture,
+                        bumpMap: texture,
+                        bumpScale: 0.001
+                    });
+                }
+                
+                const planet = new THREE.Mesh(geometry, material);
+                planet.position.x = data.distance;
+                planet.castShadow = data.name !== '太陽';
+                planet.receiveShadow = data.name !== '太陽';
+                
+                // 軌道表示
+                if (data.distance > 0) {
+                    const orbitPoints = [];
+                    for (let i = 0; i <= 64; i++) {
+                        const angle = (i / 64) * Math.PI * 2;
+                        orbitPoints.push(new THREE.Vector3(
+                            Math.cos(angle) * data.distance,
+                            0,
+                            Math.sin(angle) * data.distance
+                        ));
+                    }
+                    const orbitGeometry = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+                    const orbitMaterial = new THREE.LineBasicMaterial({ 
+                        color: 0x444444, 
+                        transparent: true, 
+                        opacity: 0.2
+                    });
+                    const orbit = new THREE.Line(orbitGeometry, orbitMaterial);
+                    orbit.userData = { type: 'orbit' }; // 軌道線を識別するタグ
+                    solarSystemGroup.add(orbit);
+                }
+
+                // 土星のリング
+                if (data.name === '土星') {
+                    const ringGeometry = new THREE.RingGeometry(data.size + 0.03, data.size + 0.08, 32);
+                    const ringMaterial = new THREE.MeshLambertMaterial({ 
+                        color: 0xD2691E,
+                        side: THREE.DoubleSide,
+                        transparent: true,
+                        opacity: 0.8
+                    });
+                    const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+                    ring.rotation.x = Math.PI / 2;
+                    planet.add(ring);
+                }
+
+                // 地球の月
+                if (data.name === '地球') {
+                    const moonGeometry = new THREE.SphereGeometry(0.0035, 16, 8);
+                    const moonMaterial = new THREE.MeshLambertMaterial({ color: 0x888888 });
+                    const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+                    moon.position.x = 0.045;
+                    moon.castShadow = true;
+                    moon.userData = { speed: 0.08, distance: 0.045 };
+                    planet.add(moon);
+                }
+
+                planets.push({ 
+                    mesh: planet, 
+                    data: data, 
+                    angle: Math.random() * Math.PI * 2,
+                    rotationSpeed: data.rotationSpeed
+                });
+                solarSystemGroup.add(planet);
+            });
+
+            setupXRControllers();
+            animate();
+            
+            // データ読み込み完了
+            dataLoaded = true;
+            
+            // ボタンを有効化
+            const xrButton = document.getElementById('xr-button');
+            if (xrSupported) {
+                xrButton.disabled = false;
+                xrButton.textContent = '🥽 MR太陽系を開始';
+            }
+            
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        // XRコントローラーセットアップ
+        function setupXRControllers() {
+            // 左コントローラー
+            const leftController = renderer.xr.getController(0);
+            leftController.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
+            leftController.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
+            leftController.addEventListener('squeezestart', () => onGripStart('left'));
+            leftController.addEventListener('squeezeend', () => onGripEnd('left'));
+            scene.add(leftController);
+            controllers.left = leftController;
+
+            // 右コントローラー
+            const rightController = renderer.xr.getController(1);
+            rightController.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
+            rightController.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
+            rightController.addEventListener('squeezestart', () => onGripStart('right'));
+            rightController.addEventListener('squeezeend', () => onGripEnd('right'));
+            scene.add(rightController);
+            controllers.right = rightController;
+
+            // コントローラーグリップ
+            const leftControllerGrip = renderer.xr.getControllerGrip(0);
+            scene.add(leftControllerGrip);
+
+            const rightControllerGrip = renderer.xr.getControllerGrip(1);
+            scene.add(rightControllerGrip);
+
+            // レーザーポインター（右コントローラーのみ）
+            const raycasterGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -2)
+            ]);
+            const raycasterMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ff88, 
+                transparent: true, 
+                opacity: 0.8 
+            });
+
+            const rightRay = new THREE.Line(raycasterGeometry, raycasterMaterial);
+            rightController.add(rightRay);
+        }
+
+        // XRイベントハンドラー
+        function onSelectStart(event, hand) {
+            // 情報パネルが表示されている場合は閉じる
+            if (planetInfoVisible) {
+                hide3DPlanetInfo();
+                return;
+            }
+            
+            if (spaceMode) {
+                // 宇宙空間モードの場合
+                if (highlightedPlanet) {
+                    // 惑星がハイライトされている場合は情報表示
+                    show3DPlanetInfo(highlightedPlanet.data);
+                } else {
+                    // 何もハイライトされていない場合はMRモードに戻る
+                    toggleSpaceMode();
+                }
+                return;
+            }
+            
+            // MRモードでの操作
+            if (highlightedPlanet) {
+                // 惑星がハイライトされている場合は、その惑星情報を記録してVRモードに切り替え
+                pendingPlanetInfo = highlightedPlanet.data;
+                toggleSpaceMode();
+            }
+        }
+
+        function onSelectEnd(event, hand) {
+            // トリガー終了
+        }
+
+        function onGripStart(hand) {
+            gripStates[hand] = true;
+            
+            // 片手グリップの場合はドラッグ開始
+            if ((gripStates.left && !gripStates.right) || (!gripStates.left && gripStates.right)) {
+                isDragging = true;
+                const controller = gripStates.left ? controllers.left : controllers.right;
+                if (controller) {
+                    const tempMatrix = new THREE.Matrix4();
+                    tempMatrix.identity().extractRotation(controller.matrixWorld);
+                    dragStartPosition.setFromMatrixPosition(controller.matrixWorld);
+                    solarSystemStartPosition.copy(solarSystemGroup.position);
+                }
+            }
+            
+            // 両手でグリップした場合の初期距離を記録
+            if (gripStates.left && gripStates.right && controllers.left && controllers.right) {
+                isDragging = false;
+                const leftPos = new THREE.Vector3();
+                const rightPos = new THREE.Vector3();
+                leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
+                rightPos.setFromMatrixPosition(controllers.right.matrixWorld);
+                lastDistance = leftPos.distanceTo(rightPos);
+            }
+            
+            updateGripStatus();
+        }
+
+        function onGripEnd(hand) {
+            gripStates[hand] = false;
+            isDragging = false;
+            updateGripStatus();
+        }
+
+        function updateGripStatus() {
+            const gripStatus = document.getElementById('grip-status');
+            const isGripping = gripStates.left && gripStates.right;
+            gripStatus.textContent = isGripping ? 'ON' : 'OFF';
+            gripStatus.style.color = isGripping ? '#00ff88' : '#ffffff';
+        }
+
+        // 3D惑星情報パネル作成
+        function create3DInfoPanel(planetData) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 600; // サイズを大きく
+            canvas.height = 700;
+            const ctx = canvas.getContext('2d');
+            
+            // 背景
+            ctx.fillStyle = 'rgba(0, 20, 40, 0.95)';
+            ctx.fillRect(0, 0, 600, 700);
+            
+            // 枠線
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(0, 0, 600, 700);
+            
+            // 内側の装飾枠
+            ctx.strokeStyle = 'rgba(0, 255, 136, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(10, 10, 580, 680);
+            
+            // 惑星名
+            ctx.fillStyle = '#00ff88';
+            ctx.font = 'bold 42px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(planetData.name, 300, 60);
+            
+            // アンダーライン
+            ctx.strokeStyle = '#00ff88';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(100, 75);
+            ctx.lineTo(500, 75);
+            ctx.stroke();
+            
+            // 基本情報項目のレイアウト（簡略化）
+            ctx.textAlign = 'left';
+            let yPos = 120;
+            const lineHeight = 40;
+            
+            const infoItems = [
+                { label: '距離', value: planetData.realDistance, icon: '🌍' },
+                { label: 'サイズ', value: planetData.realSize, icon: '📏' },
+                { label: '公転周期', value: planetData.period, icon: '🔄' },
+                { label: '発見', value: planetData.discovery, icon: '🔭' }
+            ];
+            
+            infoItems.forEach(item => {
+                // アイコン
+                ctx.font = '22px Arial';
+                ctx.fillStyle = '#ffffff';
+                ctx.fillText(item.icon, 30, yPos);
+                
+                // ラベル
+                ctx.fillStyle = '#ffaa00';
+                ctx.font = 'bold 22px Arial';
+                ctx.fillText(item.label + ':', 70, yPos);
+                
+                // 値
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '20px Arial';
+                const labelWidth = ctx.measureText(item.label + ': ').width;
+                ctx.fillText(item.value, 70 + labelWidth, yPos);
+                
+                yPos += lineHeight;
+            });
+            
+            // 特徴セクション（より大きく）
+            yPos += 30;
+            ctx.fillStyle = '#ffaa00';
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('✨ 特徴:', 30, yPos);
+            
+            yPos += 40;
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '18px Arial';
+            
+            // 特徴テキストを複数行に分割（より詳細に）
+            const features = planetData.feature;
+            const maxWidth = 520;
+            const words = features.split('');
+            let line = '';
+            
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line + words[i];
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > maxWidth && i > 0) {
+                    ctx.fillText(line, 50, yPos);
+                    line = words[i];
+                    yPos += 24;
+                } else {
+                    line = testLine;
+                }
+            }
+            ctx.fillText(line, 50, yPos);
+            
+            // 豆知識セクション（より大きく）
+            yPos += 50;
+            ctx.fillStyle = '#00ddff';
+            ctx.font = 'bold 28px Arial';
+            ctx.fillText('💡 豆知識:', 30, yPos);
+            
+            yPos += 40;
+            ctx.fillStyle = '#ddffdd';
+            ctx.font = '18px Arial';
+            
+            // 豆知識テキストを複数行に分割（より詳細に）
+            const facts = planetData.fact;
+            const factWords = facts.split('');
+            let factLine = '';
+            
+            for (let i = 0; i < factWords.length; i++) {
+                const testLine = factLine + factWords[i];
+                const metrics = ctx.measureText(testLine);
+                
+                if (metrics.width > maxWidth && i > 0) {
+                    ctx.fillText(factLine, 50, yPos);
+                    factLine = factWords[i];
+                    yPos += 24;
+                } else {
+                    factLine = testLine;
+                }
+            }
+            ctx.fillText(factLine, 50, yPos);
+            
+            // 操作説明
+            ctx.fillStyle = '#888888';
+            ctx.font = '18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('トリガーで閉じる', 300, 660);
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.needsUpdate = true;
+            
+            return texture;
+        }
+
+        function show3DPlanetInfo(planetData) {
+            // 既存のパネルを即座に完全削除
+            if (planetInfoPanel) {
+                removePlanetInfoPanel();
+            }
+            
+            // 効果音を再生
+            playInfoPanelSound();
+            
+            const texture = create3DInfoPanel(planetData);
+            const geometry = new THREE.PlaneGeometry(0.35, 0.4); // サイズを調整
+            const material = new THREE.MeshBasicMaterial({ 
+                map: texture, 
+                transparent: true,
+                side: THREE.DoubleSide,
+                opacity: 0 // 初期値を0に設定
+            });
+            
+            planetInfoPanel = new THREE.Mesh(geometry, material);
+            planetInfoPanel.name = 'planet-info-panel';
+            
+            // 左手コントローラーの位置に配置
+            if (controllers.left) {
+                controllers.left.add(planetInfoPanel);
+                // コントローラーから少し前方に配置
+                planetInfoPanel.position.set(0, 0.1, -0.2);
+                planetInfoPanel.rotation.x = -Math.PI / 6; // 少し下向きに
+            } else {
+                // コントローラーがない場合はシーンに直接追加
+                scene.add(planetInfoPanel);
+                planetInfoPanel.position.set(-0.5, 1.8, -1);
+            }
+            
+            planetInfoVisible = true;
+            
+            // フェードインアニメーション開始
+            panelFadeAnimation.target = 1;
+            panelFadeAnimation.opacity = 0;
+        }
+
+        function hide3DPlanetInfo() {
+            if (planetInfoPanel) {
+                removePlanetInfoPanel();
+            }
+            
+            planetInfoVisible = false;
+        }
+
+        // パネルを完全に削除する関数
+        function removePlanetInfoPanel() {
+            if (planetInfoPanel) {
+                if (planetInfoPanel.parent) {
+                    planetInfoPanel.parent.remove(planetInfoPanel);
+                }
+                
+                scene.remove(planetInfoPanel);
+                
+                if (planetInfoPanel.material) {
+                    if (planetInfoPanel.material.map) {
+                        planetInfoPanel.material.map.dispose();
+                    }
+                    planetInfoPanel.material.dispose();
+                }
+                
+                if (planetInfoPanel.geometry) {
+                    planetInfoPanel.geometry.dispose();
+                }
+                
+                planetInfoPanel = null;
+                planetInfoVisible = false;
+                
+                panelFadeAnimation.opacity = 0;
+                panelFadeAnimation.target = 0;
+            }
+        }
+
+        // ハイライト効果
+        function highlightPlanet(planet) {
+            if (highlightedPlanet && highlightedPlanet !== planet) {
+                // 前のハイライトを削除
+                removeHighlight(highlightedPlanet);
+            }
+            
+            highlightedPlanet = planet;
+            
+            try {
+                const material = planet.mesh.material;
+                
+                // 太陽の場合は特別処理（スムーズなスケールアニメーション）
+                if (planet.data.name === '太陽') {
+                    // 太陽の場合はスケールアニメーションを開始
+                    if (!planet.originalScale) {
+                        planet.originalScale = planet.mesh.scale.clone();
+                        sunScaleAnimation.current = 1;
+                    }
+                    sunScaleAnimation.target = 1.1;
+                } else {
+                    // 他の惑星は発光効果
+                    if (!planet.originalEmissive) {
+                        if (material.emissive) {
+                            planet.originalEmissive = material.emissive.clone();
+                        } else {
+                            planet.originalEmissive = new THREE.Color(0x000000);
+                        }
+                        
+                        if (material.emissiveIntensity !== undefined) {
+                            planet.originalEmissiveIntensity = material.emissiveIntensity;
+                        } else {
+                            planet.originalEmissiveIntensity = 0;
+                        }
+                    }
+                    
+                    // 発光効果を設定
+                    if (!material.emissive) {
+                        material.emissive = new THREE.Color();
+                    }
+                    material.emissive.setHex(0x00ff88);
+                    
+                    if (material.emissiveIntensity !== undefined) {
+                        material.emissiveIntensity = 0.3;
+                    }
+                }
+            } catch (error) {
+                console.error(`Error highlighting planet ${planet.data.name}:`, error);
+            }
+        }
+
+        function removeHighlight(planet) {
+            try {
+                if (planet && planet.mesh) {
+                    if (planet.data.name === '太陽') {
+                        // 太陽の場合はスケールアニメーションを元に戻す
+                        sunScaleAnimation.target = 1;
+                    } else {
+                        // 他の惑星は発光を元に戻す
+                        if (planet.mesh.material && planet.originalEmissive) {
+                            const material = planet.mesh.material;
+                            
+                            if (material.emissive && planet.originalEmissive) {
+                                material.emissive.copy(planet.originalEmissive);
+                            }
+                            
+                            if (material.emissiveIntensity !== undefined && planet.originalEmissiveIntensity !== undefined) {
+                                material.emissiveIntensity = planet.originalEmissiveIntensity;
+                            }
+                            
+                            planet.originalEmissive = null;
+                            planet.originalEmissiveIntensity = null;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error(`Error removing highlight from planet:`, error);
+            }
+        }
+
+        function clearHighlight() {
+            if (highlightedPlanet) {
+                removeHighlight(highlightedPlanet);
+                highlightedPlanet = null;
+            }
+        }
+
+        // XRセッション開始
+        async function startXRSession() {
+            if (!xrSupported || !dataLoaded) return;
+
+            try {
+                // BGM再生開始
+                if (bgMusic) {
+                    try {
+                        await bgMusic.play();
+                    } catch (error) {
+                        console.log('BGM autoplay prevented:', error);
+                        // ユーザーの操作後に再生を試みる
+                    }
+                }
+
+                let sessionInit = { 
+                    requiredFeatures: ['local-floor'],
+                    optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection']
+                };
+                
+                let session;
+                try {
+                    session = await navigator.xr.requestSession('immersive-ar', sessionInit);
+                } catch (arError) {
+                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
+                }
+
+                await renderer.xr.setSession(session);
+                xrActive = true;
+
+                // UI更新
+                document.getElementById('xr-button').style.display = 'none';
+                document.getElementById('instructions').style.display = 'none';
+                document.getElementById('info-panel').style.display = 'block';
+
+                session.addEventListener('end', () => {
+                    xrActive = false;
+                    
+                    // BGM停止
+                    if (bgMusic) {
+                        bgMusic.pause();
+                        bgMusic.currentTime = 0;
+                    }
+                    
+                    // 3D情報パネルをクリーンアップ
+                    hide3DPlanetInfo();
+                    
+                    // ハイライトをクリア
+                    clearHighlight();
+                    
+                    // 保留中の惑星情報もクリア
+                    pendingPlanetInfo = null;
+                    
+                    document.getElementById('xr-button').style.display = 'block';
+                    document.getElementById('instructions').style.display = 'block';
+                    document.getElementById('info-panel').style.display = 'none';
+                });
+
+            } catch (error) {
+                alert('XRセッションの開始に失敗しました: ' + error.message);
+            }
+        }
+
+        // アニメーションループ
+        let time = 0;
+        function animate() {
+            renderer.setAnimationLoop(animate);
+            time += 0.01;
+
+            // 太陽のスケールアニメーション
+            if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
+                sunScaleAnimation.current += (sunScaleAnimation.target - sunScaleAnimation.current) * sunScaleAnimation.speed;
+                
+                // 太陽を見つけてスケールを適用
+                const sunPlanet = planets.find(p => p.data.name === '太陽');
+                if (sunPlanet && sunPlanet.originalScale) {
+                    sunPlanet.mesh.scale.copy(sunPlanet.originalScale);
+                    sunPlanet.mesh.scale.multiplyScalar(sunScaleAnimation.current);
+                }
+            }
+
+            // 情報パネルのフェードアニメーション
+            if (planetInfoPanel && Math.abs(panelFadeAnimation.opacity - panelFadeAnimation.target) > 0.001) {
+                panelFadeAnimation.opacity += (panelFadeAnimation.target - panelFadeAnimation.opacity) * panelFadeAnimation.speed;
+                
+                // 透明度を適用（0以下にならないように）
+                const actualOpacity = Math.max(0, Math.min(1, panelFadeAnimation.opacity));
+                planetInfoPanel.material.opacity = actualOpacity;
+                
+                // フェードアウト完了時にパネルを削除（より確実な判定）
+                if (panelFadeAnimation.target === 0 && (panelFadeAnimation.opacity <= 0.05 || actualOpacity <= 0.01)) {
+                    removePlanetInfoPanel();
+                }
+            }
+
+            // スペースモードのフェードアニメーション
+            if (spaceFadeAnimation.transitioning) {
+                const oldProgress = spaceFadeAnimation.progress;
+                spaceFadeAnimation.progress += (spaceFadeAnimation.target - spaceFadeAnimation.progress) * spaceFadeAnimation.speed;
+                
+                applySpaceModeChange(spaceFadeAnimation.progress);
+            }
+
+            // 宇宙空間モードでの星の動き
+            if (spaceMode && spaceStars) {
+                spaceRotation += 0.0001; // さらにゆっくりとした回転
+                spaceStars.rotation.y = spaceRotation;
+                spaceStars.rotation.x = spaceRotation * 0.3;
+                spaceStars.rotation.z = spaceRotation * 0.1;
+            }
+
+            // 惑星の軌道運動と自転（常に動作）
+            planets.forEach((planet) => {
+                if (planet.data.distance > 0) {
+                    planet.angle += planet.data.speed;
+                    planet.mesh.position.x = Math.cos(planet.angle) * planet.data.distance;
+                    planet.mesh.position.z = Math.sin(planet.angle) * planet.data.distance;
+                }
+                
+                planet.mesh.rotation.y += planet.rotationSpeed;
+                
+                // 衛星の公転
+                planet.mesh.children.forEach(moon => {
+                    if (moon.userData && moon.userData.speed) {
+                        const moonAngle = time * moon.userData.speed;
+                        moon.position.x = Math.cos(moonAngle) * moon.userData.distance;
+                        moon.position.z = Math.sin(moonAngle) * moon.userData.distance;
+                    }
+                });
+            });
+
+            // レイキャスト（右コントローラーから惑星への当たり判定 - 常に動作）
+            if (xrActive && controllers.right && !planetInfoVisible) {
+                try {
+                    // コントローラーの位置と方向を取得
+                    const tempMatrix = new THREE.Matrix4();
+                    tempMatrix.identity().extractRotation(controllers.right.matrixWorld);
+                    
+                    const controllerPosition = new THREE.Vector3();
+                    controllerPosition.setFromMatrixPosition(controllers.right.matrixWorld);
+                    
+                    const controllerDirection = new THREE.Vector3(0, 0, -1);
+                    controllerDirection.applyMatrix4(tempMatrix);
+                    controllerDirection.normalize();
+                    
+                    raycaster.set(controllerPosition, controllerDirection);
+                    
+                    // 惑星のメッシュのみをチェック
+                    const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
+                    const intersects = raycaster.intersectObjects(planetMeshes);
+                    
+                    if (intersects.length > 0) {
+                        const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                        if (intersectedPlanet && intersectedPlanet !== highlightedPlanet) {
+                            highlightPlanet(intersectedPlanet);
+                        }
+                    } else {
+                        clearHighlight();
+                    }
+                } catch (error) {
+                    // エラーが発生した場合はハイライトをクリア
+                    clearHighlight();
+                }
+            }
+
+            // 片手グリップでのドラッグ移動（常に動作）
+            if (isDragging) {
+                const activeController = gripStates.left ? controllers.left : controllers.right;
+                if (activeController) {
+                    const currentPosition = new THREE.Vector3();
+                    currentPosition.setFromMatrixPosition(activeController.matrixWorld);
+                    
+                    const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
+                    // 移動距離を3倍にする
+                    deltaPosition.multiplyScalar(3);
+                    solarSystemGroup.position.copy(solarSystemStartPosition).add(deltaPosition);
+                }
+            }
+
+            // 両手グリップでのスケール調整（常に動作）
+            if (gripStates.left && gripStates.right && controllers.left && controllers.right && !isDragging) {
+                const leftPos = new THREE.Vector3();
+                const rightPos = new THREE.Vector3();
+                leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
+                rightPos.setFromMatrixPosition(controllers.right.matrixWorld);
+                const currentDistance = leftPos.distanceTo(rightPos);
+                
+                if (lastDistance > 0 && currentDistance > 0) {
+                    const scaleChange = currentDistance / lastDistance;
+                    scaleFactor *= scaleChange;
+                    
+                    // スケール制限
+                    scaleFactor = Math.max(0.1, Math.min(10, scaleFactor));
+                    
+                    solarSystemGroup.scale.setScalar(scaleFactor);
+                    
+                    // UI更新
+                    document.getElementById('scale-value').textContent = scaleFactor.toFixed(2);
+                }
+                
+                lastDistance = currentDistance;
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        // リサイズハンドラー
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // イベントリスナー
+        window.addEventListener('resize', onWindowResize);
+        document.getElementById('xr-button').addEventListener('click', startXRSession);
+
+        // 初期化開始
+        checkXRSupport().then(() => {
+            init();
+        });
+
+        // 宇宙空間モード切り替え
+        function toggleSpaceMode() {
+            if (spaceFadeAnimation.transitioning) {
+                return; // 既にトランジション中の場合は無視
+            }
+            
+            spaceFadeAnimation.transitioning = true;
+            spaceFadeAnimation.targetMode = !spaceMode;
+            
+            if (spaceFadeAnimation.targetMode) {
+                // 宇宙空間モードへ
+                spaceFadeAnimation.target = 1;
+                spaceFadeAnimation.progress = 0;
+            } else {
+                // MRモードへ
+                spaceFadeAnimation.target = 1;
+                spaceFadeAnimation.progress = 0;
+            }
+        }
+
+        // フェード効果付きの実際のモード切り替え
+        function applySpaceModeChange(progress) {
+            const targetMode = spaceFadeAnimation.targetMode;
+            
+            if (targetMode) {
+                // 宇宙空間モードへの切り替え
+                if (originalStars && originalStars.material) {
+                    originalStars.material.opacity = Math.max(0, 1 - progress);
+                }
+                if (spaceStars && spaceStars.material) {
+                    spaceStars.material.opacity = Math.min(1, progress);
+                }
+                
+                // 背景球体のフェードイン（完全に不透明に）
+                if (backgroundSphere && backgroundSphere.material) {
+                    backgroundSphere.material.opacity = Math.min(1.0, progress);
+                }
+                
+                // 星の表示状態を管理
+                if (progress > 0.1) {
+                    spaceStars.visible = true;
+                    backgroundSphere.visible = true;
+                }
+                if (progress > 0.9) {
+                    originalStars.visible = false;
+                }
+                
+                // カメラ位置の補間
+                const startPos = new THREE.Vector3(0, 1.6, 5);
+                const endPos = new THREE.Vector3(0, 0, 0);
+                camera.position.lerpVectors(startPos, endPos, progress);
+                
+            } else {
+                // MRモードへの復帰
+                if (spaceStars && spaceStars.material) {
+                    spaceStars.material.opacity = Math.max(0, 1 - progress);
+                }
+                if (originalStars && originalStars.material) {
+                    originalStars.material.opacity = Math.min(1, progress);
+                }
+                
+                // 背景球体のフェードアウト
+                if (backgroundSphere && backgroundSphere.material) {
+                    backgroundSphere.material.opacity = Math.max(0, 1.0 * (1 - progress));
+                }
+                
+                // 星の表示状態を管理
+                if (progress > 0.1) {
+                    originalStars.visible = true;
+                }
+                if (progress > 0.9) {
+                    spaceStars.visible = false;
+                    backgroundSphere.visible = false;
+                }
+                
+                // カメラ位置の補間
+                const startPos = new THREE.Vector3(0, 0, 0);
+                const endPos = new THREE.Vector3(0, 1.6, 5);
+                camera.position.lerpVectors(startPos, endPos, progress);
+            }
+            
+            // 完了処理
+            if (Math.abs(progress - spaceFadeAnimation.target) < 0.05) {
+                spaceMode = targetMode;
+                spaceFadeAnimation.transitioning = false;
+                
+                if (spaceMode) {
+                    // 宇宙空間モード完了
+                    originalStars.visible = false;
+                    spaceStars.visible = true;
+                    backgroundSphere.visible = true;
+                    originalStars.material.opacity = 0;
+                    spaceStars.material.opacity = 1;
+                    backgroundSphere.material.opacity = 1.0;
+                    camera.position.set(0, 0, 0);
+                    
+                    // VRモードでは軌道線を非表示
+                    toggleOrbitVisibility(false);
+                    
+                    // 記録された惑星情報があれば自動表示
+                    if (pendingPlanetInfo) {
+                        setTimeout(() => {
+                            show3DPlanetInfo(pendingPlanetInfo);
+                            pendingPlanetInfo = null;
+                        }, 500);
+                    }
+                } else {
+                    // MRモード完了
+                    spaceStars.visible = false;
+                    originalStars.visible = true;
+                    backgroundSphere.visible = false;
+                    spaceStars.material.opacity = 0;
+                    originalStars.material.opacity = 1;
+                    backgroundSphere.material.opacity = 0;
+                    camera.position.set(0, 1.6, 5);
+                    
+                    // MRモードでは軌道線を表示
+                    toggleOrbitVisibility(true);
+                    
+                    // MRモード復帰時は保留中の惑星情報をクリア
+                    pendingPlanetInfo = null;
+                }
+            }
+        }
+
+        // 控えめな効果音を生成・再生する関数
+        function playInfoPanelSound() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (error) {
+                    return;
+                }
+            }
+
+            try {
+                // 複数の音を重ねて美しい効果音を作成
+                const now = audioContext.currentTime;
+                
+                // メインベル音（基音）
+                const oscillator1 = audioContext.createOscillator();
+                const gainNode1 = audioContext.createGain();
+                oscillator1.connect(gainNode1);
+                gainNode1.connect(audioContext.destination);
+                
+                oscillator1.frequency.setValueAtTime(880, now); // A5音
+                oscillator1.frequency.exponentialRampToValueAtTime(660, now + 0.5); // E5音へ下降
+                oscillator1.type = 'sine';
+                
+                gainNode1.gain.setValueAtTime(0, now);
+                gainNode1.gain.linearRampToValueAtTime(0.15, now + 0.02);
+                gainNode1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+                
+                // ハーモニー音（第5度）
+                const oscillator2 = audioContext.createOscillator();
+                const gainNode2 = audioContext.createGain();
+                oscillator2.connect(gainNode2);
+                gainNode2.connect(audioContext.destination);
+                
+                oscillator2.frequency.setValueAtTime(1320, now); // E6音
+                oscillator2.frequency.exponentialRampToValueAtTime(990, now + 0.5); // B5音へ下降
+                oscillator2.type = 'sine';
+                
+                gainNode2.gain.setValueAtTime(0, now);
+                gainNode2.gain.linearRampToValueAtTime(0.08, now + 0.02);
+                gainNode2.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
+                
+                // 微細な響き（オクターブ上）
+                const oscillator3 = audioContext.createOscillator();
+                const gainNode3 = audioContext.createGain();
+                oscillator3.connect(gainNode3);
+                gainNode3.connect(audioContext.destination);
+                
+                oscillator3.frequency.setValueAtTime(1760, now); // A6音
+                oscillator3.type = 'triangle';
+                
+                gainNode3.gain.setValueAtTime(0, now);
+                gainNode3.gain.linearRampToValueAtTime(0.04, now + 0.01);
+                gainNode3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+                
+                // 再生開始
+                oscillator1.start(now);
+                oscillator1.stop(now + 1.2);
+                
+                oscillator2.start(now);
+                oscillator2.stop(now + 1.0);
+                
+                oscillator3.start(now);
+                oscillator3.stop(now + 0.8);
+                
+            } catch (error) {
+                // エラーは無視
+            }
+        }
+
+        // 軌道線の表示制御
+        function toggleOrbitVisibility(visible) {
+            solarSystemGroup.children.forEach(child => {
+                if (child.userData && child.userData.type === 'orbit') {
+                    child.visible = visible;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
