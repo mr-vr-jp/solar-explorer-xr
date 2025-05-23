@@ -267,41 +267,50 @@
         // 惑星データ
         const planetData = [
             { name: '太陽', size: 0.25, distance: 0, color: 0xFFA500, speed: 0, type: 'sun', emissive: 0xFFAA00, rotationSpeed: 0.001, 
-              realDistance: '0', realSize: '1,392,700km', period: '-', feature: '太陽系の中心星、核融合により光と熱を放射',
-              gravity: '274m/s²', atmosphere: '水素73%, ヘリウム25%', moons: '0', discovery: '古代', 
-              fact: '表面温度5,778K、中心部は1,500万度に達する' },
+              realDistance: '0', realSize: '1,392,700km', period: '-', 
+              feature: '太陽系の中心に位置する恒星で、水素とヘリウムの核融合により莫大なエネルギーを放出している。表面温度は約5,778K、中心部は1,500万度に達する。太陽風と呼ばれる荷電粒子の流れを常に放出しており、これが地球のオーロラの原因となっている。',
+              discovery: '古代', 
+              fact: '太陽は1秒間に400万トンの質量をエネルギーに変換している。地球に届く太陽光は8分19秒前に太陽表面を出発したもの。太陽の核で作られた光子が表面に到達するまでには10万年から17万年かかる。太陽系の質量の99.86%を占めており、地球130万個分の体積を持つ。' },
             { name: '水星', size: 0.008, distance: 0.6, color: 0x8C7853, speed: 0.002, type: 'mercury', rotationSpeed: 0.0002,
-              realDistance: '0.39AU', realSize: '4,879km', period: '88日', feature: '太陽に最も近い惑星、昼夜の温度差が激しい',
-              gravity: '3.7m/s²', atmosphere: 'ほとんどなし', moons: '0', discovery: '古代', 
-              fact: '昼間は427°C、夜は-173°Cと極端な温度差' },
+              realDistance: '0.39AU', realSize: '4,879km', period: '88日', 
+              feature: '太陽に最も近い惑星で、極端な温度差が特徴。大気がほとんど存在しないため、昼間は427°C、夜間は-173°Cと590°Cもの温度差が生じる。表面はクレーターだらけで月に似ているが、巨大なカロリス盆地という直径1,550kmの衝突クレーターが存在する。',
+              discovery: '古代', 
+              fact: '水星の1日（自転周期）は地球の59日に相当するが、1年（公転周期）は88日しかない。そのため水星では1日が1年の3分の2もの長さになる。また、水星は太陽系で最も軌道離心率が大きく、近日点と遠日点の距離差は2,400万kmもある。氷が存在する可能性のある極地のクレーターがある。' },
             { name: '金星', size: 0.012, distance: 0.85, color: 0xFFC649, speed: 0.0015, type: 'venus', rotationSpeed: -0.00005,
-              realDistance: '0.72AU', realSize: '12,104km', period: '225日', feature: '厚い雲に覆われ、逆回転している灼熱の惑星',
-              gravity: '8.9m/s²', atmosphere: '二酸化炭素96%, 窒素3.5%', moons: '0', discovery: '古代', 
-              fact: '表面温度462°C、太陽系で最も熱い惑星' },
+              realDistance: '0.72AU', realSize: '12,104km', period: '225日', 
+              feature: '太陽系で最も高温の惑星で、厚い二酸化炭素の大気と硫酸の雲に覆われている。温室効果により表面温度は462°Cに達し、鉛も溶けるほど。大気圧は地球の90倍もある。興味深いことに、他の惑星とは逆方向に自転している。この逆回転により、金星では太陽が西から昇り東に沈む。',
+              discovery: '古代', 
+              fact: '金星の1日は地球の243日に相当し、これは金星の1年（225日）よりも長い。つまり金星では1日が1年より長い唯一の惑星。金星の雲は硫酸でできており、時速350kmという猛烈な風が吹いている。表面には約1,000個の火山があり、現在も活動している可能性がある。' },
             { name: '地球', size: 0.013, distance: 1.15, color: 0x6B93D6, speed: 0.001, type: 'earth', rotationSpeed: 0.004,
-              realDistance: '1.00AU', realSize: '12,756km', period: '365日', feature: '唯一生命が存在する惑星、71%が海で覆われる',
-              gravity: '9.8m/s²', atmosphere: '窒素78%, 酸素21%', moons: '1', discovery: '古代', 
-              fact: '約46億年前に誕生、生命は約38億年前に出現' },
+              realDistance: '1.00AU', realSize: '12,756km', period: '365日', 
+              feature: '太陽系で唯一生命が存在することが確認されている惑星。表面の71%が海で覆われ、酸素と窒素からなる大気に包まれている。月という大きな衛星を持ち、これが潮汐を生み出し地軸を安定させている。プレートテクトニクスにより地表が常に変化し続けている。磁場により太陽風から保護されている。',
+              discovery: '古代', 
+              fact: '地球上の生命は約38億年前に誕生したとされ、最初は単細胞生物だった。地球の核は液体の鉄とニッケルでできており、その流動により磁場が生成される。1日は実際には23時間56分4秒で、これを恒星日という。地球の重力により時空が歪み、GPS衛星は相対性理論の補正が必要。' },
             { name: '火星', size: 0.009, distance: 1.45, color: 0xCD5C5C, speed: 0.0008, type: 'mars', rotationSpeed: 0.0038,
-              realDistance: '1.52AU', realSize: '6,792km', period: '687日', feature: '赤い惑星、オリンポス山や極地の氷で有名',
-              gravity: '3.7m/s²', atmosphere: '二酸化炭素95%, 窒素2.8%', moons: '2', discovery: '古代', 
-              fact: 'オリンポス山は高さ21km、太陽系最大の火山' },
+              realDistance: '1.52AU', realSize: '6,792km', period: '687日', 
+              feature: '赤い惑星として知られ、酸化鉄（錆）により赤く見える。太陽系最大の火山オリンポス山（高さ21km）と最大の峡谷ヴァレス・マリネリスを持つ。極地には氷が存在し、過去には液体の水が流れていた証拠がある。薄い大気を持ち、巨大な砂嵐が惑星全体を覆うことがある。',
+              discovery: '古代', 
+              fact: '火星には太陽系最大の火山オリンポス山があり、これはエベレストの約3倍の高さ。火星の重力は地球の38%なので、地球で50kg の人は火星では19kgになる。火星の1日は24時間37分と地球とほぼ同じ。火星には「フォボス」と「デイモス」という2つの小さな衛星があり、どちらもジャガイモのような不規則な形をしている。' },
             { name: '木星', size: 0.11, distance: 2.0, color: 0xD2691E, speed: 0.0005, type: 'jupiter', rotationSpeed: 0.009,
-              realDistance: '5.20AU', realSize: '142,984km', period: '12年', feature: '太陽系最大の惑星、大赤斑と79個の衛星',
-              gravity: '24.8m/s²', atmosphere: '水素89%, ヘリウム10%', moons: '95', discovery: '古代', 
-              fact: '大赤斑は地球2個分の大きさの巨大な嵐' },
+              realDistance: '5.20AU', realSize: '142,984km', period: '12年', 
+              feature: '太陽系最大の惑星で、地球の1,300倍以上の体積を持つガス巨星。大赤斑という地球2個分の巨大な高気圧の嵐が300年以上続いている。95個の衛星を持ち、その中には氷の下に海があるエウロパや、活火山があるイオなどがある。木星は太陽系の掃除機の役割を果たし、小惑星や彗星を引き寄せて地球を守っている。',
+              discovery: '古代', 
+              fact: '木星は太陽系の他のすべての惑星を合わせたよりも重い。木星の重力により、太陽系外縁部の小天体が内側に侵入するのを防いでいる。木星の衛星イオは太陽系で最も火山活動が活発で、硫黄の噴火により黄色く見える。木星は実は小さな恒星になりそこねた星で、もう少し重ければ第二の太陽になっていた。' },
             { name: '土星', size: 0.09, distance: 2.6, color: 0xB8860B, speed: 0.0004, type: 'saturn', rotationSpeed: 0.008,
-              realDistance: '9.58AU', realSize: '120,536km', period: '29年', feature: '美しいリングシステムで有名、82個の衛星',
-              gravity: '10.4m/s²', atmosphere: '水素96%, ヘリウム3%', moons: '146', discovery: '古代', 
-              fact: '密度が水より軽く、理論上は水に浮く' },
+              realDistance: '9.58AU', realSize: '120,536km', period: '29年', 
+              feature: '美しいリングシステムで有名なガス巨星。リングは氷と岩石の破片でできており、数億個の粒子が軌道を描いている。146個の衛星を持ち、その中には濃い大気と液体メタンの湖があるタイタンや、氷の間欠泉を噴出するエンケラドスがある。密度が水より軽く、理論上は巨大なプールがあれば浮くことができる。',
+              discovery: '古代', 
+              fact: '土星のリングの厚さはわずか10メートルほどしかない。土星の衛星タイタンは太陽系で唯一濃い大気を持つ衛星で、メタンの雨が降り、メタンとエタンの湖がある。土星の北極には六角形の嵐があり、これは他の惑星では見られない現象。土星は太陽系で最も平たい惑星で、極径と赤道径の差が約12,000kmもある。' },
             { name: '天王星', size: 0.04, distance: 3.2, color: 0x4FD0E7, speed: 0.0003, type: 'uranus', rotationSpeed: 0.007,
-              realDistance: '19.2AU', realSize: '51,118km', period: '84年', feature: '横倒しに自転する氷の巨人、27個の衛星',
-              gravity: '8.7m/s²', atmosphere: '水素83%, ヘリウム15%', moons: '27', discovery: '1781年', 
-              fact: '自転軸が98度傾斜、極地に42年間太陽が当たらない' },
+              realDistance: '19.2AU', realSize: '51,118km', period: '84年', 
+              feature: '自転軸が98度傾いており、横倒しに回転している氷の巨星。この特異な自転により、極地では42年間昼が続き、その後42年間夜が続く。メタン氷の雲により美しい青緑色に見える。非常に暗いリングシステムを持ち、27個の衛星がある。磁場が自転軸から59度も傾いている奇妙な惑星。',
+              discovery: '1781年', 
+              fact: '天王星は太陽系で最も寒い惑星で、最低温度は-224°Cに達する。木星や土星よりも遠いのに、なぜか海王星よりも寒い。天王星の発見により太陽系の大きさが一気に2倍になった。天王星の衛星はすべてシェイクスピアの作品の登場人物にちなんで名付けられている。天王星の1年は地球の84年に相当する。' },
             { name: '海王星', size: 0.04, distance: 3.8, color: 0x4169E1, speed: 0.0002, type: 'neptune', rotationSpeed: 0.006,
-              realDistance: '30.1AU', realSize: '49,528km', period: '165年', feature: '太陽系最も遠い惑星、強い風が吹く氷の巨人',
-              gravity: '11.2m/s²', atmosphere: '水素80%, ヘリウム19%', moons: '16', discovery: '1846年', 
-              fact: '風速2,100km/hと太陽系最速の風が吹く' }
+              realDistance: '30.1AU', realSize: '49,528km', period: '165年', 
+              feature: '太陽系最も遠い惑星で、深い青色が美しい氷の巨星。太陽系で最も強い風が吹き、その速度は時速2,100kmに達する。これは音速の1.5倍という驚異的な速さ。大暗斑という巨大な嵐があったが、現在は消失している。16個の衛星を持ち、最大の衛星トリトンは逆行軌道を持つ珍しい衛星。',
+              discovery: '1846年', 
+              fact: '海王星は計算によって発見された唯一の惑星で、天王星の軌道の乱れから存在が予測された。海王星は2011年にようやく発見以来初めての公転を完了した。海王星の衛星トリトンは太陽系で最も寒い場所の一つで、-235°Cという極低温。海王星のコアの温度は約5,000°Cで、太陽の表面とほぼ同じ温度。' }
         ];
 
         // 惑星テクスチャ生成
@@ -1056,52 +1065,49 @@
             ctx.lineTo(500, 75);
             ctx.stroke();
             
-            // 情報項目のレイアウト
+            // 基本情報項目のレイアウト（簡略化）
             ctx.textAlign = 'left';
             let yPos = 120;
-            const lineHeight = 45;
+            const lineHeight = 40;
             
             const infoItems = [
                 { label: '距離', value: planetData.realDistance, icon: '🌍' },
                 { label: 'サイズ', value: planetData.realSize, icon: '📏' },
                 { label: '公転周期', value: planetData.period, icon: '🔄' },
-                { label: '重力', value: planetData.gravity, icon: '⬇️' },
-                { label: '大気', value: planetData.atmosphere, icon: '🌬️' },
-                { label: '衛星数', value: planetData.moons + '個', icon: '🌙' },
                 { label: '発見', value: planetData.discovery, icon: '🔭' }
             ];
             
             infoItems.forEach(item => {
                 // アイコン
-                ctx.font = '24px Arial';
+                ctx.font = '22px Arial';
                 ctx.fillStyle = '#ffffff';
                 ctx.fillText(item.icon, 30, yPos);
                 
                 // ラベル
                 ctx.fillStyle = '#ffaa00';
-                ctx.font = 'bold 24px Arial';
+                ctx.font = 'bold 22px Arial';
                 ctx.fillText(item.label + ':', 70, yPos);
                 
                 // 値
                 ctx.fillStyle = '#ffffff';
-                ctx.font = '22px Arial';
+                ctx.font = '20px Arial';
                 const labelWidth = ctx.measureText(item.label + ': ').width;
                 ctx.fillText(item.value, 70 + labelWidth, yPos);
                 
                 yPos += lineHeight;
             });
             
-            // 特徴セクション
-            yPos += 20;
+            // 特徴セクション（より大きく）
+            yPos += 30;
             ctx.fillStyle = '#ffaa00';
-            ctx.font = 'bold 26px Arial';
+            ctx.font = 'bold 28px Arial';
             ctx.fillText('✨ 特徴:', 30, yPos);
             
-            yPos += 35;
+            yPos += 40;
             ctx.fillStyle = '#ffffff';
-            ctx.font = '20px Arial';
+            ctx.font = '18px Arial';
             
-            // 特徴テキストを複数行に分割
+            // 特徴テキストを複数行に分割（より詳細に）
             const features = planetData.feature;
             const maxWidth = 520;
             const words = features.split('');
@@ -1114,24 +1120,24 @@
                 if (metrics.width > maxWidth && i > 0) {
                     ctx.fillText(line, 50, yPos);
                     line = words[i];
-                    yPos += 25;
+                    yPos += 24;
                 } else {
                     line = testLine;
                 }
             }
             ctx.fillText(line, 50, yPos);
             
-            // 興味深い事実セクション
-            yPos += 45;
+            // 豆知識セクション（より大きく）
+            yPos += 50;
             ctx.fillStyle = '#00ddff';
-            ctx.font = 'bold 26px Arial';
+            ctx.font = 'bold 28px Arial';
             ctx.fillText('💡 豆知識:', 30, yPos);
             
-            yPos += 35;
+            yPos += 40;
             ctx.fillStyle = '#ddffdd';
-            ctx.font = '20px Arial';
+            ctx.font = '18px Arial';
             
-            // 豆知識テキストを複数行に分割
+            // 豆知識テキストを複数行に分割（より詳細に）
             const facts = planetData.fact;
             const factWords = facts.split('');
             let factLine = '';
@@ -1143,7 +1149,7 @@
                 if (metrics.width > maxWidth && i > 0) {
                     ctx.fillText(factLine, 50, yPos);
                     factLine = factWords[i];
-                    yPos += 25;
+                    yPos += 24;
                 } else {
                     factLine = testLine;
                 }
