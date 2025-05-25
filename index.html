@@ -232,7 +232,9 @@
         let scene, camera, renderer, solarSystemGroup;
         let planets = [];
         let controllers = { left: null, right: null };
+        let controllerGrips = { left: null, right: null };
         let gripStates = { left: false, right: false };
+        let controllersInitialized = false;
         let lastDistance = 0;
         let scaleFactor = 1;
         let xrSupported = false;
@@ -1904,80 +1906,164 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // XRコントローラーセットアップ
-        function setupXRControllers() {
-            console.log('Setting up XR controllers...');
+        // XRコントローラーセットアップ（新システム）
+        function initializeXRControllers() {
+            if (controllersInitialized) {
+                console.log('Controllers already initialized, skipping...');
+                return;
+            }
             
-            // 左コントローラー
-            const leftController = renderer.xr.getController(0);
-            leftController.addEventListener('selectstart', (event) => {
-                console.log('Left controller select start');
+            console.log('Initializing XR controllers...');
+            
+            try {
+                // 左コントローラー（インデックス0）
+                controllers.left = renderer.xr.getController(0);
+                controllerGrips.left = renderer.xr.getControllerGrip(0);
+                
+                // 右コントローラー（インデックス1）
+                controllers.right = renderer.xr.getController(1);
+                controllerGrips.right = renderer.xr.getControllerGrip(1);
+                
+                // イベントリスナーの設定
+                setupControllerEvents();
+                
+                // レーザーポインターの追加
+                addLaserPointers();
+                
+                // シーンに追加
+                scene.add(controllers.left);
+                scene.add(controllers.right);
+                scene.add(controllerGrips.left);
+                scene.add(controllerGrips.right);
+                
+                controllersInitialized = true;
+                console.log('XR controllers initialized successfully');
+                
+            } catch (error) {
+                console.error('Error initializing controllers:', error);
+            }
+        }
+        
+        function setupControllerEvents() {
+            console.log('Setting up controller events...');
+            
+            // 左コントローラーのイベント
+            controllers.left.addEventListener('selectstart', (event) => {
+                console.log('Left controller: select start');
                 onSelectStart(event, 'left');
             });
-            leftController.addEventListener('selectend', (event) => {
-                console.log('Left controller select end');
+            controllers.left.addEventListener('selectend', (event) => {
+                console.log('Left controller: select end');
                 onSelectEnd(event, 'left');
             });
-            leftController.addEventListener('squeezestart', () => {
-                console.log('Left controller squeeze start');
+            controllers.left.addEventListener('squeezestart', () => {
+                console.log('Left controller: squeeze start');
                 onGripStart('left');
             });
-            leftController.addEventListener('squeezeend', () => {
-                console.log('Left controller squeeze end');
+            controllers.left.addEventListener('squeezeend', () => {
+                console.log('Left controller: squeeze end');
                 onGripEnd('left');
             });
             
-            // レーザーポインターの作成（シンプル版）
-            const leftLine = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -1)
-            ]);
-            const leftMaterial = new THREE.LineBasicMaterial({ color: 0x00ff88 });
-            const leftRay = new THREE.Line(leftLine, leftMaterial);
-            leftController.add(leftRay);
-            
-            scene.add(leftController);
-            controllers.left = leftController;
-
-            // 右コントローラー
-            const rightController = renderer.xr.getController(1);
-            rightController.addEventListener('selectstart', (event) => {
-                console.log('Right controller select start');
+            // 右コントローラーのイベント
+            controllers.right.addEventListener('selectstart', (event) => {
+                console.log('Right controller: select start');
                 onSelectStart(event, 'right');
             });
-            rightController.addEventListener('selectend', (event) => {
-                console.log('Right controller select end');
+            controllers.right.addEventListener('selectend', (event) => {
+                console.log('Right controller: select end');
                 onSelectEnd(event, 'right');
             });
-            rightController.addEventListener('squeezestart', () => {
-                console.log('Right controller squeeze start');
+            controllers.right.addEventListener('squeezestart', () => {
+                console.log('Right controller: squeeze start');
                 onGripStart('right');
             });
-            rightController.addEventListener('squeezeend', () => {
-                console.log('Right controller squeeze end');
+            controllers.right.addEventListener('squeezeend', () => {
+                console.log('Right controller: squeeze end');
                 onGripEnd('right');
             });
             
-            // レーザーポインターの作成（シンプル版）
-            const rightLine = new THREE.BufferGeometry().setFromPoints([
+            // 接続イベント
+            controllers.left.addEventListener('connected', (event) => {
+                console.log('Left controller connected:', event.data);
+            });
+            controllers.right.addEventListener('connected', (event) => {
+                console.log('Right controller connected:', event.data);
+            });
+            
+            // 切断イベント
+            controllers.left.addEventListener('disconnected', (event) => {
+                console.log('Left controller disconnected');
+            });
+            controllers.right.addEventListener('disconnected', (event) => {
+                console.log('Right controller disconnected');
+            });
+        }
+        
+        function addLaserPointers() {
+            console.log('Adding laser pointers...');
+            
+            // 左レーザーポインター
+            const leftGeometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -1)
+                new THREE.Vector3(0, 0, -2)
             ]);
-            const rightMaterial = new THREE.LineBasicMaterial({ color: 0x00ff88 });
-            const rightRay = new THREE.Line(rightLine, rightMaterial);
-            rightController.add(rightRay);
+            const leftMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ff88,
+                transparent: true,
+                opacity: 0.8
+            });
+            const leftRay = new THREE.Line(leftGeometry, leftMaterial);
+            leftRay.name = 'laser-pointer';
+            controllers.left.add(leftRay);
             
-            scene.add(rightController);
-            controllers.right = rightController;
-
-            // コントローラーグリップ
-            const leftControllerGrip = renderer.xr.getControllerGrip(0);
-            scene.add(leftControllerGrip);
-
-            const rightControllerGrip = renderer.xr.getControllerGrip(1);
-            scene.add(rightControllerGrip);
+            // 右レーザーポインター
+            const rightGeometry = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -2)
+            ]);
+            const rightMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ff88,
+                transparent: true,
+                opacity: 0.8
+            });
+            const rightRay = new THREE.Line(rightGeometry, rightMaterial);
+            rightRay.name = 'laser-pointer';
+            controllers.right.add(rightRay);
             
-            console.log('XR Controllers setup completed');
+            console.log('Laser pointers added');
+        }
+        
+        // 入力ソース変更の監視
+        function onXRInputSourcesChange(event) {
+            console.log('XR input sources changed:', event);
+            
+            event.added.forEach((inputSource) => {
+                console.log('Input source added:', inputSource);
+            });
+            
+            event.removed.forEach((inputSource) => {
+                console.log('Input source removed:', inputSource);
+            });
+            
+            // コントローラーの状態をチェック
+            checkControllerStates();
+        }
+        
+        function checkControllerStates() {
+            if (!xrActive) return;
+            
+            const session = renderer.xr.getSession();
+            if (!session) return;
+            
+            console.log('Active input sources:', session.inputSources.length);
+            session.inputSources.forEach((source, index) => {
+                console.log(`Input source ${index}:`, {
+                    handedness: source.handedness,
+                    targetRayMode: source.targetRayMode,
+                    hasGamepad: !!source.gamepad
+                });
+            });
         }
 
 
@@ -2014,28 +2100,39 @@
         }
 
         function onGripStart(hand) {
+            console.log(`Grip start: ${hand}`);
             gripStates[hand] = true;
+            
+            if (!controllersInitialized) {
+                console.log('Controllers not initialized, ignoring grip');
+                return;
+            }
             
             // 片手グリップの場合はドラッグ開始
             if ((gripStates.left && !gripStates.right) || (!gripStates.left && gripStates.right)) {
                 isDragging = true;
                 const controller = gripStates.left ? controllers.left : controllers.right;
-                if (controller) {
+                if (controller && controller.visible) {
                     const tempMatrix = new THREE.Matrix4();
                     tempMatrix.identity().extractRotation(controller.matrixWorld);
                     dragStartPosition.setFromMatrixPosition(controller.matrixWorld);
                     userStartPosition.copy(userPosition);
+                    console.log(`Drag started with ${hand} controller`);
                 }
             }
             
             // 両手でグリップした場合の初期距離を記録
-            if (gripStates.left && gripStates.right && controllers.left && controllers.right) {
+            if (gripStates.left && gripStates.right && 
+                controllers.left && controllers.right && 
+                controllers.left.visible && controllers.right.visible) {
+                
                 isDragging = false;
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
                 leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
                 rightPos.setFromMatrixPosition(controllers.right.matrixWorld);
                 lastDistance = leftPos.distanceTo(rightPos);
+                console.log(`Two-hand scaling started, initial distance: ${lastDistance.toFixed(3)}`);
             }
             
             updateGripStatus();
@@ -2387,31 +2484,21 @@
                     console.log('VR session created');
                 }
 
+                // 入力ソース変更の監視を設定
+                session.addEventListener('inputsourceschange', onXRInputSourcesChange);
+                
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 console.log('XR session set');
                 
-                // XRセッション開始のイベントリスナーを設定
-                session.addEventListener('visibilitychange', () => {
-                    if (session.visibilityState === 'visible') {
-                        console.log('XR session became visible, setting up controllers...');
-                        setTimeout(() => {
-                            setupXRControllers();
-                        }, 100);
-                    }
-                });
+                // コントローラーの初期化（1回のみ）
+                initializeXRControllers();
                 
-                // 初回のコントローラーセットアップ
+                // セッション開始後の処理
                 setTimeout(() => {
-                    console.log('Initial controller setup...');
-                    setupXRControllers();
-                    
-                    // さらに確実にするため、追加セットアップ
-                    setTimeout(() => {
-                        console.log('Secondary controller setup...');
-                        setupXRControllers();
-                    }, 1000);
-                }, 500);
+                    console.log('Checking controller states after session start...');
+                    checkControllerStates();
+                }, 1000);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -2421,6 +2508,10 @@
                 session.addEventListener('end', () => {
                     console.log('XR session ended');
                     xrActive = false;
+                    
+                    // コントローラーの状態をリセット
+                    controllersInitialized = false;
+                    gripStates = { left: false, right: false };
                     
                     // BGM停止
                     if (bgMusic) {
@@ -2554,10 +2645,17 @@
             });
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
-            if (xrActive && !planetInfoVisible) {
-                // 右コントローラーまたは左コントローラーからレイキャスト
-                const activeController = controllers.right || controllers.left;
-                if (activeController && activeController.visible) {
+            if (xrActive && controllersInitialized && !planetInfoVisible) {
+                // 接続されているコントローラーをチェック
+                let activeController = null;
+                
+                if (controllers.right && controllers.right.visible) {
+                    activeController = controllers.right;
+                } else if (controllers.left && controllers.left.visible) {
+                    activeController = controllers.left;
+                }
+                
+                if (activeController) {
                     try {
                         // コントローラーの位置と方向を取得
                         const tempMatrix = new THREE.Matrix4();
@@ -2592,11 +2690,18 @@
             }
 
             // 片手グリップでのドラッグ移動（ユーザー位置を移動）
-            if (isDragging) {
-                const activeController = gripStates.left ? controllers.left : controllers.right;
-                if (activeController) {
+            if (isDragging && controllersInitialized) {
+                let dragController = null;
+                
+                if (gripStates.left && controllers.left && controllers.left.visible) {
+                    dragController = controllers.left;
+                } else if (gripStates.right && controllers.right && controllers.right.visible) {
+                    dragController = controllers.right;
+                }
+                
+                if (dragController) {
                     const currentPosition = new THREE.Vector3();
-                    currentPosition.setFromMatrixPosition(activeController.matrixWorld);
+                    currentPosition.setFromMatrixPosition(dragController.matrixWorld);
                     
                     const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
                     // 移動方向を反転させてユーザーが移動している感覚にする
@@ -2609,7 +2714,10 @@
             }
 
             // 両手グリップでのスケール調整（常に動作）
-            if (gripStates.left && gripStates.right && controllers.left && controllers.right && !isDragging) {
+            if (gripStates.left && gripStates.right && controllersInitialized && 
+                controllers.left && controllers.right && 
+                controllers.left.visible && controllers.right.visible && !isDragging) {
+                
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
                 leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
