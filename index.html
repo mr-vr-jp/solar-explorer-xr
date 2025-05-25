@@ -1906,23 +1906,28 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // XRコントローラーセットアップ（新システム）
+        // XRコントローラーセットアップ（Three.js r168対応）
         function initializeXRControllers() {
             if (controllersInitialized) {
                 console.log('Controllers already initialized, skipping...');
                 return;
             }
             
-            console.log('Initializing XR controllers...');
+            console.log('Initializing XR controllers for Three.js r168...');
             
             try {
-                // 左コントローラー（インデックス0）
+                // r168対応：正しいAPIを使用
                 controllers.left = renderer.xr.getController(0);
                 controllerGrips.left = renderer.xr.getControllerGrip(0);
                 
-                // 右コントローラー（インデックス1）
                 controllers.right = renderer.xr.getController(1);
                 controllerGrips.right = renderer.xr.getControllerGrip(1);
+                
+                // r168対応：コントローラーの状態チェック
+                if (!controllers.left || !controllers.right) {
+                    console.warn('Controllers not available, retrying...');
+                    return;
+                }
                 
                 // イベントリスナーの設定
                 setupControllerEvents();
@@ -1937,15 +1942,28 @@
                 scene.add(controllerGrips.right);
                 
                 controllersInitialized = true;
-                console.log('XR controllers initialized successfully');
+                console.log('XR controllers initialized successfully with r168');
                 
             } catch (error) {
                 console.error('Error initializing controllers:', error);
+                // r168対応：エラー時は少し待ってリトライ
+                setTimeout(() => {
+                    if (!controllersInitialized) {
+                        console.log('Retrying controller initialization...');
+                        initializeXRControllers();
+                    }
+                }, 1000);
             }
         }
         
         function setupControllerEvents() {
-            console.log('Setting up controller events...');
+            console.log('Setting up controller events for r168...');
+            
+            // r168対応：nullチェックを追加
+            if (!controllers.left || !controllers.right) {
+                console.warn('Controllers not ready for event setup');
+                return;
+            }
             
             // 左コントローラーのイベント
             controllers.left.addEventListener('selectstart', (event) => {
@@ -1983,12 +2001,20 @@
                 onGripEnd('right');
             });
             
-            // 接続イベント
+            // r168対応：接続イベントの改善
             controllers.left.addEventListener('connected', (event) => {
                 console.log('Left controller connected:', event.data);
+                // 接続時に再度初期化を試行
+                if (!controllersInitialized) {
+                    setTimeout(() => initializeXRControllers(), 100);
+                }
             });
             controllers.right.addEventListener('connected', (event) => {
                 console.log('Right controller connected:', event.data);
+                // 接続時に再度初期化を試行
+                if (!controllersInitialized) {
+                    setTimeout(() => initializeXRControllers(), 100);
+                }
             });
             
             // 切断イベント
@@ -2001,37 +2027,47 @@
         }
         
         function addLaserPointers() {
-            console.log('Adding laser pointers...');
+            console.log('Adding laser pointers for r168...');
             
-            // 左レーザーポインター
-            const leftGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -2)
-            ]);
-            const leftMaterial = new THREE.LineBasicMaterial({ 
-                color: 0x00ff88, 
-                transparent: true, 
-                opacity: 0.8 
-            });
-            const leftRay = new THREE.Line(leftGeometry, leftMaterial);
-            leftRay.name = 'laser-pointer';
-            controllers.left.add(leftRay);
+            // r168対応：nullチェック
+            if (!controllers.left || !controllers.right) {
+                console.warn('Controllers not ready for laser pointers');
+                return;
+            }
             
-            // 右レーザーポインター
-            const rightGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -2)
-            ]);
-            const rightMaterial = new THREE.LineBasicMaterial({ 
-                color: 0x00ff88,
-                transparent: true,
-                opacity: 0.8
-            });
-            const rightRay = new THREE.Line(rightGeometry, rightMaterial);
-            rightRay.name = 'laser-pointer';
-            controllers.right.add(rightRay);
-            
-            console.log('Laser pointers added');
+            try {
+                // 左レーザーポインター
+                const leftGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, 0, -2)
+                ]);
+                const leftMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0x00ff88, 
+                    transparent: true, 
+                    opacity: 0.8 
+                });
+                const leftRay = new THREE.Line(leftGeometry, leftMaterial);
+                leftRay.name = 'laser-pointer';
+                controllers.left.add(leftRay);
+                
+                // 右レーザーポインター
+                const rightGeometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(0, 0, 0),
+                    new THREE.Vector3(0, 0, -2)
+                ]);
+                const rightMaterial = new THREE.LineBasicMaterial({ 
+                    color: 0x00ff88,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                const rightRay = new THREE.Line(rightGeometry, rightMaterial);
+                rightRay.name = 'laser-pointer';
+                controllers.right.add(rightRay);
+                
+                console.log('Laser pointers added successfully');
+            } catch (error) {
+                console.error('Error adding laser pointers:', error);
+            }
         }
         
         // 入力ソース変更の監視（Quest対応強化）
