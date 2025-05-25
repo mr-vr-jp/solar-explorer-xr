@@ -327,28 +327,38 @@
                     const centerY = size / 2;
                     const radius = size / 2;
                     
-                    // ベースの放射グラデーション
+                    // ベースの放射グラデーション（より明るく強化）
                     const sunGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-                    sunGradient.addColorStop(0, '#FFFF88');
-                    sunGradient.addColorStop(0.2, '#FFDD44');
-                    sunGradient.addColorStop(0.4, '#FFAA22');
-                    sunGradient.addColorStop(0.6, '#FF8800');
-                    sunGradient.addColorStop(0.8, '#FF4400');
-                    sunGradient.addColorStop(1, '#CC2200');
+                    sunGradient.addColorStop(0, '#FFFFFF');  // 純白の中心
+                    sunGradient.addColorStop(0.1, '#FFFFCC'); // 明るい黄白
+                    sunGradient.addColorStop(0.3, '#FFFF66'); // 明るい黄色
+                    sunGradient.addColorStop(0.5, '#FFCC33'); // 明るいオレンジ黄
+                    sunGradient.addColorStop(0.7, '#FF9900'); // 強いオレンジ
+                    sunGradient.addColorStop(0.9, '#FF6600'); // 深いオレンジ
+                    sunGradient.addColorStop(1, '#DD4400');   // 赤みのある縁
                     ctx.fillStyle = sunGradient;
                     ctx.fillRect(0, 0, size, size);
                     
-                    // コロナ効果
-                    for(let i = 0; i < 8; i++) {
-                        const angle = (i / 8) * Math.PI * 2;
-                        const coronaX = centerX + Math.cos(angle) * radius * 0.7;
-                        const coronaY = centerY + Math.sin(angle) * radius * 0.7;
-                        const coronaGradient = ctx.createRadialGradient(coronaX, coronaY, 0, coronaX, coronaY, radius * 0.3);
-                        coronaGradient.addColorStop(0, 'rgba(255, 255, 200, 0.6)');
-                        coronaGradient.addColorStop(1, 'rgba(255, 255, 200, 0)');
+                    // 強化されたコロナ効果
+                    for(let i = 0; i < 12; i++) {
+                        const angle = (i / 12) * Math.PI * 2;
+                        const coronaX = centerX + Math.cos(angle) * radius * 0.6;
+                        const coronaY = centerY + Math.sin(angle) * radius * 0.6;
+                        const coronaGradient = ctx.createRadialGradient(coronaX, coronaY, 0, coronaX, coronaY, radius * 0.4);
+                        coronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); // より明るい白
+                        coronaGradient.addColorStop(0.4, 'rgba(255, 255, 180, 0.7)');
+                        coronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
                         ctx.fillStyle = coronaGradient;
                         ctx.fillRect(0, 0, size, size);
                     }
+                    
+                    // 追加の明るいコロナリング
+                    const mainCoronaGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, radius);
+                    mainCoronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                    mainCoronaGradient.addColorStop(0.5, 'rgba(255, 255, 200, 0.4)');
+                    mainCoronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
+                    ctx.fillStyle = mainCoronaGradient;
+                    ctx.fillRect(0, 0, size, size);
                     
                     // プロミネンス（太陽フレア）
                     for(let i = 0; i < 12; i++) {
@@ -806,16 +816,28 @@
             backgroundSphere = createBackgroundSphere();
             scene.add(backgroundSphere);
 
-            // 太陽光源
-            const sunLight = new THREE.PointLight(0xFFFFAA, 2, 50);
+            // メイン太陽光源（大幅に強化）
+            const sunLight = new THREE.PointLight(0xFFFFDD, 8, 100);
             sunLight.position.set(0, 0, 0);
             sunLight.castShadow = true;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.mapSize.width = 4096;
+            sunLight.shadow.mapSize.height = 4096;
+            sunLight.shadow.camera.near = 0.1;
+            sunLight.shadow.camera.far = 100;
             solarSystemGroup.add(sunLight);
+            
+            // 追加の太陽光源（より現実的な光の広がり）
+            const sunLight2 = new THREE.PointLight(0xFFDD88, 4, 80);
+            sunLight2.position.set(0, 0, 0);
+            solarSystemGroup.add(sunLight2);
+            
+            // 太陽コロナ光源
+            const coronaLight = new THREE.PointLight(0xFFFFFF, 2, 60);
+            coronaLight.position.set(0, 0, 0);
+            solarSystemGroup.add(coronaLight);
 
-            // 環境光
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.3);
+            // 環境光（太陽の明るさに対応して調整）
+            const ambientLight = new THREE.AmbientLight(0x606080, 0.4);
             scene.add(ambientLight);
 
             // 惑星作成
@@ -828,8 +850,41 @@
                     material = new THREE.MeshBasicMaterial({ 
                         map: texture,
                         emissive: new THREE.Color(data.emissive),
-                        emissiveIntensity: 0.5
+                        emissiveIntensity: 2.5,
+                        transparent: false,
+                        side: THREE.DoubleSide
                     });
+                    
+                    // 太陽にグロー効果を追加
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.3, 32, 16);
+                    const glowMaterial = new THREE.ShaderMaterial({
+                        uniforms: {
+                            time: { value: 0 },
+                            glowColor: { value: new THREE.Color(0xFFDD88) }
+                        },
+                        vertexShader: `
+                            varying vec3 vNormal;
+                            void main() {
+                                vNormal = normalize(normalMatrix * normal);
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                            }
+                        `,
+                        fragmentShader: `
+                            uniform float time;
+                            uniform vec3 glowColor;
+                            varying vec3 vNormal;
+                            void main() {
+                                float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+                                intensity *= (0.8 + 0.2 * sin(time * 3.0));
+                                gl_FragColor = vec4(glowColor, 1.0) * intensity;
+                            }
+                        `,
+                        side: THREE.BackSide,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true
+                    });
+                    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+                    data.glowMaterial = glowMaterial; // アニメーション用に保存
                 } else {
                     material = new THREE.MeshLambertMaterial({ 
                         map: texture,
@@ -842,6 +897,14 @@
                 planet.position.x = data.distance;
                 planet.castShadow = data.name !== '太陽';
                 planet.receiveShadow = data.name !== '太陽';
+                
+                // 太陽の場合はグローエフェクトを追加
+                if (data.name === '太陽' && data.glowMaterial) {
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.3, 32, 16);
+                    const glowMesh = new THREE.Mesh(glowGeometry, data.glowMaterial);
+                    planet.add(glowMesh);
+                    data.glowMesh = glowMesh; // 参照を保存
+                }
                 
                 // 軌道表示
                 if (data.distance > 0) {
@@ -1451,6 +1514,11 @@
                 }
                 
                 planet.mesh.rotation.y += planet.rotationSpeed;
+                
+                // 太陽のグローエフェクト更新
+                if (planet.data.name === '太陽' && planet.data.glowMaterial) {
+                    planet.data.glowMaterial.uniforms.time.value = time;
+                }
                 
                 // 衛星の公転
                 planet.mesh.children.forEach(moon => {
