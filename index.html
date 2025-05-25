@@ -1967,8 +1967,11 @@
 
         // XRイベントハンドラー
         function onSelectStart(event, hand) {
+            console.log('トリガー押下:', hand, 'パネル存在:', !!planetInfoPanel, '表示状態:', planetInfoVisible);
+            
             // 情報パネルが存在する場合は閉じる（フェードアニメーション中も含む）
             if (planetInfoPanel || planetInfoVisible) {
+                console.log('情報パネルを閉じます');
                 hide3DPlanetInfo();
                 return; // モード切り替えは行わない
             }
@@ -1981,9 +1984,11 @@
                 // 宇宙空間モードの場合
                 if (thisControllerHighlight) {
                     // このコントローラーでハイライトされている惑星の情報表示
+                    console.log('惑星情報を表示:', thisControllerHighlight.data.name);
                     show3DPlanetInfo(thisControllerHighlight.data);
                 } else {
                     // このコントローラーで何もハイライトされていない場合はMRモードに戻る
+                    console.log('MRモードに切り替え');
                     toggleSpaceMode();
                 }
                 return;
@@ -1992,6 +1997,7 @@
             // MRモードでの操作
             if (thisControllerHighlight) {
                 // このコントローラーでハイライトされている惑星情報を記録してVRモードに切り替え
+                console.log('VRモードに切り替え:', thisControllerHighlight.data.name);
                 pendingPlanetInfo = thisControllerHighlight.data;
                 toggleSpaceMode();
             }
@@ -2221,13 +2227,16 @@
         }
 
         function hide3DPlanetInfo() {
+            console.log('hide3DPlanetInfo called, panel exists:', !!planetInfoPanel);
+            
             if (planetInfoPanel) {
-                removePlanetInfoPanel();
+                // フェードアウトアニメーション開始
+                panelFadeAnimation.target = 0;
+                console.log('フェードアウトアニメーション開始');
             }
             
-            // 状態を確実にリセット
+            // 表示状態を即座に更新（トリガー判定用）
             planetInfoVisible = false;
-            panelFadeAnimation.target = 0;
         }
 
         // パネルを完全に削除する関数
@@ -2450,8 +2459,9 @@
                 const actualOpacity = Math.max(0, Math.min(1, panelFadeAnimation.opacity));
                 planetInfoPanel.material.opacity = actualOpacity;
                 
-                // フェードアウト完了時にパネルを削除（より確実な判定）
-                if (panelFadeAnimation.target === 0 && (panelFadeAnimation.opacity <= 0.05 || actualOpacity <= 0.01)) {
+                // フェードアウト完了時にパネルを削除（完全に透明になってから削除）
+                if (panelFadeAnimation.target === 0 && actualOpacity <= 0.01) {
+                    console.log('フェードアウト完了、パネル削除');
                     removePlanetInfoPanel();
                 }
             }
@@ -2530,7 +2540,8 @@
             });
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
-            if (xrActive && !planetInfoVisible && controllers.length > 0) {
+            // 情報パネル表示中もレイキャストは継続（ハイライト処理のみ停止）
+            if (xrActive && controllers.length > 0) {
                 // 各コントローラーで独立してレイキャスト処理
                 controllers.forEach((controller, index) => {
                     if (controller && controller.visible) {
@@ -2552,13 +2563,16 @@
                             const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
                             const intersects = raycaster.intersectObjects(planetMeshes);
                             
-                            if (intersects.length > 0) {
-                                const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
-                                if (intersectedPlanet && intersectedPlanet !== highlightedPlanets[index]) {
-                                    highlightPlanet(intersectedPlanet, index);
+                            // 情報パネル表示中はハイライト処理をスキップ
+                            if (!planetInfoVisible) {
+                                if (intersects.length > 0) {
+                                    const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                                    if (intersectedPlanet && intersectedPlanet !== highlightedPlanets[index]) {
+                                        highlightPlanet(intersectedPlanet, index);
+                                    }
+                                } else {
+                                    clearHighlight(index);
                                 }
-                            } else {
-                                clearHighlight(index);
                             }
                         } catch (error) {
                             // エラーが発生した場合はこのコントローラーのハイライトをクリア
