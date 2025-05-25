@@ -94,6 +94,23 @@
             z-index: 100;
         }
 
+        #troubleshooting {
+            position: absolute;
+            top: 78%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 14px;
+            max-width: 400px;
+            background: rgba(40, 20, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 170, 0, 0.6);
+            text-align: left;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(255, 170, 0, 0.2);
+        }
+
         #info-panel {
             position: fixed;
             top: 20px;
@@ -185,6 +202,13 @@
             <div>• 空間クリック：MR復帰</div>
         </div>
 
+        <div id="troubleshooting">
+            <h3 class="warning" style="margin: 0 0 10px 0;">コントローラーが効かない場合</h3>
+            <div style="color: #ffaa00;">
+                ホームボタンを押して閉じる
+            </div>
+        </div>
+
         <div id="info-panel" class="overlay">
             <div class="highlight" style="margin-bottom: 10px;">
                 🥽 MRモード：アクティブ
@@ -264,8 +288,7 @@
         let dataLoaded = false; // データ読み込み完了フラグ
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
-        let panelCloseTime = 0; // 情報パネルを閉じた時刻
-        let PANEL_CLOSE_COOLDOWN = 500; // パネルクローズ後のクールダウン時間（ミリ秒）
+        let panelClosing = false; // 情報パネルがクローズ処理中かどうか
 
         // 惑星データ
         const planetData = [
@@ -1969,20 +1992,18 @@
 
         // XRイベントハンドラー
         function onSelectStart(event, hand) {
-            const currentTime = Date.now();
-            console.log('トリガー押下:', hand, 'パネル存在:', !!planetInfoPanel, '表示状態:', planetInfoVisible);
+            console.log('トリガー押下:', hand, 'パネル存在:', !!planetInfoPanel, '表示状態:', planetInfoVisible, 'クローズ中:', panelClosing);
             
-            // 情報パネルが存在する場合は閉じる（フェードアニメーション中も含む）
-            if (planetInfoPanel || planetInfoVisible) {
+            // 情報パネルが存在しクローズ中でない場合は閉じる
+            if ((planetInfoPanel || planetInfoVisible) && !panelClosing) {
                 console.log('情報パネルを閉じます');
                 hide3DPlanetInfo();
-                panelCloseTime = currentTime; // クローズ時刻を記録
                 return; // モード切り替えは行わない
             }
             
-            // パネルクローズ直後のクールダウン期間中はモード切り替えを無効
-            if (panelCloseTime > 0 && (currentTime - panelCloseTime) < PANEL_CLOSE_COOLDOWN) {
-                console.log('クールダウン期間中、操作無効:', currentTime - panelCloseTime, 'ms');
+            // パネルクローズ処理中は何もしない
+            if (panelClosing) {
+                console.log('パネルクローズ処理中、操作無効');
                 return;
             }
             
@@ -2231,8 +2252,8 @@
             
             planetInfoVisible = true;
             
-            // クールダウンをリセット（新しいパネル表示時）
-            panelCloseTime = 0;
+            // クローズフラグをリセット（新しいパネル表示時）
+            panelClosing = false;
             
             // フェードインアニメーション開始
             panelFadeAnimation.target = 1;
@@ -2242,14 +2263,17 @@
         function hide3DPlanetInfo() {
             console.log('hide3DPlanetInfo called, panel exists:', !!planetInfoPanel);
             
-            if (planetInfoPanel) {
+            if (planetInfoPanel && !panelClosing) {
+                // クローズ処理中フラグを設定
+                panelClosing = true;
+                
                 // フェードアウトアニメーション開始
                 panelFadeAnimation.target = 0;
                 console.log('フェードアウトアニメーション開始');
+                
+                // 表示状態を即座に更新（トリガー判定用）
+                planetInfoVisible = false;
             }
-            
-            // 表示状態を即座に更新（トリガー判定用）
-            planetInfoVisible = false;
         }
 
         // パネルを完全に削除する関数
@@ -2277,6 +2301,7 @@
             
             // 状態を確実にリセット
             planetInfoVisible = false;
+            panelClosing = false;
             panelFadeAnimation.opacity = 0;
             panelFadeAnimation.target = 0;
         }
@@ -2416,6 +2441,7 @@
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
                 document.getElementById('instructions').style.display = 'none';
+                document.getElementById('troubleshooting').style.display = 'none';
                 document.getElementById('info-panel').style.display = 'block';
 
                 session.addEventListener('end', () => {
@@ -2436,11 +2462,12 @@
                     // 保留中の惑星情報もクリア
                     pendingPlanetInfo = null;
                     
-                    // クールダウンもリセット
-                    panelCloseTime = 0;
+                    // クローズフラグもリセット
+                    panelClosing = false;
                     
                     document.getElementById('xr-button').style.display = 'block';
                     document.getElementById('instructions').style.display = 'block';
+                    document.getElementById('troubleshooting').style.display = 'block';
                     document.getElementById('info-panel').style.display = 'none';
                 });
 
