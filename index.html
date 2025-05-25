@@ -199,6 +199,20 @@
             <div>Meta Quest、HoloLens、Magic Leap等の対応デバイスをご利用ください。</div>
         </div>
 
+        <div id="quest-controller-panel" class="overlay" style="display: none; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 400px; text-align: center; background: rgba(0, 40, 80, 0.95); border: 2px solid #ffaa00;">
+            <div style="margin-bottom: 15px; color: #ffaa00; font-size: 18px;">🎮 コントローラーを認識中...</div>
+            <div style="margin-bottom: 15px;">Questでコントローラーが認識されるまでお待ちください。</div>
+            <div style="margin-bottom: 15px; color: #00ff88;">
+                💡 <strong>解決方法：</strong><br>
+                スタートボタンを押してQuestメニューを開き、<br>
+                すぐに閉じてください。
+            </div>
+            <div style="font-size: 14px; color: #888;">
+                これはQuest特有の問題で、メニューを開閉することで<br>
+                コントローラーが正常に認識されます。
+            </div>
+        </div>
+
         <div id="planet-info" class="overlay">
             <div class="info-title" id="planet-name">惑星名</div>
             <div class="info-item">
@@ -235,6 +249,9 @@
         let controllerGrips = { left: null, right: null };
         let gripStates = { left: false, right: false };
         let controllersInitialized = false;
+        let questControllerRetryCount = 0;
+        let questControllerRetryTimer = null;
+        let waitingForControllers = false;
         let lastDistance = 0;
         let scaleFactor = 1;
         let xrSupported = false;
@@ -1906,14 +1923,15 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // XRコントローラーセットアップ（新システム）
+        // Quest対応のXRコントローラーセットアップ
         function initializeXRControllers() {
             if (controllersInitialized) {
                 console.log('Controllers already initialized, skipping...');
                 return;
             }
             
-            console.log('Initializing XR controllers...');
+            console.log('Initializing XR controllers for Quest...');
+            waitingForControllers = true;
             
             try {
                 // 左コントローラー（インデックス0）
@@ -1939,9 +1957,82 @@
                 controllersInitialized = true;
                 console.log('XR controllers initialized successfully');
                 
+                // Questでコントローラーが認識されるまで待つ
+                startQuestControllerDetection();
+                
             } catch (error) {
                 console.error('Error initializing controllers:', error);
+                // 失敗した場合は再試行
+                retryControllerInitialization();
             }
+        }
+        
+        // Quest用のコントローラー検出システム
+        function startQuestControllerDetection() {
+            console.log('Starting Quest controller detection...');
+            questControllerRetryCount = 0;
+            
+            // 定期的にコントローラーの状態をチェック
+            questControllerRetryTimer = setInterval(() => {
+                checkQuestControllerStatus();
+            }, 500); // 500msごとにチェック
+            
+            // 10秒後にタイムアウト
+            setTimeout(() => {
+                if (questControllerRetryTimer) {
+                    clearInterval(questControllerRetryTimer);
+                    questControllerRetryTimer = null;
+                    if (waitingForControllers) {
+                        console.log('Quest controller detection timeout');
+                        showControllerActivationMessage();
+                    }
+                }
+            }, 10000);
+        }
+        
+        function checkQuestControllerStatus() {
+            if (!xrActive || !controllersInitialized) return;
+            
+            const session = renderer.xr.getSession();
+            if (!session) return;
+            
+            questControllerRetryCount++;
+            console.log(`Quest controller check #${questControllerRetryCount}, input sources: ${session.inputSources.length}`);
+            
+            // 入力ソースが見つかった場合
+            if (session.inputSources.length > 0) {
+                console.log('Quest controllers detected!');
+                waitingForControllers = false;
+                
+                if (questControllerRetryTimer) {
+                    clearInterval(questControllerRetryTimer);
+                    questControllerRetryTimer = null;
+                }
+                
+                // コントローラー情報を詳細表示
+                session.inputSources.forEach((source, index) => {
+                    console.log(`Controller ${index}:`, {
+                        handedness: source.handedness,
+                        targetRayMode: source.targetRayMode,
+                        hasGamepad: !!source.gamepad,
+                        connected: true
+                    });
+                });
+                
+                hideControllerActivationMessage();
+                return;
+            }
+            
+            // まだ見つからない場合のログ
+            console.log('Quest controllers not yet detected, retrying...');
+        }
+        
+        function retryControllerInitialization() {
+            console.log('Retrying controller initialization...');
+            setTimeout(() => {
+                controllersInitialized = false;
+                initializeXRControllers();
+            }, 1000);
         }
         
         function setupControllerEvents() {
@@ -2034,16 +2125,35 @@
             console.log('Laser pointers added');
         }
         
-        // 入力ソース変更の監視
+        // 入力ソース変更の監視（Quest対応強化）
         function onXRInputSourcesChange(event) {
             console.log('XR input sources changed:', event);
             
             event.added.forEach((inputSource) => {
-                console.log('Input source added:', inputSource);
+                console.log('Input source added:', {
+                    handedness: inputSource.handedness,
+                    targetRayMode: inputSource.targetRayMode,
+                    hasGamepad: !!inputSource.gamepad
+                });
+                
+                // Questでコントローラーが追加された場合、待機状態を解除
+                if (waitingForControllers) {
+                    console.log('Quest controller detected via inputsourceschange');
+                    waitingForControllers = false;
+                    hideControllerActivationMessage();
+                    
+                    if (questControllerRetryTimer) {
+                        clearInterval(questControllerRetryTimer);
+                        questControllerRetryTimer = null;
+                    }
+                }
             });
             
             event.removed.forEach((inputSource) => {
-                console.log('Input source removed:', inputSource);
+                console.log('Input source removed:', {
+                    handedness: inputSource.handedness,
+                    targetRayMode: inputSource.targetRayMode
+                });
             });
             
             // コントローラーの状態をチェック
@@ -2064,6 +2174,23 @@
                     hasGamepad: !!source.gamepad
                 });
             });
+        }
+        
+        // Quest用のメッセージ表示・非表示
+        function showControllerActivationMessage() {
+            console.log('Showing Quest controller activation message');
+            const panel = document.getElementById('quest-controller-panel');
+            if (panel) {
+                panel.style.display = 'block';
+            }
+        }
+        
+        function hideControllerActivationMessage() {
+            console.log('Hiding Quest controller activation message');
+            const panel = document.getElementById('quest-controller-panel');
+            if (panel) {
+                panel.style.display = 'none';
+            }
         }
 
 
@@ -2487,6 +2614,25 @@
                 // 入力ソース変更の監視を設定
                 session.addEventListener('inputsourceschange', onXRInputSourcesChange);
                 
+                // Quest用のセッション可視性変更監視
+                session.addEventListener('visibilitychange', () => {
+                    console.log(`XR session visibility changed: ${session.visibilityState}`);
+                    
+                    if (session.visibilityState === 'visible') {
+                        console.log('Session became visible - reinitializing controllers for Quest...');
+                        
+                        // Questメニューから戻った時にコントローラーを再初期化
+                        setTimeout(() => {
+                            if (waitingForControllers) {
+                                console.log('Re-detecting controllers after Quest menu return');
+                                startQuestControllerDetection();
+                            }
+                        }, 500);
+                    } else if (session.visibilityState === 'hidden') {
+                        console.log('Session became hidden (Quest menu opened)');
+                    }
+                });
+                
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 console.log('XR session set');
@@ -2509,9 +2655,20 @@
                     console.log('XR session ended');
                     xrActive = false;
                     
+                    // Quest用のタイマーをクリア
+                    if (questControllerRetryTimer) {
+                        clearInterval(questControllerRetryTimer);
+                        questControllerRetryTimer = null;
+                    }
+                    
                     // コントローラーの状態をリセット
                     controllersInitialized = false;
                     gripStates = { left: false, right: false };
+                    waitingForControllers = false;
+                    questControllerRetryCount = 0;
+                    
+                    // Quest用メッセージを非表示
+                    hideControllerActivationMessage();
                     
                     // BGM停止
                     if (bgMusic) {
