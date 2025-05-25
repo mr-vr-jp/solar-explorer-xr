@@ -1967,18 +1967,18 @@
 
         // XRイベントハンドラー
         function onSelectStart(event, hand) {
-            // 情報パネルが表示されている場合は閉じる
-            if (planetInfoVisible) {
-                hide3DPlanetInfo();
-                return;
-            }
-            
             // このコントローラーのインデックスを取得
             const controllerIndex = hand === 'left' ? 0 : 1;
             const thisControllerHighlight = highlightedPlanets[controllerIndex];
             
+            // 情報パネルが表示されている場合は閉じるだけ（モード切替なし）
+            if (planetInfoVisible) {
+                hide3DPlanetInfo();
+                return; // ここでリターンして、以下の処理は実行しない
+            }
+            
             if (spaceMode) {
-                // 宇宙空間モードの場合
+                // 宇宙空間モード（情報パネルが閉じている状態）
                 if (thisControllerHighlight) {
                     // このコントローラーでハイライトされている惑星の情報表示
                     show3DPlanetInfo(thisControllerHighlight.data);
@@ -1989,7 +1989,7 @@
                 return;
             }
             
-            // MRモードでの操作
+            // MRモードでの操作（情報パネルが閉じている状態）
             if (thisControllerHighlight) {
                 // このコントローラーでハイライトされている惑星情報を記録してVRモードに切り替え
                 pendingPlanetInfo = thisControllerHighlight.data;
@@ -2213,18 +2213,24 @@
                 planetInfoPanel.position.set(-0.5, 1.8, -1);
             }
             
+            // 情報パネル表示状態を確実に設定
             planetInfoVisible = true;
             
             // フェードインアニメーション開始
             panelFadeAnimation.target = 1;
             panelFadeAnimation.opacity = 0;
+            
+            console.log('情報パネル表示:', planetData.name); // デバッグ用
         }
 
         function hide3DPlanetInfo() {
+            console.log('情報パネル非表示'); // デバッグ用
+            
             if (planetInfoPanel) {
                 removePlanetInfoPanel();
             }
             
+            // 情報パネル表示状態を確実に設定
             planetInfoVisible = false;
         }
 
@@ -2249,6 +2255,8 @@
                 }
                 
                 planetInfoPanel = null;
+                
+                // 情報パネル表示状態を確実にリセット
                 planetInfoVisible = false;
                 
                 panelFadeAnimation.opacity = 0;
