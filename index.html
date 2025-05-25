@@ -231,7 +231,7 @@
     <script>
         let scene, camera, renderer, solarSystemGroup;
         let planets = [];
-        let controllers = []; // 配列ベースに変更
+        let controllers = { left: null, right: null };
         let gripStates = { left: false, right: false };
         let lastDistance = 0;
         let scaleFactor = 1;
@@ -1905,33 +1905,44 @@
 
         // XRコントローラーセットアップ
         function setupXRControllers() {
-            // 参考プログラムと同様の配列ベースの実装
-            controllers = [
-                renderer.xr.getController(0),
-                renderer.xr.getController(1)
-            ];
+            // 既存のコントローラーをクリーンアップ
+            if (controllers.left) {
+                scene.remove(controllers.left);
+                controllers.left = null;
+            }
+            if (controllers.right) {
+                scene.remove(controllers.right);
+                controllers.right = null;
+            }
             
-            controllers.forEach((controller, index) => {
-                if (!controller) return;
-                
-                const hand = index === 0 ? 'left' : 'right';
-                
-                controller.addEventListener('selectstart', (event) => onSelectStart(event, hand));
-                controller.addEventListener('selectend', (event) => onSelectEnd(event, hand));
-                controller.addEventListener('squeezestart', () => onGripStart(hand));
-                controller.addEventListener('squeezeend', () => onGripEnd(hand));
-                
-                // レーザーポインター追加
-                createControllerRay(controller, 0x00ff88);
-                
-                scene.add(controller);
-            });
-            
-            // コントローラーグリップも追加
+            // 左コントローラー
+            const leftController = renderer.xr.getController(0);
+            leftController.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
+            leftController.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
+            leftController.addEventListener('squeezestart', () => onGripStart('left'));
+            leftController.addEventListener('squeezeend', () => onGripEnd('left'));
+            scene.add(leftController);
+            controllers.left = leftController;
+
+            // 右コントローラー
+            const rightController = renderer.xr.getController(1);
+            rightController.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
+            rightController.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
+            rightController.addEventListener('squeezestart', () => onGripStart('right'));
+            rightController.addEventListener('squeezeend', () => onGripEnd('right'));
+            scene.add(rightController);
+            controllers.right = rightController;
+
+            // コントローラーグリップ
             const leftControllerGrip = renderer.xr.getControllerGrip(0);
-            const rightControllerGrip = renderer.xr.getControllerGrip(1);
             scene.add(leftControllerGrip);
+
+            const rightControllerGrip = renderer.xr.getControllerGrip(1);
             scene.add(rightControllerGrip);
+
+            // レーザーポインター（両コントローラーに追加）
+            createControllerRay(leftController, 0x00ff88);
+            createControllerRay(rightController, 0x00ff88);
             
             console.log('XR Controllers setup completed');
         }
@@ -2001,9 +2012,9 @@
             gripStates[hand] = true;
             
             // 片手グリップの場合はドラッグ開始
-            if (((gripStates.left && !gripStates.right) || (!gripStates.left && gripStates.right)) && controllers.length > 0) {
+            if ((gripStates.left && !gripStates.right) || (!gripStates.left && gripStates.right)) {
                 isDragging = true;
-                const controller = gripStates.left ? controllers[0] : controllers[1];
+                const controller = gripStates.left ? controllers.left : controllers.right;
                 if (controller) {
                     const tempMatrix = new THREE.Matrix4();
                     tempMatrix.identity().extractRotation(controller.matrixWorld);
@@ -2013,12 +2024,12 @@
             }
             
             // 両手でグリップした場合の初期距離を記録
-            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1]) {
+            if (gripStates.left && gripStates.right && controllers.left && controllers.right) {
                 isDragging = false;
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
-                leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
-                rightPos.setFromMatrixPosition(controllers[1].matrixWorld);
+                leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
+                rightPos.setFromMatrixPosition(controllers.right.matrixWorld);
                 lastDistance = leftPos.distanceTo(rightPos);
             }
             
@@ -2198,8 +2209,8 @@
             planetInfoPanel.name = 'planet-info-panel';
             
             // 左手コントローラーの位置に配置
-            if (controllers.length > 0 && controllers[0]) {
-                controllers[0].add(planetInfoPanel);
+            if (controllers.left) {
+                controllers.left.add(planetInfoPanel);
                 // コントローラーから少し前方に配置
                 planetInfoPanel.position.set(0, 0.1, -0.2);
                 planetInfoPanel.rotation.x = -Math.PI / 6; // 少し下向きに
@@ -2369,8 +2380,17 @@
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 
-                // XRセッション開始後にコントローラーをセットアップ
-                setupXRControllers();
+                // XRセッションの準備ができるまで少し待つ
+                setTimeout(() => {
+                    console.log('Setting up XR controllers...');
+                    setupXRControllers();
+                    
+                    // さらに確実にするため、もう一度初期化
+                    setTimeout(() => {
+                        setupXRControllers();
+                        console.log('XR controllers ready');
+                    }, 1000);
+                }, 200);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -2511,10 +2531,10 @@
             });
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
-            if (xrActive && !planetInfoVisible && controllers.length > 0) {
-                // アクティブなコントローラーを取得
-                const activeController = controllers.find(controller => controller && controller.visible);
-                if (activeController) {
+            if (xrActive && !planetInfoVisible) {
+                // 右コントローラーまたは左コントローラーからレイキャスト
+                const activeController = controllers.right || controllers.left;
+                if (activeController && activeController.visible) {
                     try {
                         // コントローラーの位置と方向を取得
                         const tempMatrix = new THREE.Matrix4();
@@ -2549,8 +2569,8 @@
             }
 
             // 片手グリップでのドラッグ移動（ユーザー位置を移動）
-            if (isDragging && controllers.length > 0) {
-                const activeController = gripStates.left ? controllers[0] : controllers[1];
+            if (isDragging) {
+                const activeController = gripStates.left ? controllers.left : controllers.right;
                 if (activeController) {
                     const currentPosition = new THREE.Vector3();
                     currentPosition.setFromMatrixPosition(activeController.matrixWorld);
@@ -2566,11 +2586,11 @@
             }
 
             // 両手グリップでのスケール調整（常に動作）
-            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging) {
+            if (gripStates.left && gripStates.right && controllers.left && controllers.right && !isDragging) {
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
-                leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
-                rightPos.setFromMatrixPosition(controllers[1].matrixWorld);
+                leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
+                rightPos.setFromMatrixPosition(controllers.right.matrixWorld);
                 const currentDistance = leftPos.distanceTo(rightPos);
                 
                 if (lastDistance > 0 && currentDistance > 0) {
