@@ -1906,16 +1906,18 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // XRコントローラーセットアップ（新システム）
+        // XRコントローラーセットアップ（Quest 3対応強化版）
         function initializeXRControllers() {
-            if (controllersInitialized) {
-                console.log('Controllers already initialized, skipping...');
-                return;
-            }
+            if (!xrActive) return;
             
             console.log('Initializing XR controllers...');
             
             try {
+                // 既存のコントローラーをクリーンアップ
+                if (controllersInitialized) {
+                    cleanupControllers();
+                }
+                
                 // 左コントローラー（インデックス0）
                 controllers.left = renderer.xr.getController(0);
                 controllerGrips.left = renderer.xr.getControllerGrip(0);
@@ -1941,7 +1943,42 @@
                 
             } catch (error) {
                 console.error('Error initializing controllers:', error);
+                // エラー時は少し待って再試行
+                setTimeout(() => {
+                    console.log('Retrying controller initialization...');
+                    initializeXRControllers();
+                }, 1000);
             }
+        }
+        
+        // コントローラーのクリーンアップ
+        function cleanupControllers() {
+            console.log('Cleaning up existing controllers...');
+            
+            // イベントリスナーの削除
+            if (controllers.left) {
+                controllers.left.removeEventListener('selectstart', onSelectStart);
+                controllers.left.removeEventListener('selectend', onSelectEnd);
+                controllers.left.removeEventListener('squeezestart', onGripStart);
+                controllers.left.removeEventListener('squeezeend', onGripEnd);
+            }
+            
+            if (controllers.right) {
+                controllers.right.removeEventListener('selectstart', onSelectStart);
+                controllers.right.removeEventListener('selectend', onSelectEnd);
+                controllers.right.removeEventListener('squeezestart', onGripStart);
+                controllers.right.removeEventListener('squeezeend', onGripEnd);
+            }
+            
+            // シーンから削除
+            if (controllers.left) scene.remove(controllers.left);
+            if (controllers.right) scene.remove(controllers.right);
+            if (controllerGrips.left) scene.remove(controllerGrips.left);
+            if (controllerGrips.right) scene.remove(controllerGrips.right);
+            
+            controllers = { left: null, right: null };
+            controllerGrips = { left: null, right: null };
+            controllersInitialized = false;
         }
         
         function setupControllerEvents() {
@@ -2034,43 +2071,36 @@
             console.log('Laser pointers added');
         }
         
-        // 入力ソース変更の監視（Quest対応強化）
+        // Quest 3対応：簡素化された入力ソース変更処理
         function onXRInputSourcesChange(event) {
             console.log('XR input sources changed:', event);
             
-            event.added.forEach((inputSource) => {
-                console.log('Input source added:', inputSource);
-            });
-            
-            event.removed.forEach((inputSource) => {
-                console.log('Input source removed:', inputSource);
-            });
-            
-            // Quest対応：inputsourceschangeで強制的にコントローラーを再初期化
-            console.log('Re-initializing controllers due to input source change...');
-            controllersInitialized = false; // フラグをリセット
+            // 简单地重新初始化コントローラー
             setTimeout(() => {
-                initializeXRControllers();
-            }, 100); // 少し遅延して再初期化
-            
-            // コントローラーの状態をチェック
-            checkControllerStates();
+                if (xrActive) {
+                    console.log('Re-initializing controllers due to input source change...');
+                    initializeXRControllers();
+                }
+            }, 200);
         }
         
-        function checkControllerStates() {
+        // 継続的なコントローラー状態チェック（フレームループ用）
+        let controllerCheckTimer = 0;
+        function continuousControllerCheck() {
             if (!xrActive) return;
             
-            const session = renderer.xr.getSession();
-            if (!session) return;
+            controllerCheckTimer++;
             
-            console.log('Active input sources:', session.inputSources.length);
-            session.inputSources.forEach((source, index) => {
-                console.log(`Input source ${index}:`, {
-                    handedness: source.handedness,
-                    targetRayMode: source.targetRayMode,
-                    hasGamepad: !!source.gamepad
-                });
-            });
+            // 60フレームごとにチェック（約1秒）
+            if (controllerCheckTimer >= 60) {
+                controllerCheckTimer = 0;
+                
+                const session = renderer.xr.getSession();
+                if (session && session.inputSources.length > 0 && !controllersInitialized) {
+                    console.log('Controllers detected but not initialized, attempting initialization...');
+                    initializeXRControllers();
+                }
+            }
         }
 
 
@@ -2498,22 +2528,10 @@
                 xrActive = true;
                 console.log('XR session set');
                 
-                // Quest対応：コントローラー初期化を遅延実行
-                setTimeout(() => {
-                    console.log('Delayed controller initialization for Quest compatibility...');
-                    initializeXRControllers();
-                }, 500); // 500ms遅延
-                
-                // Quest対応：さらに遅延してコントローラー状態をチェック
-                setTimeout(() => {
-                    console.log('Checking controller states after session start...');
-                    checkControllerStates();
-                    // Quest対応：必要に応じて再初期化
-                    if (!controllersInitialized) {
-                        console.log('Re-initializing controllers...');
-                        initializeXRControllers();
-                    }
-                }, 1500); // 1.5秒後にチェック
+                // Quest 3対応：段階的なコントローラー初期化
+                setTimeout(() => initializeXRControllers(), 300);
+                setTimeout(() => initializeXRControllers(), 800);
+                setTimeout(() => initializeXRControllers(), 1500);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -2524,8 +2542,8 @@
                     console.log('XR session ended');
                     xrActive = false;
                     
-                    // コントローラーの状態をリセット
-                    controllersInitialized = false;
+                    // コントローラーのクリーンアップ
+                    cleanupControllers();
                     gripStates = { left: false, right: false };
                     
                     // BGM停止
@@ -2559,6 +2577,9 @@
         function animate() {
             renderer.setAnimationLoop(animate);
             time += 0.01;
+            
+            // Quest 3対応：継続的なコントローラー状態チェック
+            continuousControllerCheck();
 
             // 太陽のスケールアニメーション
             if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
