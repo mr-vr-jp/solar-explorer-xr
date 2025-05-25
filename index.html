@@ -886,37 +886,40 @@
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 
-                // 恒星のタイプに応じたサイズと色
+                // より自然な恒星の実装
                 const starType = Math.random();
                 let size, color, intensity;
                 
-                if (starType < 0.3) {
-                    // 赤色矮星
-                    size = 0.05 + Math.random() * 0.1;
-                    color = new THREE.Color(0xFF6644);
-                    intensity = 0.3;
-                } else if (starType < 0.6) {
+                // サイズを大幅に縮小して点光源のように見せる
+                if (starType < 0.4) {
+                    // 赤色矮星（最も多い）
+                    size = 0.02 + Math.random() * 0.03;
+                    color = new THREE.Color(0xFF8866);
+                    intensity = 0.2;
+                } else if (starType < 0.7) {
                     // 太陽型星
-                    size = 0.08 + Math.random() * 0.12;
-                    color = new THREE.Color(0xFFFFAA);
-                    intensity = 0.5;
-                } else if (starType < 0.8) {
-                    // 青色巨星
-                    size = 0.12 + Math.random() * 0.2;
-                    color = new THREE.Color(0xAADDFF);
-                    intensity = 0.8;
+                    size = 0.025 + Math.random() * 0.035;
+                    color = new THREE.Color(0xFFFFDD);
+                    intensity = 0.3;
+                } else if (starType < 0.85) {
+                    // 青色星
+                    size = 0.03 + Math.random() * 0.04;
+                    color = new THREE.Color(0xDDEEFF);
+                    intensity = 0.4;
                 } else {
-                    // 赤色巨星
-                    size = 0.2 + Math.random() * 0.3;
-                    color = new THREE.Color(0xFF8844);
-                    intensity = 0.6;
+                    // 巨星（稀）
+                    size = 0.04 + Math.random() * 0.05;
+                    color = new THREE.Color(0xFFDD88);
+                    intensity = 0.35;
                 }
                 
-                const geometry = new THREE.SphereGeometry(size, 16, 12);
+                const geometry = new THREE.SphereGeometry(size, 8, 6); // ポリゴン数削減
                 const material = new THREE.MeshBasicMaterial({
                     color: color,
                     emissive: color,
-                    emissiveIntensity: intensity
+                    emissiveIntensity: intensity,
+                    transparent: true,
+                    opacity: 0.8 + Math.random() * 0.2 // 微妙な透明度のばらつき
                 });
                 
                 const star = new THREE.Mesh(geometry, material);
@@ -924,15 +927,18 @@
                 star.position.y = distance * Math.sin(phi) * Math.sin(theta);
                 star.position.z = distance * Math.cos(phi);
                 
-                // 微かな光源を追加
-                const starLight = new THREE.PointLight(color, 0.1, distance * 0.5);
-                starLight.position.copy(star.position);
-                scene.add(starLight);
+                // 非常に控えめな光源を追加
+                if (Math.random() < 0.3) { // 30%の確率でのみ光源を追加
+                    const starLight = new THREE.PointLight(color, 0.05, distance * 0.3);
+                    starLight.position.copy(star.position);
+                    scene.add(starLight);
+                }
                 
                 starGroup.add(star);
             }
             
             scene.add(starGroup);
+            registerUniverseElement(starGroup);
             return starGroup;
         }
 
@@ -1016,6 +1022,7 @@
             }
             
             scene.add(galaxyGroup);
+            registerUniverseElement(galaxyGroup);
             return galaxyGroup;
         }
 
@@ -1110,6 +1117,7 @@
             });
             
             scene.add(constellationGroup);
+            registerUniverseElement(constellationGroup);
             return constellationGroup;
         }
 
@@ -1171,6 +1179,7 @@
             solarSystemGroup = new THREE.Group();
             solarSystemGroup.position.set(0, 1, -2);
             scene.add(solarSystemGroup);
+            registerUniverseElement(solarSystemGroup);
             
             // 初期ユーザー位置を設定
             updateUserPosition();
@@ -1179,11 +1188,13 @@
             const stars = createStarField();
             scene.add(stars);
             originalStars = stars; // 元の星空を保存
+            registerUniverseElement(stars);
 
             // 宇宙空間の星空を準備（最初は非表示）
             spaceStars = createSpaceStarField();
             spaceStars.visible = false;
             scene.add(spaceStars);
+            registerUniverseElement(spaceStars);
 
             // 背景フェード用球体を作成
             backgroundSphere = createBackgroundSphere();
@@ -1237,18 +1248,18 @@
                 if (data.name === '太陽') {
                     material = new THREE.MeshBasicMaterial({ 
                         map: texture,
-                        emissive: new THREE.Color(data.emissive),
-                        emissiveIntensity: 2.5,
+                        emissive: new THREE.Color(0xFFFFFF), // 純白の発光
+                        emissiveIntensity: 4.0, // 大幅に強化
                         transparent: false,
                         side: THREE.DoubleSide
                     });
                     
-                    // 太陽にグロー効果を追加（より自然に調整）
-                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.15, 24, 12); // サイズを小さく、ポリゴン数削減
+                    // 太陽に強力なグロー効果を追加
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.8, 32, 16); // より大きく、詳細に
                     const glowMaterial = new THREE.ShaderMaterial({
                         uniforms: {
                             time: { value: 0 },
-                            glowColor: { value: new THREE.Color(0xFFCC66) } // より自然な色に
+                            glowColor: { value: new THREE.Color(0xFFFFAA) } // 明るい黄白色
                         },
                         vertexShader: `
                             varying vec3 vNormal;
@@ -1262,19 +1273,52 @@
                             uniform vec3 glowColor;
                             varying vec3 vNormal;
                             void main() {
-                                float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.5);
-                                intensity *= (0.5 + 0.15 * sin(time * 2.0)); // より控えめなアニメーション
-                                intensity *= 0.4; // 全体的に透明度を下げる
+                                float intensity = pow(0.8 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.2);
+                                intensity *= (0.8 + 0.3 * sin(time * 1.5)); // より強いアニメーション
+                                intensity *= 1.2; // 全体的に明るく
                                 gl_FragColor = vec4(glowColor, intensity);
                             }
                         `,
                         side: THREE.BackSide,
                         blending: THREE.AdditiveBlending,
                         transparent: true,
-                        depthWrite: false // 深度書き込みを無効にしてより自然に
+                        depthWrite: false
                     });
                     const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
                     data.glowMaterial = glowMaterial; // アニメーション用に保存
+                    
+                    // さらに外側のコロナ効果を追加
+                    const coronaGeometry = new THREE.SphereGeometry(data.size * 2.5, 24, 12);
+                    const coronaMaterial = new THREE.ShaderMaterial({
+                        uniforms: {
+                            time: { value: 0 },
+                            coronaColor: { value: new THREE.Color(0xFFDD66) }
+                        },
+                        vertexShader: `
+                            varying vec3 vNormal;
+                            void main() {
+                                vNormal = normalize(normalMatrix * normal);
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                            }
+                        `,
+                        fragmentShader: `
+                            uniform float time;
+                            uniform vec3 coronaColor;
+                            varying vec3 vNormal;
+                            void main() {
+                                float intensity = pow(0.9 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.5);
+                                intensity *= (0.3 + 0.2 * sin(time * 1.0));
+                                intensity *= 0.6;
+                                gl_FragColor = vec4(coronaColor, intensity);
+                            }
+                        `,
+                        side: THREE.BackSide,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        depthWrite: false
+                    });
+                    const coronaMesh = new THREE.Mesh(coronaGeometry, coronaMaterial);
+                    data.coronaMaterial = coronaMaterial;
                 } else {
                     material = new THREE.MeshLambertMaterial({ 
                         map: texture,
@@ -1290,10 +1334,18 @@
                 
                 // 太陽の場合はグローエフェクトを追加
                 if (data.name === '太陽' && data.glowMaterial) {
-                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.15, 24, 12); // 軽量化
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.8, 32, 16); // 大きく明るく
                     const glowMesh = new THREE.Mesh(glowGeometry, data.glowMaterial);
                     planet.add(glowMesh);
                     data.glowMesh = glowMesh; // 参照を保存
+                    
+                    // コロナエフェクトも追加
+                    if (data.coronaMaterial) {
+                        const coronaGeometry = new THREE.SphereGeometry(data.size * 2.5, 24, 12);
+                        const coronaMesh = new THREE.Mesh(coronaGeometry, data.coronaMaterial);
+                        planet.add(coronaMesh);
+                        data.coronaMesh = coronaMesh;
+                    }
                 }
                 
                 // 軌道表示
@@ -1914,8 +1966,13 @@
                 planet.mesh.rotation.y += planet.rotationSpeed;
                 
                 // 太陽のグローエフェクト更新
-                if (planet.data.name === '太陽' && planet.data.glowMaterial) {
-                    planet.data.glowMaterial.uniforms.time.value = time;
+                if (planet.data.name === '太陽') {
+                    if (planet.data.glowMaterial) {
+                        planet.data.glowMaterial.uniforms.time.value = time;
+                    }
+                    if (planet.data.coronaMaterial) {
+                        planet.data.coronaMaterial.uniforms.time.value = time;
+                    }
                 }
                 
                 // 衛星の公転
@@ -2258,28 +2315,33 @@
             });
         }
 
+        // 移動対象となる宇宙要素のリスト
+        let universeElements = [];
+
         // ユーザー位置の更新
         function updateUserPosition() {
             if (!xrActive) {
                 // 非XRモードでのカメラ位置更新
                 camera.position.copy(userPosition);
             } else {
-                // XRモードでは太陽系グループの位置を相対的に調整
+                // XRモードでは全ての宇宙要素を相対的に移動
                 const offset = new THREE.Vector3().subVectors(new THREE.Vector3(0, 1.6, 5), userPosition);
-                solarSystemGroup.position.copy(offset);
                 
-                // 他の宇宙要素も同じオフセットを適用
-                scene.children.forEach(child => {
-                    if (child !== solarSystemGroup && child.isGroup && child.children.length > 0) {
-                        // 星座や遠方天体のグループを移動
-                        if (child.children[0] && child.children[0].name && 
-                            (child.children[0].name.includes('ベテルギウス') || 
-                             child.children[0].name.includes('北斗七星') ||
-                             child.children[0].userData)) {
-                            child.position.copy(offset);
-                        }
+                // すべての登録された宇宙要素を移動
+                universeElements.forEach(element => {
+                    if (element && element.position) {
+                        element.position.copy(element.originalPosition).add(offset);
                     }
                 });
+            }
+        }
+
+        // 宇宙要素を登録する関数
+        function registerUniverseElement(element) {
+            if (element && element.position) {
+                // 元の位置を保存
+                element.originalPosition = element.position.clone();
+                universeElements.push(element);
             }
         }
     </script>
