@@ -4,20 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebXR MR 太陽系探索</title>
-    <!-- Three.js 複数CDNフォールバック -->
-    <script src="https://threejs.org/build/three.min.js"></script>
-    <script>
-        // Three.jsが読み込まれているかチェック
-        if (typeof THREE === 'undefined') {
-            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r146/three.min.js"><\/script>');
-        }
-    </script>
-    <script>
-        // さらなるフォールバック
-        if (typeof THREE === 'undefined') {
-            document.write('<script src="https://unpkg.com/three@0.146.0/build/three.min.js"><\/script>');
-        }
-    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -242,25 +229,10 @@
     </div>
 
     <script>
-        // Three.js読み込み確認
-        if (typeof THREE === 'undefined') {
-            document.getElementById('loading').innerHTML = `
-                <div style="text-align: center; color: red;">
-                    <div>❌ Three.jsライブラリの読み込みに失敗しました</div>
-                    <div style="margin-top: 20px; font-size: 16px;">
-                        ネットワーク接続を確認してページを再読み込みしてください
-                    </div>
-                </div>
-            `;
-            throw new Error('Three.js library not loaded');
-        }
-
         let scene, camera, renderer, solarSystemGroup;
         let planets = [];
         let controllers = { left: null, right: null };
-        let controllerGrips = { left: null, right: null };
         let gripStates = { left: false, right: false };
-        let controllersInitialized = false;
         let lastDistance = 0;
         let scaleFactor = 1;
         let xrSupported = false;
@@ -683,15 +655,15 @@
                         
                         // クレーターの縁（隆起）
                         ctx.fillStyle = `rgba(${160 + Math.random() * 40}, ${110 + Math.random() * 30}, ${70 + Math.random() * 20}, 0.6)`;
-                    ctx.beginPath();
+                        ctx.beginPath();
                         ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
-                    ctx.fill();
-                    
+                        ctx.fill();
+                        
                         // クレーターの底（くぼみ）
                         ctx.fillStyle = `rgba(${100 + Math.random() * 30}, ${60 + Math.random() * 25}, ${40 + Math.random() * 15}, 0.8)`;
-                    ctx.beginPath();
+                        ctx.beginPath();
                         ctx.arc(craterX, craterY, craterSize * 0.6, 0, Math.PI * 2);
-                    ctx.fill();
+                        ctx.fill();
                     }
                     
                     // 巨大なオリンポス山（太陽系最大の火山）
@@ -913,9 +885,9 @@
                         const turbSize = 8 + Math.random() * 15;
                         
                         ctx.fillStyle = `rgba(${180 + Math.random() * 40}, ${100 + Math.random() * 40}, ${60 + Math.random() * 30}, 0.4)`;
-                    ctx.beginPath();
+                        ctx.beginPath();
                         ctx.arc(turbX, turbY, turbSize, 0, Math.PI * 2);
-                    ctx.fill();
+                        ctx.fill();
                     }
                     
                     // 大赤斑の影とハイライト
@@ -1203,9 +1175,7 @@
                     ctx.fillRect(0, 0, size, size);
             }
             
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.encoding = THREE.sRGBEncoding; // Three.js r146対応
-            return texture;
+            return new THREE.CanvasTexture(canvas);
         }
 
         // 星空作成
@@ -1259,9 +1229,9 @@
                 } else {
                     // ハロー部分（球状分布）
                     radius = 150 + Math.random() * 100;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
-                
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    
                     x = radius * Math.sin(phi) * Math.cos(theta);
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
@@ -1552,7 +1522,6 @@
                 }
                 
                 const galaxyTexture = new THREE.CanvasTexture(canvas);
-                galaxyTexture.encoding = THREE.sRGBEncoding; // Three.js r146対応
                 const galaxyMaterial = new THREE.MeshBasicMaterial({
                     map: galaxyTexture,
                     transparent: true,
@@ -1676,29 +1645,20 @@
             return constellationGroup;
         }
 
-        // WebXRサポートチェック（最新版対応）
+        // WebXRサポートチェック
         async function checkXRSupport() {
-            xrSupported = false;
-            
-            if ('xr' in navigator && navigator.xr) {
+            if ('xr' in navigator) {
                 try {
-                    // Quest 3のAR機能を優先チェック
-                    const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                    if (arSupported) {
-                        xrSupported = true;
-                        console.log('WebXR AR supported');
-                    } else {
-                        // ARが使えない場合はVRをチェック
-                        const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                        xrSupported = vrSupported;
-                        console.log('WebXR VR supported:', vrSupported);
-                    }
+                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    xrSupported = supported;
                 } catch (error) {
-                    console.error('WebXR support check failed:', error);
+                    try {
+                        const supported = await navigator.xr.isSessionSupported('immersive-vr');
+                        xrSupported = supported;
+                    } catch (error) {
                         xrSupported = false;
                     }
-            } else {
-                console.log('Navigator.xr not available');
+                }
             }
 
             const button = document.getElementById('xr-button');
@@ -1737,7 +1697,6 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
-            renderer.outputEncoding = THREE.sRGBEncoding; // Three.js r146対応
             container.appendChild(renderer.domElement);
 
             // 太陽系グループ
@@ -1774,7 +1733,7 @@
             sunLight.shadow.camera.near = 0.1;
             sunLight.shadow.camera.far = 100;
             solarSystemGroup.add(sunLight);
-
+            
             // 追加の太陽光源（控えめに）
             const sunLight2 = new THREE.PointLight(0xFFDD88, 1.2, 80);
             sunLight2.position.set(0, 0, 0);
@@ -1803,7 +1762,7 @@
             
             // 有名な星座を作成
             createConstellations();
-
+            
             // 惑星作成
             planetData.forEach((data, index) => {
                 const geometry = new THREE.SphereGeometry(data.size, 64, 32); // より高品質なジオメトリ
@@ -1945,206 +1904,195 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // XRコントローラーセットアップ（Quest 3対応強化版）
-        function initializeXRControllers() {
-            if (!xrActive) return;
+        // XRコントローラーセットアップ（Quest 3対応版）
+        let controllersInitialized = false;
+        let controllerRetryCount = 0;
+        const maxRetries = 5;
+        
+        function setupXRControllers() {
+            console.log('Setting up XR controllers...');
             
-            console.log('Initializing XR controllers...');
+            // 既存のコントローラーをクリーンアップ
+            cleanupControllers();
             
-            try {
-                // 既存のコントローラーをクリーンアップ
-                if (controllersInitialized) {
-                    cleanupControllers();
-                }
+            // inputsourceschangeイベントリスナーを設定
+            const session = renderer.xr.getSession();
+            if (session) {
+                session.addEventListener('inputsourceschange', onInputSourcesChange);
+                console.log('Added inputsourceschange listener');
                 
-                // 最新版Three.js対応：より堅牢なコントローラー取得
-                controllers.left = renderer.xr.getController(0);
-                controllerGrips.left = renderer.xr.getControllerGrip(0);
-                
-                controllers.right = renderer.xr.getController(1);
-                controllerGrips.right = renderer.xr.getControllerGrip(1);
-                
-                // Quest 3対応：コントローラーが存在することを確認
-                if (!controllers.left || !controllers.right) {
-                    console.warn('Controllers not properly initialized, retrying...');
-                    throw new Error('Controller initialization failed');
-                }
-                
-                // イベントリスナーの設定
-                setupControllerEvents();
-                
-                // レーザーポインターの追加
-                addLaserPointers();
-                
-                // シーンに追加
-                scene.add(controllers.left);
-                scene.add(controllers.right);
-                scene.add(controllerGrips.left);
-                scene.add(controllerGrips.right);
-                
-                controllersInitialized = true;
-                console.log('XR controllers initialized successfully');
-                
-            } catch (error) {
-                console.error('Error initializing controllers:', error);
-                // エラー時は少し待って再試行
+                // 初期の入力ソースをチェック
+                checkAndSetupControllers();
+            }
+        }
+        
+        function cleanupControllers() {
+            console.log('Cleaning up existing controllers...');
+            
+            if (controllers.left) {
+                scene.remove(controllers.left);
+                controllers.left = null;
+            }
+            if (controllers.right) {
+                scene.remove(controllers.right);
+                controllers.right = null;
+            }
+            
+            controllersInitialized = false;
+            controllerRetryCount = 0;
+        }
+        
+        function onInputSourcesChange(event) {
+            console.log('Input sources changed:', event);
+            console.log('Added sources:', event.added);
+            console.log('Removed sources:', event.removed);
+            
+            // 新しい入力ソースが追加された場合
+            if (event.added.length > 0) {
                 setTimeout(() => {
-                    console.log('Retrying controller initialization...');
-                    initializeXRControllers();
+                    checkAndSetupControllers();
+                }, 100); // 少し遅延を入れる
+            }
+        }
+        
+        function checkAndSetupControllers() {
+            const session = renderer.xr.getSession();
+            if (!session) {
+                console.log('No XR session available');
+                return;
+            }
+            
+            console.log('Checking input sources...');
+            console.log('Available input sources:', session.inputSources.length);
+            session.inputSources.forEach((source, index) => {
+                console.log(`Input source ${index}:`, source.handedness, source.targetRayMode);
+            });
+            
+            // コントローラーが既に初期化済みの場合はスキップ
+            if (controllersInitialized) {
+                console.log('Controllers already initialized');
+                return;
+            }
+            
+            createControllers();
+            
+            // コントローラーが見つからない場合のリトライ
+            if ((!controllers.left && !controllers.right) && controllerRetryCount < maxRetries) {
+                controllerRetryCount++;
+                console.log(`Retrying controller setup (${controllerRetryCount}/${maxRetries})...`);
+                setTimeout(() => {
+                    checkAndSetupControllers();
                 }, 1000);
             }
         }
         
-        // コントローラーのクリーンアップ
-        function cleanupControllers() {
-            console.log('Cleaning up existing controllers...');
-            
-            // イベントリスナーの削除
-            if (controllers.left) {
-                controllers.left.removeEventListener('selectstart', onSelectStart);
-                controllers.left.removeEventListener('selectend', onSelectEnd);
-                controllers.left.removeEventListener('squeezestart', onGripStart);
-                controllers.left.removeEventListener('squeezeend', onGripEnd);
+        function createControllers() {
+            // 左コントローラー（インデックス0）
+            try {
+                const leftController = renderer.xr.getController(0);
+                if (leftController) {
+                    setupControllerEvents(leftController, 'left', 0);
+                    createControllerRay(leftController, 0x00ff88);
+                    scene.add(leftController);
+                    controllers.left = leftController;
+                    console.log('Left controller created');
+                    
+                    // グリップも追加
+                    const leftGrip = renderer.xr.getControllerGrip(0);
+                    if (leftGrip) {
+                        scene.add(leftGrip);
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating left controller:', error);
             }
             
-            if (controllers.right) {
-                controllers.right.removeEventListener('selectstart', onSelectStart);
-                controllers.right.removeEventListener('selectend', onSelectEnd);
-                controllers.right.removeEventListener('squeezestart', onGripStart);
-                controllers.right.removeEventListener('squeezeend', onGripEnd);
+            // 右コントローラー（インデックス1）
+            try {
+                const rightController = renderer.xr.getController(1);
+                if (rightController) {
+                    setupControllerEvents(rightController, 'right', 1);
+                    createControllerRay(rightController, 0x00ff88);
+                    scene.add(rightController);
+                    controllers.right = rightController;
+                    console.log('Right controller created');
+                    
+                    // グリップも追加
+                    const rightGrip = renderer.xr.getControllerGrip(1);
+                    if (rightGrip) {
+                        scene.add(rightGrip);
+                    }
+                }
+            } catch (error) {
+                console.error('Error creating right controller:', error);
             }
             
-            // シーンから削除
-            if (controllers.left) scene.remove(controllers.left);
-            if (controllers.right) scene.remove(controllers.right);
-            if (controllerGrips.left) scene.remove(controllerGrips.left);
-            if (controllerGrips.right) scene.remove(controllerGrips.right);
-            
-            controllers = { left: null, right: null };
-            controllerGrips = { left: null, right: null };
-            controllersInitialized = false;
+            // 少なくとも1つのコントローラーが作成できた場合は初期化完了
+            if (controllers.left || controllers.right) {
+                controllersInitialized = true;
+                console.log('Controllers initialized successfully');
+            }
         }
         
-        function setupControllerEvents() {
-            console.log('Setting up controller events...');
-            
-            // 左コントローラーのイベント
-            controllers.left.addEventListener('selectstart', (event) => {
-                console.log('Left controller: select start');
-                onSelectStart(event, 'left');
-            });
-            controllers.left.addEventListener('selectend', (event) => {
-                console.log('Left controller: select end');
-                onSelectEnd(event, 'left');
-            });
-            controllers.left.addEventListener('squeezestart', () => {
-                console.log('Left controller: squeeze start');
-                onGripStart('left');
-            });
-            controllers.left.addEventListener('squeezeend', () => {
-                console.log('Left controller: squeeze end');
-                onGripEnd('left');
+        function setupControllerEvents(controller, hand, index) {
+            // selectstart/selectendイベント
+            controller.addEventListener('selectstart', (event) => {
+                console.log(`${hand} controller select start`);
+                onSelectStart(event, hand);
             });
             
-            // 右コントローラーのイベント
-            controllers.right.addEventListener('selectstart', (event) => {
-                console.log('Right controller: select start');
-                onSelectStart(event, 'right');
-            });
-            controllers.right.addEventListener('selectend', (event) => {
-                console.log('Right controller: select end');
-                onSelectEnd(event, 'right');
-            });
-            controllers.right.addEventListener('squeezestart', () => {
-                console.log('Right controller: squeeze start');
-                onGripStart('right');
-            });
-            controllers.right.addEventListener('squeezeend', () => {
-                console.log('Right controller: squeeze end');
-                onGripEnd('right');
+            controller.addEventListener('selectend', (event) => {
+                console.log(`${hand} controller select end`);
+                onSelectEnd(event, hand);
             });
             
-            // 接続イベント
-            controllers.left.addEventListener('connected', (event) => {
-                console.log('Left controller connected:', event.data);
-            });
-            controllers.right.addEventListener('connected', (event) => {
-                console.log('Right controller connected:', event.data);
+            // squeezestart/squeezeendイベント
+            controller.addEventListener('squeezestart', (event) => {
+                console.log(`${hand} controller squeeze start`);
+                onGripStart(hand);
             });
             
-            // 切断イベント
-            controllers.left.addEventListener('disconnected', (event) => {
-                console.log('Left controller disconnected');
+            controller.addEventListener('squeezeend', (event) => {
+                console.log(`${hand} controller squeeze end`);
+                onGripEnd(hand);
             });
-            controllers.right.addEventListener('disconnected', (event) => {
-                console.log('Right controller disconnected');
+            
+            // 接続/切断イベント
+            controller.addEventListener('connected', (event) => {
+                console.log(`${hand} controller connected:`, event.data);
+            });
+            
+            controller.addEventListener('disconnected', (event) => {
+                console.log(`${hand} controller disconnected`);
             });
         }
         
-        function addLaserPointers() {
-            console.log('Adding laser pointers...');
-            
-            // 左レーザーポインター
-            const leftGeometry = new THREE.BufferGeometry().setFromPoints([
+        function createControllerRay(controller, color) {
+            // レーザーポインターのライン
+            const lineGeometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
                 new THREE.Vector3(0, 0, -2)
             ]);
-            const leftMaterial = new THREE.LineBasicMaterial({ 
-                color: 0x00ff88, 
-                transparent: true, 
-                opacity: 0.8 
-            });
-            const leftRay = new THREE.Line(leftGeometry, leftMaterial);
-            leftRay.name = 'laser-pointer';
-            controllers.left.add(leftRay);
-            
-            // 右レーザーポインター
-            const rightGeometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -2)
-            ]);
-            const rightMaterial = new THREE.LineBasicMaterial({ 
-                color: 0x00ff88,
+            const lineMaterial = new THREE.LineBasicMaterial({ 
+                color: color,
                 transparent: true,
                 opacity: 0.8
             });
-            const rightRay = new THREE.Line(rightGeometry, rightMaterial);
-            rightRay.name = 'laser-pointer';
-            controllers.right.add(rightRay);
+            const line = new THREE.Line(lineGeometry, lineMaterial);
+            line.name = 'controller-ray';
+            controller.add(line);
             
-            console.log('Laser pointers added');
-        }
-        
-        // Quest 3対応：簡素化された入力ソース変更処理
-        function onXRInputSourcesChange(event) {
-            console.log('XR input sources changed:', event);
-            
-            // 简单地重新初始化コントローラー
-            setTimeout(() => {
-                if (xrActive) {
-                    console.log('Re-initializing controllers due to input source change...');
-                    initializeXRControllers();
-                }
-            }, 200);
-        }
-        
-        // 継続的なコントローラー状態チェック（フレームループ用）
-        let controllerCheckTimer = 0;
-        function continuousControllerCheck() {
-            if (!xrActive) return;
-            
-            controllerCheckTimer++;
-            
-            // 60フレームごとにチェック（約1秒）
-            if (controllerCheckTimer >= 60) {
-                controllerCheckTimer = 0;
-                
-                const session = renderer.xr.getSession();
-                if (session && session.inputSources.length > 0 && !controllersInitialized) {
-                    console.log('Controllers detected but not initialized, attempting initialization...');
-                    initializeXRControllers();
-                }
-            }
+            // レーザーポインターのカーソル
+            const cursorGeometry = new THREE.SphereGeometry(0.005, 8, 8);
+            const cursorMaterial = new THREE.MeshBasicMaterial({ 
+                color: color,
+                transparent: true,
+                opacity: 0.9
+            });
+            const cursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
+            cursor.name = 'controller-cursor';
+            cursor.position.z = -2;
+            controller.add(cursor);
         }
 
 
@@ -2181,39 +2129,28 @@
         }
 
         function onGripStart(hand) {
-            console.log(`Grip start: ${hand}`);
             gripStates[hand] = true;
-            
-            if (!controllersInitialized) {
-                console.log('Controllers not initialized, ignoring grip');
-                return;
-            }
             
             // 片手グリップの場合はドラッグ開始
             if ((gripStates.left && !gripStates.right) || (!gripStates.left && gripStates.right)) {
                 isDragging = true;
                 const controller = gripStates.left ? controllers.left : controllers.right;
-                if (controller && controller.visible) {
+                if (controller) {
                     const tempMatrix = new THREE.Matrix4();
                     tempMatrix.identity().extractRotation(controller.matrixWorld);
                     dragStartPosition.setFromMatrixPosition(controller.matrixWorld);
                     userStartPosition.copy(userPosition);
-                    console.log(`Drag started with ${hand} controller`);
                 }
             }
             
             // 両手でグリップした場合の初期距離を記録
-            if (gripStates.left && gripStates.right && 
-                controllers.left && controllers.right && 
-                controllers.left.visible && controllers.right.visible) {
-                
+            if (gripStates.left && gripStates.right && controllers.left && controllers.right) {
                 isDragging = false;
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
                 leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
                 rightPos.setFromMatrixPosition(controllers.right.matrixWorld);
                 lastDistance = leftPos.distanceTo(rightPos);
-                console.log(`Two-hand scaling started, initial distance: ${lastDistance.toFixed(3)}`);
             }
             
             updateGripStatus();
@@ -2366,7 +2303,6 @@
             
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
-            texture.encoding = THREE.sRGBEncoding; // Three.js r146対応
             
             return texture;
         }
@@ -2551,39 +2487,78 @@
                     }
                 }
 
-                // 最新版Three.js対応：改善されたセッション初期化
                 let sessionInit = { 
                     requiredFeatures: ['local-floor'],
-                    optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection', 'dom-overlay', 'hit-test']
+                    optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection']
                 };
                 
                 let session;
                 try {
-                    // Quest 3のMR機能を優先的に試行
                     session = await navigator.xr.requestSession('immersive-ar', sessionInit);
-                    console.log('AR session created successfully');
+                    console.log('AR session created');
                 } catch (arError) {
-                    console.log('AR not available, trying VR...', arError.message);
-                    try {
+                    console.log('AR not available, trying VR...');
                     session = await navigator.xr.requestSession('immersive-vr', sessionInit);
-                        console.log('VR session created successfully');
-                    } catch (vrError) {
-                        console.error('Both AR and VR failed:', vrError.message);
-                        throw vrError;
-                    }
+                    console.log('VR session created');
                 }
-
-                // 入力ソース変更の監視を設定（Quest対応の修正）
-                session.addEventListener('inputsourceschange', onXRInputSourcesChange);
 
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 console.log('XR session set');
                 
-                // Quest 3対応：段階的なコントローラー初期化
-                setTimeout(() => initializeXRControllers(), 300);
-                setTimeout(() => initializeXRControllers(), 800);
-                setTimeout(() => initializeXRControllers(), 1500);
+                // XRセッション開始のイベントリスナーを設定
+                session.addEventListener('visibilitychange', (event) => {
+                    console.log('XR session visibility changed:', session.visibilityState);
+                    if (session.visibilityState === 'visible') {
+                        console.log('XR session became visible, setting up controllers...');
+                        setTimeout(() => {
+                            setupXRControllers();
+                        }, 200);
+                    }
+                });
+                
+                // セッション開始イベント（重要：Quest 3対応）
+                session.addEventListener('sessionstart', () => {
+                    console.log('XR session started');
+                    setTimeout(() => {
+                        setupXRControllers();
+                    }, 300);
+                });
+                
+                // フォーカスイベント（Quest 3でメニューを開いた後の復帰対応）
+                session.addEventListener('focus', () => {
+                    console.log('XR session focused');
+                    setTimeout(() => {
+                        if (!controllersInitialized) {
+                            setupXRControllers();
+                        }
+                    }, 200);
+                });
+                
+                // 段階的なコントローラーセットアップ（Quest 3対応）
+                console.log('Starting staged controller setup...');
+                
+                // 第1段階：即座に試行
+                setTimeout(() => {
+                    console.log('Stage 1: Immediate controller setup');
+                    setupXRControllers();
+                }, 100);
+                
+                // 第2段階：少し待ってから試行
+                setTimeout(() => {
+                    console.log('Stage 2: Delayed controller setup');
+                    if (!controllersInitialized) {
+                        setupXRControllers();
+                    }
+                }, 800);
+                
+                // 第3段階：さらに待ってから試行
+                setTimeout(() => {
+                    console.log('Stage 3: Final controller setup attempt');
+                    if (!controllersInitialized) {
+                        setupXRControllers();
+                    }
+                }, 2000);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -2594,15 +2569,14 @@
                     console.log('XR session ended');
                     xrActive = false;
                     
-                    // コントローラーのクリーンアップ
-                    cleanupControllers();
-                    gripStates = { left: false, right: false };
-                    
                     // BGM停止
                     if (bgMusic) {
                         bgMusic.pause();
                         bgMusic.currentTime = 0;
                     }
+                    
+                    // コントローラーをクリーンアップ
+                    cleanupControllers();
                     
                     // 3D情報パネルをクリーンアップ
                     hide3DPlanetInfo();
@@ -2629,9 +2603,6 @@
         function animate() {
             renderer.setAnimationLoop(animate);
             time += 0.01;
-            
-            // Quest 3対応：継続的なコントローラー状態チェック
-            continuousControllerCheck();
 
             // 太陽のスケールアニメーション
             if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
@@ -2733,63 +2704,49 @@
             });
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
-            if (xrActive && controllersInitialized && !planetInfoVisible) {
-                // 接続されているコントローラーをチェック
-                let activeController = null;
-                
-                if (controllers.right && controllers.right.visible) {
-                    activeController = controllers.right;
-                } else if (controllers.left && controllers.left.visible) {
-                    activeController = controllers.left;
-                }
-                
-                if (activeController) {
-                try {
-                    // コントローラーの位置と方向を取得
-                    const tempMatrix = new THREE.Matrix4();
+            if (xrActive && !planetInfoVisible) {
+                // 右コントローラーまたは左コントローラーからレイキャスト
+                const activeController = controllers.right || controllers.left;
+                if (activeController && activeController.visible) {
+                    try {
+                        // コントローラーの位置と方向を取得
+                        const tempMatrix = new THREE.Matrix4();
                         tempMatrix.identity().extractRotation(activeController.matrixWorld);
-                    
-                    const controllerPosition = new THREE.Vector3();
+                        
+                        const controllerPosition = new THREE.Vector3();
                         controllerPosition.setFromMatrixPosition(activeController.matrixWorld);
-                    
-                    const controllerDirection = new THREE.Vector3(0, 0, -1);
-                    controllerDirection.applyMatrix4(tempMatrix);
-                    controllerDirection.normalize();
-                    
-                    raycaster.set(controllerPosition, controllerDirection);
-                    
-                    // 惑星のメッシュのみをチェック
-                    const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
-                    const intersects = raycaster.intersectObjects(planetMeshes);
-                    
-                    if (intersects.length > 0) {
-                        const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
-                        if (intersectedPlanet && intersectedPlanet !== highlightedPlanet) {
-                            highlightPlanet(intersectedPlanet);
+                        
+                        const controllerDirection = new THREE.Vector3(0, 0, -1);
+                        controllerDirection.applyMatrix4(tempMatrix);
+                        controllerDirection.normalize();
+                        
+                        raycaster.set(controllerPosition, controllerDirection);
+                        
+                        // 惑星のメッシュのみをチェック
+                        const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
+                        const intersects = raycaster.intersectObjects(planetMeshes);
+                        
+                        if (intersects.length > 0) {
+                            const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                            if (intersectedPlanet && intersectedPlanet !== highlightedPlanet) {
+                                highlightPlanet(intersectedPlanet);
+                            }
+                        } else {
+                            clearHighlight();
                         }
-                    } else {
+                    } catch (error) {
+                        // エラーが発生した場合はハイライトをクリア
                         clearHighlight();
-                    }
-                } catch (error) {
-                    // エラーが発生した場合はハイライトをクリア
-                    clearHighlight();
                     }
                 }
             }
 
             // 片手グリップでのドラッグ移動（ユーザー位置を移動）
-            if (isDragging && controllersInitialized) {
-                let dragController = null;
-                
-                if (gripStates.left && controllers.left && controllers.left.visible) {
-                    dragController = controllers.left;
-                } else if (gripStates.right && controllers.right && controllers.right.visible) {
-                    dragController = controllers.right;
-                }
-                
-                if (dragController) {
+            if (isDragging) {
+                const activeController = gripStates.left ? controllers.left : controllers.right;
+                if (activeController) {
                     const currentPosition = new THREE.Vector3();
-                    currentPosition.setFromMatrixPosition(dragController.matrixWorld);
+                    currentPosition.setFromMatrixPosition(activeController.matrixWorld);
                     
                     const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
                     // 移動方向を反転させてユーザーが移動している感覚にする
@@ -2802,10 +2759,7 @@
             }
 
             // 両手グリップでのスケール調整（常に動作）
-            if (gripStates.left && gripStates.right && controllersInitialized && 
-                controllers.left && controllers.right && 
-                controllers.left.visible && controllers.right.visible && !isDragging) {
-                
+            if (gripStates.left && gripStates.right && controllers.left && controllers.right && !isDragging) {
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
                 leftPos.setFromMatrixPosition(controllers.left.matrixWorld);
@@ -2842,36 +2796,9 @@
         window.addEventListener('resize', onWindowResize);
         document.getElementById('xr-button').addEventListener('click', startXRSession);
 
-        // DOMとThree.js読み込み完了後に初期化開始
-        document.addEventListener('DOMContentLoaded', function() {
-            // 少し遅延してThree.jsの読み込みを確実にする
-            setTimeout(() => {
-                if (typeof THREE === 'undefined') {
-                    document.getElementById('loading').innerHTML = `
-                        <div style="text-align: center; color: red;">
-                            <div>❌ Three.jsライブラリの読み込みエラー</div>
-                            <div style="margin-top: 20px; font-size: 16px;">
-                                ページを再読み込みしてください
-                            </div>
-                        </div>
-                    `;
-                    return;
-                }
-                
-                checkXRSupport().then(() => {
-                    init();
-                }).catch(error => {
-                    console.error('Initialization error:', error);
-                    document.getElementById('loading').innerHTML = `
-                        <div style="text-align: center; color: red;">
-                            <div>❌ 初期化エラー</div>
-                            <div style="margin-top: 20px; font-size: 16px;">
-                                ${error.message}
-                            </div>
-                        </div>
-                    `;
-                });
-            }, 500);
+        // 初期化開始
+        checkXRSupport().then(() => {
+            init();
         });
 
         // 宇宙空間モード切り替え
