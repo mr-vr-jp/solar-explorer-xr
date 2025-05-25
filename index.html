@@ -1914,25 +1914,28 @@
             controllers.forEach((controller, index) => {
                 if (!controller) return;
                 
-                // 参考プログラムと同じ方式：handパラメータを使わない
-                controller.addEventListener('selectstart', onSelectStart);
-                controller.addEventListener('selectend', onSelectEnd);
-                controller.addEventListener('squeezestart', onGripStart);
-                controller.addEventListener('squeezeend', onGripEnd);
+                const hand = index === 0 ? 'left' : 'right';
                 
-                // レーザーポインター追加
-                createControllerRay(controller, 0x00ff88);
+                controller.addEventListener('selectstart', (event) => onSelectStart(event, hand));
+                controller.addEventListener('selectend', (event) => onSelectEnd(event, hand));
+                controller.addEventListener('squeezestart', () => onGripStart(hand));
+                controller.addEventListener('squeezeend', () => onGripEnd(hand));
+                
+                // レーザーポインター追加（両方のコントローラーに）
+                const rayColor = index === 0 ? 0x00ff88 : 0xff8800; // 左右で色を変える
+                createControllerRay(controller, rayColor);
                 
                 scene.add(controller);
+                console.log(`Controller ${index} (${hand}) setup completed`);
             });
             
             // コントローラーグリップも追加
             const leftControllerGrip = renderer.xr.getControllerGrip(0);
             const rightControllerGrip = renderer.xr.getControllerGrip(1);
-            scene.add(leftControllerGrip);
-            scene.add(rightControllerGrip);
+            if (leftControllerGrip) scene.add(leftControllerGrip);
+            if (rightControllerGrip) scene.add(rightControllerGrip);
             
-            console.log('XR Controllers setup completed');
+            console.log('XR Controllers setup completed - Both controllers active');
         }
         
         // レーザーポインター作成関数
@@ -1949,6 +1952,7 @@
 
             const ray = new THREE.Line(geometry, material);
             ray.userData.isRay = true;
+            ray.name = 'controllerRay'; // 識別用の名前を追加
             controller.add(ray);
             
             // カーソル（レイの先端）
@@ -1961,11 +1965,12 @@
             const cursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
             cursor.position.set(0, 0, -3);
             cursor.userData.isCursor = true;
+            cursor.name = 'controllerCursor'; // 識別用の名前を追加
             ray.add(cursor);
         }
 
         // XRイベントハンドラー
-        function onSelectStart(event) {
+        function onSelectStart(event, hand) {
             // 情報パネルが表示されている場合は閉じる
             if (planetInfoVisible) {
                 hide3DPlanetInfo();
@@ -1985,6 +1990,7 @@
             }
             
             // MRモードでの操作
+            // 現在ハイライトされている惑星をチェック（どちらのコントローラーからでも）
             if (highlightedPlanet) {
                 // 惑星がハイライトされている場合は、その惑星情報を記録してVRモードに切り替え
                 pendingPlanetInfo = highlightedPlanet.data;
@@ -1992,16 +1998,11 @@
             }
         }
 
-        function onSelectEnd(event) {
+        function onSelectEnd(event, hand) {
             // トリガー終了
         }
 
-        function onGripStart(event) {
-            // 参考プログラムと同じ方式：event.targetからコントローラーを特定
-            const controllerIndex = controllers.indexOf(event.target);
-            if (controllerIndex === -1) return;
-            
-            const hand = controllerIndex === 0 ? 'left' : 'right';
+        function onGripStart(hand) {
             gripStates[hand] = true;
             
             // 片手グリップの場合はドラッグ開始
@@ -2029,12 +2030,7 @@
             updateGripStatus();
         }
 
-        function onGripEnd(event) {
-            // 参考プログラムと同じ方式：event.targetからコントローラーを特定
-            const controllerIndex = controllers.indexOf(event.target);
-            if (controllerIndex === -1) return;
-            
-            const hand = controllerIndex === 0 ? 'left' : 'right';
+        function onGripEnd(hand) {
             gripStates[hand] = false;
             isDragging = false;
             updateGripStatus();
@@ -2521,39 +2517,55 @@
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
             if (xrActive && !planetInfoVisible && controllers.length > 0) {
-                // アクティブなコントローラーを取得
-                const activeController = controllers.find(controller => controller && controller.visible);
-                if (activeController) {
-                    try {
-                        // コントローラーの位置と方向を取得
-                        const tempMatrix = new THREE.Matrix4();
-                        tempMatrix.identity().extractRotation(activeController.matrixWorld);
-                        
-                        const controllerPosition = new THREE.Vector3();
-                        controllerPosition.setFromMatrixPosition(activeController.matrixWorld);
-                        
-                        const controllerDirection = new THREE.Vector3(0, 0, -1);
-                        controllerDirection.applyMatrix4(tempMatrix);
-                        controllerDirection.normalize();
-                        
-                        raycaster.set(controllerPosition, controllerDirection);
-                        
-                        // 惑星のメッシュのみをチェック
-                        const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
-                        const intersects = raycaster.intersectObjects(planetMeshes);
-                        
-                        if (intersects.length > 0) {
-                            const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
-                            if (intersectedPlanet && intersectedPlanet !== highlightedPlanet) {
-                                highlightPlanet(intersectedPlanet);
+                let foundIntersection = false;
+                let closestIntersectedPlanet = null;
+                let closestDistance = Infinity;
+
+                // 両方のコントローラーでレイキャストを実行
+                controllers.forEach(controller => {
+                    if (controller && controller.visible) {
+                        try {
+                            // コントローラーの位置と方向を取得
+                            const tempMatrix = new THREE.Matrix4();
+                            tempMatrix.identity().extractRotation(controller.matrixWorld);
+                            
+                            const controllerPosition = new THREE.Vector3();
+                            controllerPosition.setFromMatrixPosition(controller.matrixWorld);
+                            
+                            const controllerDirection = new THREE.Vector3(0, 0, -1);
+                            controllerDirection.applyMatrix4(tempMatrix);
+                            controllerDirection.normalize();
+                            
+                            raycaster.set(controllerPosition, controllerDirection);
+                            
+                            // 惑星のメッシュのみをチェック
+                            const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
+                            const intersects = raycaster.intersectObjects(planetMeshes);
+                            
+                            if (intersects.length > 0) {
+                                const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                                if (intersectedPlanet) {
+                                    foundIntersection = true;
+                                    // より近い交差点を優先
+                                    if (intersects[0].distance < closestDistance) {
+                                        closestDistance = intersects[0].distance;
+                                        closestIntersectedPlanet = intersectedPlanet;
+                                    }
+                                }
                             }
-                        } else {
-                            clearHighlight();
+                        } catch (error) {
+                            // エラーは無視して次のコントローラーをチェック
                         }
-                    } catch (error) {
-                        // エラーが発生した場合はハイライトをクリア
-                        clearHighlight();
                     }
+                });
+
+                // ハイライト処理
+                if (foundIntersection && closestIntersectedPlanet) {
+                    if (closestIntersectedPlanet !== highlightedPlanet) {
+                        highlightPlanet(closestIntersectedPlanet);
+                    }
+                } else {
+                    clearHighlight();
                 }
             }
 
