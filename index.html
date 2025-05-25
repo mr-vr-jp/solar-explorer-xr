@@ -681,38 +681,70 @@
             return new THREE.Points(starGeometry, starMaterial);
         }
 
-        // 宇宙空間の星空作成
+        // 宇宙空間の星空作成（大幅強化）
         function createSpaceStarField() {
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = [];
             const starColors = [];
             const starSizes = [];
             
-            for (let i = 0; i < 15000; i++) {
-                // より広範囲に星を配置
-                const radius = 50 + Math.random() * 150;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
+            for (let i = 0; i < 25000; i++) {
+                // より広範囲に星を配置（天の川銀河を模擬）
+                let radius, x, y, z;
                 
-                starPositions.push(
-                    radius * Math.sin(phi) * Math.cos(theta),
-                    radius * Math.sin(phi) * Math.sin(theta),
-                    radius * Math.cos(phi)
-                );
-                
-                // 星の色を多様化
-                const colorType = Math.random();
-                if (colorType < 0.6) {
-                    starColors.push(1, 1, 1); // 白
-                } else if (colorType < 0.8) {
-                    starColors.push(0.8, 0.9, 1); // 青白
-                } else if (colorType < 0.9) {
-                    starColors.push(1, 0.9, 0.7); // 黄色
+                if (i < 20000) {
+                    // 天の川銀河の円盤部分
+                    const diskRadius = 100 + Math.random() * 200;
+                    const diskAngle = Math.random() * Math.PI * 2;
+                    const diskHeight = (Math.random() - 0.5) * 20;
+                    
+                    x = diskRadius * Math.cos(diskAngle);
+                    y = diskHeight;
+                    z = diskRadius * Math.sin(diskAngle);
                 } else {
-                    starColors.push(1, 0.7, 0.5); // オレンジ
+                    // ハロー部分（球状分布）
+                    radius = 150 + Math.random() * 100;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    
+                    x = radius * Math.sin(phi) * Math.cos(theta);
+                    y = radius * Math.sin(phi) * Math.sin(theta);
+                    z = radius * Math.cos(phi);
                 }
                 
-                starSizes.push(Math.random() * 3 + 0.5);
+                starPositions.push(x, y, z);
+                
+                // より現実的な恒星の色分布
+                const colorType = Math.random();
+                if (colorType < 0.1) {
+                    // O型星（青色、非常に稀）
+                    starColors.push(0.6, 0.8, 1);
+                    starSizes.push(Math.random() * 4 + 2);
+                } else if (colorType < 0.2) {
+                    // B型星（青白色）
+                    starColors.push(0.8, 0.9, 1);
+                    starSizes.push(Math.random() * 3 + 1.5);
+                } else if (colorType < 0.3) {
+                    // A型星（白色）
+                    starColors.push(1, 1, 1);
+                    starSizes.push(Math.random() * 2.5 + 1);
+                } else if (colorType < 0.4) {
+                    // F型星（黄白色）
+                    starColors.push(1, 1, 0.9);
+                    starSizes.push(Math.random() * 2 + 0.8);
+                } else if (colorType < 0.5) {
+                    // G型星（黄色、太陽型）
+                    starColors.push(1, 0.95, 0.8);
+                    starSizes.push(Math.random() * 1.8 + 0.7);
+                } else if (colorType < 0.7) {
+                    // K型星（オレンジ色）
+                    starColors.push(1, 0.8, 0.6);
+                    starSizes.push(Math.random() * 1.5 + 0.6);
+                } else {
+                    // M型星（赤色矮星、最も多い）
+                    starColors.push(1, 0.6, 0.4);
+                    starSizes.push(Math.random() * 1 + 0.3);
+                }
             }
             
             starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
@@ -721,10 +753,11 @@
             
             const starMaterial = new THREE.PointsMaterial({
                 vertexColors: true,
-                size: 0.08,
+                size: 0.06,
                 transparent: true,
                 opacity: 0, // 初期値を0に設定
-                sizeAttenuation: true
+                sizeAttenuation: true,
+                blending: THREE.AdditiveBlending
             });
             
             return new THREE.Points(starGeometry, starMaterial);
@@ -741,6 +774,342 @@
             });
             
             return new THREE.Mesh(geometry, material);
+        }
+
+        // 小惑星帯を作成（火星と木星の間）
+        function createAsteroidBelt() {
+            const asteroidGroup = new THREE.Group();
+            const asteroidCount = 200;
+            const innerRadius = 1.7;  // 火星軌道より外側
+            const outerRadius = 1.9;  // 木星軌道より内側
+            
+            for (let i = 0; i < asteroidCount; i++) {
+                // ランダムな距離（小惑星帯の範囲内）
+                const distance = innerRadius + Math.random() * (outerRadius - innerRadius);
+                const angle = Math.random() * Math.PI * 2;
+                
+                // 小惑星のサイズ（非常に小さく）
+                const size = 0.001 + Math.random() * 0.003;
+                
+                // 不規則な形状を作成
+                const geometry = new THREE.SphereGeometry(size, 6, 4);
+                const vertices = geometry.attributes.position.array;
+                for (let j = 0; j < vertices.length; j += 3) {
+                    const factor = 0.7 + Math.random() * 0.6; // 不規則性
+                    vertices[j] *= factor;
+                    vertices[j + 1] *= factor;
+                    vertices[j + 2] *= factor;
+                }
+                geometry.attributes.position.needsUpdate = true;
+                
+                const material = new THREE.MeshLambertMaterial({
+                    color: new THREE.Color().setHSL(0.1, 0.3, 0.2 + Math.random() * 0.3)
+                });
+                
+                const asteroid = new THREE.Mesh(geometry, material);
+                asteroid.position.x = Math.cos(angle) * distance;
+                asteroid.position.z = Math.sin(angle) * distance;
+                asteroid.position.y = (Math.random() - 0.5) * 0.05; // 少し高さにばらつき
+                
+                asteroid.rotation.x = Math.random() * Math.PI * 2;
+                asteroid.rotation.y = Math.random() * Math.PI * 2;
+                asteroid.rotation.z = Math.random() * Math.PI * 2;
+                
+                asteroid.castShadow = true;
+                asteroid.receiveShadow = true;
+                
+                // 回転速度を設定
+                asteroid.userData = {
+                    rotationSpeed: (Math.random() - 0.5) * 0.01,
+                    orbitSpeed: 0.0001 + Math.random() * 0.0002,
+                    angle: angle,
+                    distance: distance
+                };
+                
+                asteroidGroup.add(asteroid);
+            }
+            
+            solarSystemGroup.add(asteroidGroup);
+            return asteroidGroup;
+        }
+
+        // カイパーベルトを作成（海王星の外側）
+        function createKuiperBelt() {
+            const kuiperGroup = new THREE.Group();
+            const objectCount = 150;
+            const innerRadius = 4.2;  // 海王星軌道より外側
+            const outerRadius = 6.0;  // さらに外側
+            
+            for (let i = 0; i < objectCount; i++) {
+                const distance = innerRadius + Math.random() * (outerRadius - innerRadius);
+                const angle = Math.random() * Math.PI * 2;
+                
+                // カイパーベルト天体のサイズ
+                const size = 0.002 + Math.random() * 0.008;
+                
+                const geometry = new THREE.SphereGeometry(size, 8, 6);
+                const material = new THREE.MeshLambertMaterial({
+                    color: new THREE.Color().setHSL(0.6, 0.4, 0.15 + Math.random() * 0.2)
+                });
+                
+                const kbo = new THREE.Mesh(geometry, material);
+                kbo.position.x = Math.cos(angle) * distance;
+                kbo.position.z = Math.sin(angle) * distance;
+                kbo.position.y = (Math.random() - 0.5) * 0.3; // より大きな軌道傾斜
+                
+                kbo.castShadow = true;
+                kbo.receiveShadow = true;
+                
+                kbo.userData = {
+                    rotationSpeed: (Math.random() - 0.5) * 0.005,
+                    orbitSpeed: 0.00005 + Math.random() * 0.00005,
+                    angle: angle,
+                    distance: distance
+                };
+                
+                kuiperGroup.add(kbo);
+            }
+            
+            solarSystemGroup.add(kuiperGroup);
+            return kuiperGroup;
+        }
+
+        // 太陽系外の恒星を作成
+        function createDistantStars() {
+            const starGroup = new THREE.Group();
+            const starCount = 50;
+            
+            for (let i = 0; i < starCount; i++) {
+                // 遠方の恒星
+                const distance = 20 + Math.random() * 80;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                // 恒星のタイプに応じたサイズと色
+                const starType = Math.random();
+                let size, color, intensity;
+                
+                if (starType < 0.3) {
+                    // 赤色矮星
+                    size = 0.05 + Math.random() * 0.1;
+                    color = new THREE.Color(0xFF6644);
+                    intensity = 0.3;
+                } else if (starType < 0.6) {
+                    // 太陽型星
+                    size = 0.08 + Math.random() * 0.12;
+                    color = new THREE.Color(0xFFFFAA);
+                    intensity = 0.5;
+                } else if (starType < 0.8) {
+                    // 青色巨星
+                    size = 0.12 + Math.random() * 0.2;
+                    color = new THREE.Color(0xAADDFF);
+                    intensity = 0.8;
+                } else {
+                    // 赤色巨星
+                    size = 0.2 + Math.random() * 0.3;
+                    color = new THREE.Color(0xFF8844);
+                    intensity = 0.6;
+                }
+                
+                const geometry = new THREE.SphereGeometry(size, 16, 12);
+                const material = new THREE.MeshBasicMaterial({
+                    color: color,
+                    emissive: color,
+                    emissiveIntensity: intensity
+                });
+                
+                const star = new THREE.Mesh(geometry, material);
+                star.position.x = distance * Math.sin(phi) * Math.cos(theta);
+                star.position.y = distance * Math.sin(phi) * Math.sin(theta);
+                star.position.z = distance * Math.cos(phi);
+                
+                // 微かな光源を追加
+                const starLight = new THREE.PointLight(color, 0.1, distance * 0.5);
+                starLight.position.copy(star.position);
+                scene.add(starLight);
+                
+                starGroup.add(star);
+            }
+            
+            scene.add(starGroup);
+            return starGroup;
+        }
+
+        // 遠方の銀河を作成
+        function createDistantGalaxies() {
+            const galaxyGroup = new THREE.Group();
+            const galaxyCount = 20;
+            
+            for (let i = 0; i < galaxyCount; i++) {
+                // 非常に遠方の銀河
+                const distance = 150 + Math.random() * 200;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
+                // 銀河の形状を作成
+                const galaxyGeometry = new THREE.PlaneGeometry(2 + Math.random() * 4, 1 + Math.random() * 2);
+                
+                // 銀河テクスチャを作成
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                
+                // 銀河の渦巻き模様
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                
+                // 背景
+                ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // 銀河コア
+                const coreGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 20);
+                coreGradient.addColorStop(0, 'rgba(255, 220, 150, 0.8)');
+                coreGradient.addColorStop(0.5, 'rgba(200, 150, 100, 0.4)');
+                coreGradient.addColorStop(1, 'rgba(100, 100, 150, 0.1)');
+                ctx.fillStyle = coreGradient;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 渦巻きアーム
+                for (let arm = 0; arm < 2; arm++) {
+                    ctx.strokeStyle = `rgba(150, 150, 200, ${0.3 + Math.random() * 0.2})`;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    for (let angle = 0; angle < Math.PI * 4; angle += 0.1) {
+                        const radius = 5 + angle * 3;
+                        const x = centerX + Math.cos(angle + arm * Math.PI) * radius;
+                        const y = centerY + Math.sin(angle + arm * Math.PI) * radius * 0.3;
+                        
+                        if (angle === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+                
+                const galaxyTexture = new THREE.CanvasTexture(canvas);
+                const galaxyMaterial = new THREE.MeshBasicMaterial({
+                    map: galaxyTexture,
+                    transparent: true,
+                    opacity: 0.6,
+                    side: THREE.DoubleSide
+                });
+                
+                const galaxy = new THREE.Mesh(galaxyGeometry, galaxyMaterial);
+                galaxy.position.x = distance * Math.sin(phi) * Math.cos(theta);
+                galaxy.position.y = distance * Math.sin(phi) * Math.sin(theta);
+                galaxy.position.z = distance * Math.cos(phi);
+                
+                // 銀河をカメラの方向に向ける
+                galaxy.lookAt(0, 0, 0);
+                
+                // ゆっくりとした回転
+                galaxy.userData = {
+                    rotationSpeed: (Math.random() - 0.5) * 0.001
+                };
+                
+                galaxyGroup.add(galaxy);
+            }
+            
+            scene.add(galaxyGroup);
+            return galaxyGroup;
+        }
+
+        // 有名な星座を作成
+        function createConstellations() {
+            const constellationGroup = new THREE.Group();
+            
+            // オリオン座を作成
+            const orionStars = [
+                // ベテルギウス（左肩）
+                { name: 'ベテルギウス', pos: [-30, 25, -80], color: 0xFF6644, size: 0.15 },
+                // リゲル（右足）
+                { name: 'リゲル', pos: [25, -25, -80], color: 0xAADDFF, size: 0.12 },
+                // ベラトリックス（右肩）
+                { name: 'ベラトリックス', pos: [20, 15, -80], color: 0xDDEEFF, size: 0.08 },
+                // オリオンベルト
+                { name: 'アルニタク', pos: [-8, 0, -80], color: 0xDDEEFF, size: 0.09 },
+                { name: 'アルニラム', pos: [0, 0, -80], color: 0xDDEEFF, size: 0.09 },
+                { name: 'ミンタカ', pos: [8, 0, -80], color: 0xDDEEFF, size: 0.08 },
+                // 剣
+                { name: 'オリオン星雲', pos: [0, -15, -80], color: 0xFF99DD, size: 0.1 }
+            ];
+            
+            orionStars.forEach(star => {
+                const geometry = new THREE.SphereGeometry(star.size, 16, 12);
+                const material = new THREE.MeshBasicMaterial({
+                    color: star.color,
+                    emissive: star.color,
+                    emissiveIntensity: 0.8
+                });
+                
+                const starMesh = new THREE.Mesh(geometry, material);
+                starMesh.position.set(star.pos[0], star.pos[1], star.pos[2]);
+                starMesh.name = star.name;
+                
+                // 星の光を追加
+                const starLight = new THREE.PointLight(star.color, 0.5, 50);
+                starLight.position.copy(starMesh.position);
+                scene.add(starLight);
+                
+                constellationGroup.add(starMesh);
+            });
+            
+            // 北斗七星を作成
+            const bigDipperStars = [
+                { pos: [-60, 40, -90], color: 0xFFFFAA, size: 0.1 },
+                { pos: [-50, 45, -90], color: 0xFFFFAA, size: 0.09 },
+                { pos: [-40, 42, -90], color: 0xFFFFAA, size: 0.08 },
+                { pos: [-30, 40, -90], color: 0xFFFFAA, size: 0.09 },
+                { pos: [-20, 35, -90], color: 0xFFFFAA, size: 0.08 },
+                { pos: [-15, 25, -90], color: 0xFFFFAA, size: 0.09 },
+                { pos: [-10, 15, -90], color: 0xFFFFAA, size: 0.08 }
+            ];
+            
+            bigDipperStars.forEach((star, index) => {
+                const geometry = new THREE.SphereGeometry(star.size, 16, 12);
+                const material = new THREE.MeshBasicMaterial({
+                    color: star.color,
+                    emissive: star.color,
+                    emissiveIntensity: 0.7
+                });
+                
+                const starMesh = new THREE.Mesh(geometry, material);
+                starMesh.position.set(star.pos[0], star.pos[1], star.pos[2]);
+                starMesh.name = `北斗七星${index + 1}`;
+                
+                constellationGroup.add(starMesh);
+            });
+            
+            // カシオペア座を作成（W字型）
+            const cassiopeiaStars = [
+                { pos: [60, 50, -85], color: 0xDDEEFF, size: 0.09 },
+                { pos: [55, 55, -85], color: 0xDDEEFF, size: 0.08 },
+                { pos: [50, 52, -85], color: 0xDDEEFF, size: 0.1 },
+                { pos: [45, 58, -85], color: 0xDDEEFF, size: 0.08 },
+                { pos: [40, 55, -85], color: 0xDDEEFF, size: 0.09 }
+            ];
+            
+            cassiopeiaStars.forEach((star, index) => {
+                const geometry = new THREE.SphereGeometry(star.size, 16, 12);
+                const material = new THREE.MeshBasicMaterial({
+                    color: star.color,
+                    emissive: star.color,
+                    emissiveIntensity: 0.7
+                });
+                
+                const starMesh = new THREE.Mesh(geometry, material);
+                starMesh.position.set(star.pos[0], star.pos[1], star.pos[2]);
+                starMesh.name = `カシオペア${index + 1}`;
+                
+                constellationGroup.add(starMesh);
+            });
+            
+            scene.add(constellationGroup);
+            return constellationGroup;
         }
 
         // WebXRサポートチェック
@@ -816,8 +1185,8 @@
             backgroundSphere = createBackgroundSphere();
             scene.add(backgroundSphere);
 
-            // メイン太陽光源（大幅に強化）
-            const sunLight = new THREE.PointLight(0xFFFFDD, 8, 100);
+            // メイン太陽光源（テクスチャ保護のため調整）
+            const sunLight = new THREE.PointLight(0xFFFFDD, 3.5, 100);
             sunLight.position.set(0, 0, 0);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 4096;
@@ -827,19 +1196,34 @@
             solarSystemGroup.add(sunLight);
             
             // 追加の太陽光源（より現実的な光の広がり）
-            const sunLight2 = new THREE.PointLight(0xFFDD88, 4, 80);
+            const sunLight2 = new THREE.PointLight(0xFFDD88, 2, 80);
             sunLight2.position.set(0, 0, 0);
             solarSystemGroup.add(sunLight2);
             
-            // 太陽コロナ光源
-            const coronaLight = new THREE.PointLight(0xFFFFFF, 2, 60);
+            // 太陽コロナ光源（控えめに）
+            const coronaLight = new THREE.PointLight(0xFFFFFF, 1, 60);
             coronaLight.position.set(0, 0, 0);
             solarSystemGroup.add(coronaLight);
 
-            // 環境光（太陽の明るさに対応して調整）
-            const ambientLight = new THREE.AmbientLight(0x606080, 0.4);
+            // 環境光（テクスチャのディテールを保護）
+            const ambientLight = new THREE.AmbientLight(0x404080, 0.3);
             scene.add(ambientLight);
 
+            // 小惑星帯を作成（火星と木星の間）
+            createAsteroidBelt();
+            
+            // カイパーベルトを作成（海王星の外側）
+            createKuiperBelt();
+            
+            // 太陽系外の恒星を作成
+            createDistantStars();
+            
+            // 遠方の銀河を作成
+            createDistantGalaxies();
+            
+            // 有名な星座を作成
+            createConstellations();
+            
             // 惑星作成
             planetData.forEach((data, index) => {
                 const geometry = new THREE.SphereGeometry(data.size, 32, 16);
@@ -1423,6 +1807,14 @@
 
                 await renderer.xr.setSession(session);
                 xrActive = true;
+                
+                // コントローラーを再初期化
+                setupXRControllers();
+                
+                // 少し待ってからコントローラーのイベントリスナーを再設定
+                setTimeout(() => {
+                    setupXRControllers();
+                }, 500);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -1528,6 +1920,38 @@
                         moon.position.z = Math.sin(moonAngle) * moon.userData.distance;
                     }
                 });
+            });
+
+            // 小惑星とカイパーベルト天体のアニメーション
+            solarSystemGroup.children.forEach(child => {
+                if (child.isGroup) {
+                    child.children.forEach(object => {
+                        if (object.userData && object.userData.rotationSpeed) {
+                            // 自転
+                            object.rotation.x += object.userData.rotationSpeed;
+                            object.rotation.y += object.userData.rotationSpeed * 0.7;
+                            object.rotation.z += object.userData.rotationSpeed * 0.3;
+                            
+                            // 公転（小惑星とカイパーベルト天体）
+                            if (object.userData.orbitSpeed) {
+                                object.userData.angle += object.userData.orbitSpeed;
+                                object.position.x = Math.cos(object.userData.angle) * object.userData.distance;
+                                object.position.z = Math.sin(object.userData.angle) * object.userData.distance;
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 遠方の銀河の回転
+            scene.children.forEach(child => {
+                if (child.isGroup && child.children.length > 0) {
+                    child.children.forEach(galaxy => {
+                        if (galaxy.userData && galaxy.userData.rotationSpeed) {
+                            galaxy.rotation.z += galaxy.userData.rotationSpeed;
+                        }
+                    });
+                }
             });
 
             // レイキャスト（右コントローラーから惑星への当たり判定 - 常に動作）
