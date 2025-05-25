@@ -1903,8 +1903,10 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // XRコントローラーセットアップ
+        // XRコントローラーセットアップ（Quest 3対応強化版）
         function setupXRControllers() {
+            console.log('Setting up XR controllers...');
+            
             // 既存のコントローラーをクリーンアップ
             if (controllers.left) {
                 scene.remove(controllers.left);
@@ -1915,36 +1917,88 @@
                 controllers.right = null;
             }
             
-            // 左コントローラー
-            const leftController = renderer.xr.getController(0);
-            leftController.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
-            leftController.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
-            leftController.addEventListener('squeezestart', () => onGripStart('left'));
-            leftController.addEventListener('squeezeend', () => onGripEnd('left'));
-            scene.add(leftController);
-            controllers.left = leftController;
+            // コントローラー配列で管理（参考コードと同様）
+            const xrControllers = [
+                renderer.xr.getController(0),
+                renderer.xr.getController(1)
+            ];
+            
+            xrControllers.forEach((controller, index) => {
+                const hand = index === 0 ? 'left' : 'right';
+                
+                // イベントリスナーを追加
+                controller.addEventListener('selectstart', (event) => onSelectStart(event, hand));
+                controller.addEventListener('selectend', (event) => onSelectEnd(event, hand));
+                controller.addEventListener('squeezestart', () => onGripStart(hand));
+                controller.addEventListener('squeezeend', () => onGripEnd(hand));
+                
+                // レーザーポインター追加
+                createControllerRay(controller, 0x00ff88);
+                
+                // シーンに追加
+                scene.add(controller);
+                
+                // グローバル変数に格納
+                controllers[hand] = controller;
+                
+                console.log(`Controller ${index} (${hand}) setup completed`);
+            });
 
-            // 右コントローラー
-            const rightController = renderer.xr.getController(1);
-            rightController.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
-            rightController.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
-            rightController.addEventListener('squeezestart', () => onGripStart('right'));
-            rightController.addEventListener('squeezeend', () => onGripEnd('right'));
-            scene.add(rightController);
-            controllers.right = rightController;
-
-            // コントローラーグリップ
+            // コントローラーグリップも設定
             const leftControllerGrip = renderer.xr.getControllerGrip(0);
-            scene.add(leftControllerGrip);
-
             const rightControllerGrip = renderer.xr.getControllerGrip(1);
+            scene.add(leftControllerGrip);
             scene.add(rightControllerGrip);
-
-            // レーザーポインター（両コントローラーに追加）
-            createControllerRay(leftController, 0x00ff88);
-            createControllerRay(rightController, 0x00ff88);
             
             console.log('XR Controllers setup completed');
+        }
+        
+        // コントローラー接続状態を監視（Quest 3の問題対策）
+        function monitorControllerConnection() {
+            if (!xrActive) return;
+            
+            // inputsourceschangeイベントをリッスン
+            if (renderer.xr.getSession()) {
+                const session = renderer.xr.getSession();
+                
+                // 既存のリスナーを削除（重複防止）
+                session.removeEventListener('inputsourceschange', handleInputSourcesChange);
+                
+                // 新しいリスナーを追加
+                session.addEventListener('inputsourceschange', handleInputSourcesChange);
+                
+                console.log('Input sources change listener added');
+            }
+        }
+        
+        // inputsourceschangeイベントハンドラー
+        function handleInputSourcesChange(event) {
+            console.log('Input sources changed:', event);
+            
+            // 短い遅延の後にコントローラーを再設定
+            setTimeout(() => {
+                setupXRControllers();
+                console.log('Controllers re-initialized due to input sources change');
+            }, 100);
+        }
+        
+        // コントローラー接続を強制的にチェック（Quest 3のワークアラウンド）
+        function forceControllerCheck() {
+            if (!xrActive || !renderer.xr.getSession()) return;
+            
+            const session = renderer.xr.getSession();
+            const inputSources = session.inputSources;
+            
+            console.log(`Checking input sources: ${inputSources.length} found`);
+            
+            // 入力ソースが見つからない場合は再初期化を試行
+            if (inputSources.length === 0) {
+                console.log('No input sources found, attempting re-initialization...');
+                setTimeout(() => {
+                    setupXRControllers();
+                    monitorControllerConnection();
+                }, 500);
+            }
         }
         
         // レーザーポインター作成関数
@@ -2357,7 +2411,7 @@
             }
         }
 
-        // XRセッション開始
+        // XRセッション開始（Quest 3対応強化版）
         async function startXRSession() {
             if (!xrSupported || !dataLoaded) return;
 
@@ -2387,17 +2441,29 @@
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 
-                // XRセッションの準備ができるまで少し待つ
+                console.log('XR Session started, initializing controllers...');
+                
+                // 段階的なコントローラー初期化（Quest 3対応）
                 setTimeout(() => {
-                    console.log('Setting up XR controllers...');
                     setupXRControllers();
-                    
-                    // さらに確実にするため、もう一度初期化
-                    setTimeout(() => {
-                        setupXRControllers();
-                        console.log('XR controllers ready');
-                    }, 1000);
+                    monitorControllerConnection();
                 }, 200);
+                
+                // さらに確実にするための追加初期化
+                setTimeout(() => {
+                    setupXRControllers();
+                    forceControllerCheck();
+                    console.log('XR controllers initialization completed');
+                }, 1000);
+                
+                // 定期的なコントローラーチェック（Quest 3のワークアラウンド）
+                setTimeout(() => {
+                    forceControllerCheck();
+                }, 2000);
+                
+                setTimeout(() => {
+                    forceControllerCheck();
+                }, 4000);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -2428,6 +2494,7 @@
                 });
 
             } catch (error) {
+                console.error('XR Session start error:', error);
                 alert('XRセッションの開始に失敗しました: ' + error.message);
             }
         }
@@ -2537,11 +2604,24 @@
                 }
             });
 
+            // 定期的なコントローラー接続チェック（Quest 3対応）
+            if (xrActive && time % 300 === 0) { // 5秒間隔で定期チェック
+                forceControllerCheck();
+            }
+
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
             if (xrActive && !planetInfoVisible) {
-                // 右コントローラーまたは左コントローラーからレイキャスト
-                const activeController = controllers.right || controllers.left;
-                if (activeController && activeController.visible) {
+                // コントローラーの存在チェックをより厳密に
+                let activeController = null;
+                
+                // 両方のコントローラーをチェック
+                if (controllers.right && controllers.right.visible && controllers.right.connected !== false) {
+                    activeController = controllers.right;
+                } else if (controllers.left && controllers.left.visible && controllers.left.connected !== false) {
+                    activeController = controllers.left;
+                }
+                
+                if (activeController) {
                     try {
                         // コントローラーの位置と方向を取得
                         const tempMatrix = new THREE.Matrix4();
@@ -2572,6 +2652,9 @@
                         // エラーが発生した場合はハイライトをクリア
                         clearHighlight();
                     }
+                } else {
+                    // アクティブなコントローラーがない場合
+                    clearHighlight();
                 }
             }
 
