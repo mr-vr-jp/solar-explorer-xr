@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebXR MR 太陽系探索</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -1177,7 +1177,9 @@
                     ctx.fillRect(0, 0, size, size);
             }
             
-            return new THREE.CanvasTexture(canvas);
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.colorSpace = THREE.SRGBColorSpace; // 最新版対応
+            return texture;
         }
 
         // 星空作成
@@ -1524,6 +1526,7 @@
                 }
                 
                 const galaxyTexture = new THREE.CanvasTexture(canvas);
+                galaxyTexture.colorSpace = THREE.SRGBColorSpace; // 最新版対応
                 const galaxyMaterial = new THREE.MeshBasicMaterial({
                     map: galaxyTexture,
                     transparent: true,
@@ -1647,20 +1650,29 @@
             return constellationGroup;
         }
 
-        // WebXRサポートチェック
+        // WebXRサポートチェック（最新版対応）
         async function checkXRSupport() {
-            if ('xr' in navigator) {
+            xrSupported = false;
+            
+            if ('xr' in navigator && navigator.xr) {
                 try {
-                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                    xrSupported = supported;
-                } catch (error) {
-                    try {
-                        const supported = await navigator.xr.isSessionSupported('immersive-vr');
-                        xrSupported = supported;
-                    } catch (error) {
-                        xrSupported = false;
+                    // Quest 3のAR機能を優先チェック
+                    const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
+                    if (arSupported) {
+                        xrSupported = true;
+                        console.log('WebXR AR supported');
+                    } else {
+                        // ARが使えない場合はVRをチェック
+                        const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+                        xrSupported = vrSupported;
+                        console.log('WebXR VR supported:', vrSupported);
                     }
+                } catch (error) {
+                    console.error('WebXR support check failed:', error);
+                    xrSupported = false;
                 }
+            } else {
+                console.log('Navigator.xr not available');
             }
 
             const button = document.getElementById('xr-button');
@@ -1699,6 +1711,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
+            renderer.outputColorSpace = THREE.SRGBColorSpace; // 最新版対応
             container.appendChild(renderer.domElement);
 
             // 太陽系グループ
@@ -1918,13 +1931,18 @@
                     cleanupControllers();
                 }
                 
-                // 左コントローラー（インデックス0）
+                // 最新版Three.js対応：より堅牢なコントローラー取得
                 controllers.left = renderer.xr.getController(0);
                 controllerGrips.left = renderer.xr.getControllerGrip(0);
                 
-                // 右コントローラー（インデックス1）
                 controllers.right = renderer.xr.getController(1);
                 controllerGrips.right = renderer.xr.getControllerGrip(1);
+                
+                // Quest 3対応：コントローラーが存在することを確認
+                if (!controllers.left || !controllers.right) {
+                    console.warn('Controllers not properly initialized, retrying...');
+                    throw new Error('Controller initialization failed');
+                }
                 
                 // イベントリスナーの設定
                 setupControllerEvents();
@@ -2322,6 +2340,7 @@
             
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
+            texture.colorSpace = THREE.SRGBColorSpace; // 最新版対応
             
             return texture;
         }
@@ -2506,19 +2525,26 @@
                     }
                 }
 
+                // 最新版Three.js対応：改善されたセッション初期化
                 let sessionInit = { 
                     requiredFeatures: ['local-floor'],
-                    optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection']
+                    optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection', 'dom-overlay', 'hit-test']
                 };
                 
                 let session;
                 try {
+                    // Quest 3のMR機能を優先的に試行
                     session = await navigator.xr.requestSession('immersive-ar', sessionInit);
-                    console.log('AR session created');
+                    console.log('AR session created successfully');
                 } catch (arError) {
-                    console.log('AR not available, trying VR...');
-                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
-                    console.log('VR session created');
+                    console.log('AR not available, trying VR...', arError.message);
+                    try {
+                        session = await navigator.xr.requestSession('immersive-vr', sessionInit);
+                        console.log('VR session created successfully');
+                    } catch (vrError) {
+                        console.error('Both AR and VR failed:', vrError.message);
+                        throw vrError;
+                    }
                 }
 
                 // 入力ソース変更の監視を設定（Quest対応の修正）
