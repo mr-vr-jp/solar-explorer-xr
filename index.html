@@ -323,132 +323,93 @@
             
             switch(type) {
                 case 'sun':
-                    // 超リアルな太陽テクスチャ（画像参考に大幅強化）
+                    // 高品質な太陽テクスチャ
                     const centerX = size / 2;
                     const centerY = size / 2;
                     const radius = size / 2;
                     
-                    // 極限の明度ベース（純白中心）
-                    const coreGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 0.3);
-                    coreGradient.addColorStop(0, '#FFFFFF');   // 核融合の純白
-                    coreGradient.addColorStop(0.3, '#FFFFEE'); // 白色
-                    coreGradient.addColorStop(0.6, '#FFFFE0'); // 極薄黄色
-                    coreGradient.addColorStop(1, '#FFFFC0');   // 薄黄色
-                    ctx.fillStyle = coreGradient;
+                    // ベースの放射グラデーション（より明るく強化）
+                    const sunGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+                    sunGradient.addColorStop(0, '#FFFFFF');  // 純白の中心
+                    sunGradient.addColorStop(0.1, '#FFFFCC'); // 明るい黄白
+                    sunGradient.addColorStop(0.3, '#FFFF66'); // 明るい黄色
+                    sunGradient.addColorStop(0.5, '#FFCC33'); // 明るいオレンジ黄
+                    sunGradient.addColorStop(0.7, '#FF9900'); // 強いオレンジ
+                    sunGradient.addColorStop(0.9, '#FF6600'); // 深いオレンジ
+                    sunGradient.addColorStop(1, '#DD4400');   // 赤みのある縁
+                    ctx.fillStyle = sunGradient;
                     ctx.fillRect(0, 0, size, size);
                     
-                    // 対流層の表現（黄白色）
-                    const convectionGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius * 0.7);
-                    convectionGradient.addColorStop(0, 'rgba(255, 255, 240, 0.8)');
-                    convectionGradient.addColorStop(0.5, 'rgba(255, 250, 200, 0.9)');
-                    convectionGradient.addColorStop(1, 'rgba(255, 240, 160, 0.7)');
-                    ctx.fillStyle = convectionGradient;
-                    ctx.fillRect(0, 0, size, size);
-                    
-                    // 光球の表現（黄金色）
-                    const photosphereGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.5, centerX, centerY, radius * 0.9);
-                    photosphereGradient.addColorStop(0, 'rgba(255, 230, 150, 0.6)');
-                    photosphereGradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.8)');
-                    photosphereGradient.addColorStop(1, 'rgba(255, 180, 80, 0.6)');
-                    ctx.fillStyle = photosphereGradient;
-                    ctx.fillRect(0, 0, size, size);
-                    
-                    // 彩層（オレンジ色の外層）
-                    const chromosphereGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, radius);
-                    chromosphereGradient.addColorStop(0, 'rgba(255, 160, 60, 0.5)');
-                    chromosphereGradient.addColorStop(0.7, 'rgba(255, 140, 40, 0.7)');
-                    chromosphereGradient.addColorStop(1, 'rgba(255, 120, 20, 0.4)');
-                    ctx.fillStyle = chromosphereGradient;
-                    ctx.fillRect(0, 0, size, size);
-                    
-                    // 超明るいコロナ効果（多重層）
-                    for(let layer = 0; layer < 3; layer++) {
-                        for(let i = 0; i < 16; i++) {
-                            const angle = (i / 16) * Math.PI * 2 + layer * 0.3;
-                            const coronaX = centerX + Math.cos(angle) * radius * (0.4 + layer * 0.2);
-                            const coronaY = centerY + Math.sin(angle) * radius * (0.4 + layer * 0.2);
-                            const coronaGradient = ctx.createRadialGradient(coronaX, coronaY, 0, coronaX, coronaY, radius * (0.3 + layer * 0.1));
-                            coronaGradient.addColorStop(0, `rgba(255, 255, 255, ${0.9 - layer * 0.2})`);
-                            coronaGradient.addColorStop(0.3, `rgba(255, 255, 220, ${0.6 - layer * 0.1})`);
-                            coronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
-                            ctx.fillStyle = coronaGradient;
-                            ctx.fillRect(0, 0, size, size);
-                        }
+                    // 強化されたコロナ効果
+                    for(let i = 0; i < 12; i++) {
+                        const angle = (i / 12) * Math.PI * 2;
+                        const coronaX = centerX + Math.cos(angle) * radius * 0.6;
+                        const coronaY = centerY + Math.sin(angle) * radius * 0.6;
+                        const coronaGradient = ctx.createRadialGradient(coronaX, coronaY, 0, coronaX, coronaY, radius * 0.4);
+                        coronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); // より明るい白
+                        coronaGradient.addColorStop(0.4, 'rgba(255, 255, 180, 0.7)');
+                        coronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
+                        ctx.fillStyle = coronaGradient;
+                        ctx.fillRect(0, 0, size, size);
                     }
                     
-                    // 大規模プロミネンス（太陽フレア）
-                    for(let i = 0; i < 20; i++) {
+                    // 追加の明るいコロナリング
+                    const mainCoronaGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, radius);
+                    mainCoronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                    mainCoronaGradient.addColorStop(0.5, 'rgba(255, 255, 200, 0.4)');
+                    mainCoronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
+                    ctx.fillStyle = mainCoronaGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // プロミネンス（太陽フレア）
+                    for(let i = 0; i < 12; i++) {
                         const angle = Math.random() * Math.PI * 2;
-                        const startRadius = radius * (0.9 + Math.random() * 0.1);
-                        const flareX = centerX + Math.cos(angle) * startRadius;
-                        const flareY = centerY + Math.sin(angle) * startRadius;
-                        const flareLength = 30 + Math.random() * 80;
-                        const flareWidth = 3 + Math.random() * 8;
-                        
-                        // 複数の線で太いフレアを表現
-                        for(let j = 0; j < 3; j++) {
-                            ctx.beginPath();
-                            const offsetAngle = angle + (j - 1) * 0.1;
-                            const endX = flareX + Math.cos(offsetAngle) * flareLength;
-                            const endY = flareY + Math.sin(offsetAngle) * flareLength;
-                            ctx.moveTo(flareX, flareY);
-                            ctx.lineTo(endX, endY);
-                            ctx.strokeStyle = `rgba(255, ${220 + Math.random() * 35}, ${100 + Math.random() * 50}, ${0.6 + Math.random() * 0.4})`;
-                            ctx.lineWidth = flareWidth - j;
-                            ctx.stroke();
-                        }
-                    }
-                    
-                    // 高密度粒状斑（表面の対流セル）
-                    for(let i = 0; i < 400; i++) {
-                        const granuleX = Math.random() * size;
-                        const granuleY = Math.random() * size;
-                        const granuleSize = 1 + Math.random() * 6;
-                        const distFromCenter = Math.sqrt((granuleX - centerX) ** 2 + (granuleY - centerY) ** 2);
-                        
-                        if (distFromCenter < radius * 0.8) {
-                            const intensity = 0.3 + Math.random() * 0.4;
-                            const brightness = Math.floor(200 + Math.random() * 55);
-                            
-                            ctx.beginPath();
-                            ctx.arc(granuleX, granuleY, granuleSize, 0, Math.PI * 2);
-                            ctx.fillStyle = `rgba(255, ${brightness}, ${brightness - 50}, ${intensity})`;
-                            ctx.fill();
-                        }
-                    }
-                    
-                    // 磁場ライン（より多く、より明るく）
-                    for(let i = 0; i < 25; i++) {
-                        const startAngle = Math.random() * Math.PI * 2;
-                        const startRadius = radius * (0.5 + Math.random() * 0.3);
-                        const startX = centerX + Math.cos(startAngle) * startRadius;
-                        const startY = centerY + Math.sin(startAngle) * startRadius;
+                        const flareX = centerX + Math.cos(angle) * radius * 0.8;
+                        const flareY = centerY + Math.sin(angle) * radius * 0.8;
+                        const flareLength = 20 + Math.random() * 40;
                         
                         ctx.beginPath();
-                        ctx.moveTo(startX, startY);
+                        ctx.moveTo(flareX, flareY);
+                        ctx.lineTo(flareX + Math.cos(angle) * flareLength, flareY + Math.sin(angle) * flareLength);
+                        ctx.strokeStyle = `rgba(255, ${200 + Math.random() * 55}, 100, ${0.4 + Math.random() * 0.4})`;
+                        ctx.lineWidth = 2 + Math.random() * 3;
+                        ctx.stroke();
+                    }
+                    
+                    // 表面の粒状斑
+                    for(let i = 0; i < 200; i++) {
+                        const granuleX = Math.random() * size;
+                        const granuleY = Math.random() * size;
+                        const granuleSize = 2 + Math.random() * 8;
+                        const intensity = 0.2 + Math.random() * 0.3;
                         
-                        for(let j = 1; j <= 8; j++) {
-                            const t = j / 8;
-                            const currentAngle = startAngle + (Math.random() - 0.5) * 0.8;
-                            const currentRadius = startRadius + t * radius * 0.4;
+                        ctx.beginPath();
+                        ctx.arc(granuleX, granuleY, granuleSize, 0, Math.PI * 2);
+                        ctx.fillStyle = `rgba(255, ${180 + Math.random() * 75}, 80, ${intensity})`;
+                        ctx.fill();
+                    }
+                    
+                    // 磁場ライン
+                    for(let i = 0; i < 15; i++) {
+                        ctx.beginPath();
+                        const startAngle = Math.random() * Math.PI * 2;
+                        const startX = centerX + Math.cos(startAngle) * radius * 0.6;
+                        const startY = centerY + Math.sin(startAngle) * radius * 0.6;
+                        
+                        ctx.moveTo(startX, startY);
+                        for(let j = 1; j <= 5; j++) {
+                            const t = j / 5;
+                            const currentAngle = startAngle + (Math.random() - 0.5) * 0.5;
+                            const currentRadius = radius * (0.6 + t * 0.3);
                             const x = centerX + Math.cos(currentAngle) * currentRadius;
                             const y = centerY + Math.sin(currentAngle) * currentRadius;
                             ctx.lineTo(x, y);
                         }
                         
-                        ctx.strokeStyle = `rgba(255, 255, ${200 + Math.random() * 55}, ${0.3 + Math.random() * 0.3})`;
-                        ctx.lineWidth = 1 + Math.random() * 2;
+                        ctx.strokeStyle = `rgba(255, 255, 150, ${0.2 + Math.random() * 0.2})`;
+                        ctx.lineWidth = 1;
                         ctx.stroke();
                     }
-                    
-                    // 最外層の超明るいコロナリング
-                    const outerCoronaGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.9, centerX, centerY, radius);
-                    outerCoronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
-                    outerCoronaGradient.addColorStop(0.3, 'rgba(255, 255, 240, 0.7)');
-                    outerCoronaGradient.addColorStop(0.7, 'rgba(255, 255, 200, 0.4)');
-                    outerCoronaGradient.addColorStop(1, 'rgba(255, 255, 150, 0)');
-                    ctx.fillStyle = outerCoronaGradient;
-                    ctx.fillRect(0, 0, size, size);
                     break;
                     
                 case 'earth':
@@ -1065,284 +1026,6 @@
             return galaxyGroup;
         }
 
-        // 超リアルな太陽システムを作成（画像参考）
-        function createRealisticSun(size) {
-            const sunSystem = {
-                meshes: [],
-                materials: [],
-                
-                // 太陽コア - 極限まで明るく強烈な発光
-                createCoreMaterial: function() {
-                    return new THREE.ShaderMaterial({
-                        uniforms: {
-                            time: { value: 0 },
-                            intensity: { value: 3.0 }
-                        },
-                        vertexShader: `
-                            varying vec2 vUv;
-                            varying vec3 vNormal;
-                            varying vec3 vPosition;
-                            void main() {
-                                vUv = uv;
-                                vNormal = normalize(normalMatrix * normal);
-                                vPosition = position;
-                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                            }
-                        `,
-                        fragmentShader: `
-                            uniform float time;
-                            uniform float intensity;
-                            varying vec2 vUv;
-                            varying vec3 vNormal;
-                            varying vec3 vPosition;
-                            
-                            // ランダム関数
-                            float random(vec2 st) {
-                                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-                            }
-                            
-                            // 改良ノイズ関数
-                            float noise(vec2 st) {
-                                vec2 i = floor(st);
-                                vec2 f = fract(st);
-                                float a = random(i);
-                                float b = random(i + vec2(1.0, 0.0));
-                                float c = random(i + vec2(0.0, 1.0));
-                                float d = random(i + vec2(1.0, 1.0));
-                                vec2 u = f * f * (3.0 - 2.0 * f);
-                                return mix(a, b, u.x) + (c - a)* u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
-                            }
-                            
-                            void main() {
-                                vec2 uv = vUv;
-                                float dist = length(uv - 0.5) * 2.0;
-                                
-                                // 複数層のプラズマ活動
-                                float plasmaLayer1 = noise(uv * 6.0 + time * 0.8);
-                                float plasmaLayer2 = noise(uv * 12.0 + time * 1.2);
-                                float plasmaLayer3 = noise(uv * 20.0 + time * 2.0);
-                                float plasmaLayer4 = noise(uv * 35.0 + time * 3.0);
-                                
-                                // 粒状斑（granulation）効果
-                                float granulation = 0.7 + 0.3 * (plasmaLayer2 + plasmaLayer3 * 0.5);
-                                
-                                // 中心の核融合領域 - 純白
-                                float coreIntensity = 1.0 - smoothstep(0.0, 0.15, dist);
-                                vec3 coreColor = vec3(1.0, 1.0, 1.0); // 純白
-                                
-                                // 対流層 - 黄白色
-                                float convectionIntensity = (1.0 - smoothstep(0.1, 0.4, dist)) * granulation;
-                                vec3 convectionColor = vec3(1.0, 0.98, 0.9);
-                                
-                                // 光球 - 黄金色
-                                float photosphereIntensity = (1.0 - smoothstep(0.3, 0.7, dist)) * plasmaLayer1;
-                                vec3 photosphereColor = vec3(1.0, 0.9, 0.6);
-                                
-                                // 彩層 - オレンジ
-                                float chromosphereIntensity = (1.0 - smoothstep(0.6, 0.9, dist)) * plasmaLayer2;
-                                vec3 chromosphereColor = vec3(1.0, 0.7, 0.3);
-                                
-                                // プロミネンス（太陽フレア）
-                                float prominenceNoise = plasmaLayer3 + plasmaLayer4 * 0.5;
-                                float prominenceIntensity = smoothstep(0.8, 1.0, prominenceNoise) * (1.0 - smoothstep(0.9, 1.2, dist));
-                                vec3 prominenceColor = vec3(1.0, 0.6, 0.2);
-                                
-                                // 最終合成 - 極限の明度
-                                vec3 finalColor = coreColor * coreIntensity * 2.5;
-                                finalColor += convectionColor * convectionIntensity * 2.0;
-                                finalColor += photosphereColor * photosphereIntensity * 1.8;
-                                finalColor += chromosphereColor * chromosphereIntensity * 1.5;
-                                finalColor += prominenceColor * prominenceIntensity * 2.0;
-                                
-                                // 全体的な強化と脈動
-                                float pulse = 0.9 + 0.1 * sin(time * 2.0);
-                                finalColor *= intensity * pulse;
-                                
-                                // エッジの発光強化
-                                float edgeGlow = 1.0 - smoothstep(0.7, 1.0, dist);
-                                finalColor += vec3(1.0, 0.8, 0.4) * edgeGlow * 0.8;
-                                
-                                gl_FragColor = vec4(finalColor, 1.0);
-                            }
-                        `,
-                        side: THREE.FrontSide
-                    });
-                },
-                
-                // 強烈なコロナ層
-                createCoronaMaterial: function() {
-                    return new THREE.ShaderMaterial({
-                        uniforms: {
-                            time: { value: 0 }
-                        },
-                        vertexShader: `
-                            varying vec3 vNormal;
-                            varying vec3 vPosition;
-                            void main() {
-                                vNormal = normalize(normalMatrix * normal);
-                                vPosition = position;
-                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                            }
-                        `,
-                        fragmentShader: `
-                            uniform float time;
-                            varying vec3 vNormal;
-                            varying vec3 vPosition;
-                            
-                            void main() {
-                                float intensity = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
-                                intensity = pow(intensity, 0.8);
-                                
-                                // 動的コロナ効果
-                                float coronaWave = 0.8 + 0.2 * sin(time * 3.0 + vPosition.x * 10.0);
-                                intensity *= coronaWave;
-                                
-                                // 極白のコロナ
-                                vec3 coronaColor = vec3(1.0, 1.0, 0.95);
-                                intensity *= 1.2;
-                                
-                                gl_FragColor = vec4(coronaColor, intensity);
-                            }
-                        `,
-                        side: THREE.BackSide,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        depthWrite: false
-                    });
-                },
-                
-                // 外部グロー - 太陽風効果
-                createSolarWindMaterial: function() {
-                    return new THREE.ShaderMaterial({
-                        uniforms: {
-                            time: { value: 0 }
-                        },
-                        vertexShader: `
-                            varying vec3 vNormal;
-                            varying vec3 vPosition;
-                            void main() {
-                                vNormal = normalize(normalMatrix * normal);
-                                vPosition = position;
-                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                            }
-                        `,
-                        fragmentShader: `
-                            uniform float time;
-                            varying vec3 vNormal;
-                            varying vec3 vPosition;
-                            
-                            float random(vec2 st) {
-                                return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
-                            }
-                            
-                            void main() {
-                                float intensity = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
-                                intensity = pow(intensity, 2.0);
-                                
-                                // 太陽風の流れ
-                                float windEffect = random(vPosition.xy + time * 0.5);
-                                intensity *= (0.6 + 0.4 * windEffect);
-                                
-                                // 金色の太陽風
-                                vec3 windColor = vec3(1.0, 0.85, 0.5);
-                                intensity *= 0.7;
-                                
-                                gl_FragColor = vec4(windColor, intensity);
-                            }
-                        `,
-                        side: THREE.BackSide,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        depthWrite: false
-                    });
-                },
-                
-                // 最外層グロー
-                createOuterGlowMaterial: function() {
-                    return new THREE.ShaderMaterial({
-                        uniforms: {
-                            time: { value: 0 }
-                        },
-                        vertexShader: `
-                            varying vec3 vNormal;
-                            void main() {
-                                vNormal = normalize(normalMatrix * normal);
-                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                            }
-                        `,
-                        fragmentShader: `
-                            uniform float time;
-                            varying vec3 vNormal;
-                            
-                            void main() {
-                                float intensity = 1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0));
-                                intensity = pow(intensity, 4.0);
-                                
-                                // 遠方まで届く光
-                                float distantGlow = 0.5 + 0.2 * sin(time * 1.5);
-                                intensity *= distantGlow;
-                                
-                                vec3 glowColor = vec3(1.0, 0.9, 0.7);
-                                intensity *= 0.8;
-                                
-                                gl_FragColor = vec4(glowColor, intensity);
-                            }
-                        `,
-                        side: THREE.BackSide,
-                        blending: THREE.AdditiveBlending,
-                        transparent: true,
-                        depthWrite: false
-                    });
-                },
-                
-                // システムを親に追加
-                addToParent: function(parent) {
-                    // 太陽コア
-                    const coreGeometry = new THREE.SphereGeometry(size, 64, 64);
-                    const coreMaterial = this.createCoreMaterial();
-                    const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
-                    parent.add(coreMesh);
-                    this.meshes.push(coreMesh);
-                    this.materials.push(coreMaterial);
-                    
-                    // コロナ層
-                    const coronaGeometry = new THREE.SphereGeometry(size * 1.08, 32, 32);
-                    const coronaMaterial = this.createCoronaMaterial();
-                    const coronaMesh = new THREE.Mesh(coronaGeometry, coronaMaterial);
-                    parent.add(coronaMesh);
-                    this.meshes.push(coronaMesh);
-                    this.materials.push(coronaMaterial);
-                    
-                    // 太陽風層
-                    const solarWindGeometry = new THREE.SphereGeometry(size * 1.2, 24, 24);
-                    const solarWindMaterial = this.createSolarWindMaterial();
-                    const solarWindMesh = new THREE.Mesh(solarWindGeometry, solarWindMaterial);
-                    parent.add(solarWindMesh);
-                    this.meshes.push(solarWindMesh);
-                    this.materials.push(solarWindMaterial);
-                    
-                    // 外部グロー
-                    const outerGlowGeometry = new THREE.SphereGeometry(size * 1.6, 16, 16);
-                    const outerGlowMaterial = this.createOuterGlowMaterial();
-                    const outerGlowMesh = new THREE.Mesh(outerGlowGeometry, outerGlowMaterial);
-                    parent.add(outerGlowMesh);
-                    this.meshes.push(outerGlowMesh);
-                    this.materials.push(outerGlowMaterial);
-                },
-                
-                // アニメーション更新
-                update: function(time) {
-                    this.materials.forEach(material => {
-                        if (material.uniforms && material.uniforms.time) {
-                            material.uniforms.time.value = time;
-                        }
-                    });
-                }
-            };
-            
-            return sunSystem;
-        }
-
         // 有名な星座を作成
         function createConstellations() {
             const constellationGroup = new THREE.Group();
@@ -1517,33 +1200,28 @@
             backgroundSphere = createBackgroundSphere();
             scene.add(backgroundSphere);
 
-            // 超強力な太陽光源システム（画像に合わせて強化）
-            const mainSunLight = new THREE.PointLight(0xFFFFFF, 6.0, 150);
-            mainSunLight.position.set(0, 0, 0);
-            mainSunLight.castShadow = true;
-            mainSunLight.shadow.mapSize.width = 4096;
-            mainSunLight.shadow.mapSize.height = 4096;
-            mainSunLight.shadow.camera.near = 0.1;
-            mainSunLight.shadow.camera.far = 100;
-            solarSystemGroup.add(mainSunLight);
+            // メイン太陽光源（白飛び防止のためさらに調整）
+            const sunLight = new THREE.PointLight(0xFFFFDD, 2.5, 100);
+            sunLight.position.set(0, 0, 0);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 4096;
+            sunLight.shadow.mapSize.height = 4096;
+            sunLight.shadow.camera.near = 0.1;
+            sunLight.shadow.camera.far = 100;
+            solarSystemGroup.add(sunLight);
             
-            // 中間層の太陽光（黄色味）
-            const midSunLight = new THREE.PointLight(0xFFEE99, 4.0, 120);
-            midSunLight.position.set(0, 0, 0);
-            solarSystemGroup.add(midSunLight);
+            // 追加の太陽光源（控えめに）
+            const sunLight2 = new THREE.PointLight(0xFFDD88, 1.2, 80);
+            sunLight2.position.set(0, 0, 0);
+            solarSystemGroup.add(sunLight2);
             
-            // 外層のコロナ光（白色）
-            const coronaLight = new THREE.PointLight(0xFFFFEE, 2.5, 100);
+            // 太陽コロナ光源（さらに控えめに）
+            const coronaLight = new THREE.PointLight(0xFFFFFF, 0.6, 60);
             coronaLight.position.set(0, 0, 0);
             solarSystemGroup.add(coronaLight);
-            
-            // 太陽風効果光（金色）
-            const solarWindLight = new THREE.PointLight(0xFFDD77, 1.5, 80);
-            solarWindLight.position.set(0, 0, 0);
-            solarSystemGroup.add(solarWindLight);
 
-            // 環境光（太陽の強い光に合わせて調整）
-            const ambientLight = new THREE.AmbientLight(0x404080, 0.2);
+            // 環境光（テクスチャのディテールを保護）
+            const ambientLight = new THREE.AmbientLight(0x404080, 0.3);
             scene.add(ambientLight);
 
             // 小惑星帯を作成（火星と木星の間）
@@ -1568,14 +1246,46 @@
                 
                 let material;
                 if (data.name === '太陽') {
-                    // 新しい太陽システム - リアルな太陽を作成
-                    data.sunSystem = createRealisticSun(data.size);
-                    // ダミーマテリアル（実際には太陽システムで上書きされる）
                     material = new THREE.MeshBasicMaterial({ 
-                        color: 0xFFFFFF,
-                        transparent: true,
-                        opacity: 0
+                        map: texture,
+                        emissive: new THREE.Color(0xFFFFFF), // 純白の強力な発光
+                        emissiveIntensity: 6.0, // さらに強化してリアルな輝きに
+                        transparent: false,
+                        side: THREE.DoubleSide
                     });
+                    
+                    // シンプルで自然なグロー効果のみ
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.05, 16, 12); // 非常に薄い層
+                    const glowMaterial = new THREE.ShaderMaterial({
+                        uniforms: {
+                            time: { value: 0 },
+                            glowColor: { value: new THREE.Color(0xFFFF88) }
+                        },
+                        vertexShader: `
+                            varying vec3 vNormal;
+                            void main() {
+                                vNormal = normalize(normalMatrix * normal);
+                                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                            }
+                        `,
+                        fragmentShader: `
+                            uniform float time;
+                            uniform vec3 glowColor;
+                            varying vec3 vNormal;
+                            void main() {
+                                float intensity = pow(0.4 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.8);
+                                intensity *= (0.6 + 0.1 * sin(time * 2.0)); // 微細な脈動
+                                intensity *= 0.3; // 控えめな強度
+                                gl_FragColor = vec4(glowColor, intensity);
+                            }
+                        `,
+                        side: THREE.BackSide,
+                        blending: THREE.AdditiveBlending,
+                        transparent: true,
+                        depthWrite: false
+                    });
+                    const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
+                    data.glowMaterial = glowMaterial;
                 } else {
                     material = new THREE.MeshLambertMaterial({ 
                         map: texture,
@@ -1589,9 +1299,12 @@
                 planet.castShadow = data.name !== '太陽';
                 planet.receiveShadow = data.name !== '太陽';
                 
-                // 太陽の場合は太陽システムを追加
-                if (data.name === '太陽' && data.sunSystem) {
-                    data.sunSystem.addToParent(planet);
+                // 太陽の場合はシンプルなグローエフェクトを追加
+                if (data.name === '太陽' && data.glowMaterial) {
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.05, 16, 12); // 薄い層
+                    const glowMesh = new THREE.Mesh(glowGeometry, data.glowMaterial);
+                    planet.add(glowMesh);
+                    data.glowMesh = glowMesh; // 参照を保存
                 }
                 
                 // 軌道表示
@@ -1666,9 +1379,9 @@
             document.getElementById('loading').style.display = 'none';
         }
 
-        // コントローラーのクリーンアップ
-        function cleanupControllers() {
-            // 既存のコントローラーをシーンから削除
+        // XRコントローラーセットアップ
+        function setupXRControllers() {
+            // 既存のコントローラーをクリーンアップ
             if (controllers.left) {
                 scene.remove(controllers.left);
                 controllers.left = null;
@@ -1678,53 +1391,23 @@
                 controllers.right = null;
             }
             
-            // グリップ状態をリセット
-            gripStates = { left: false, right: false };
-            isDragging = false;
-        }
+            // 左コントローラー
+            const leftController = renderer.xr.getController(0);
+            leftController.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
+            leftController.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
+            leftController.addEventListener('squeezestart', () => onGripStart('left'));
+            leftController.addEventListener('squeezeend', () => onGripEnd('left'));
+            scene.add(leftController);
+            controllers.left = leftController;
 
-        // XRコントローラーセットアップ
-        function setupXRControllers() {
-            if (!renderer.xr.isPresenting) {
-                return; // XRセッションが有効でない場合は何もしない
-            }
-            try {
-                // 左コントローラー
-                const leftController = renderer.xr.getController(0);
-                if (leftController) {
-                    leftController.addEventListener('selectstart', (event) => {
-                        console.log('Left controller select start');
-                        onSelectStart(event, 'left');
-                    });
-                    leftController.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
-                    leftController.addEventListener('squeezestart', () => {
-                        console.log('Left controller squeeze start');
-                        onGripStart('left');
-                    });
-                    leftController.addEventListener('squeezeend', () => onGripEnd('left'));
-                    scene.add(leftController);
-                    controllers.left = leftController;
-                }
-
-                // 右コントローラー
-                const rightController = renderer.xr.getController(1);
-                if (rightController) {
-                    rightController.addEventListener('selectstart', (event) => {
-                        console.log('Right controller select start');
-                        onSelectStart(event, 'right');
-                    });
-                    rightController.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
-                    rightController.addEventListener('squeezestart', () => {
-                        console.log('Right controller squeeze start');
-                        onGripStart('right');
-                    });
-                    rightController.addEventListener('squeezeend', () => onGripEnd('right'));
-                    scene.add(rightController);
-                    controllers.right = rightController;
-                }
-            } catch (error) {
-                console.error('コントローラーセットアップエラー:', error);
-            }
+            // 右コントローラー
+            const rightController = renderer.xr.getController(1);
+            rightController.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
+            rightController.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
+            rightController.addEventListener('squeezestart', () => onGripStart('right'));
+            rightController.addEventListener('squeezeend', () => onGripEnd('right'));
+            scene.add(rightController);
+            controllers.right = rightController;
 
             // コントローラーグリップ
             const leftControllerGrip = renderer.xr.getControllerGrip(0);
@@ -1733,19 +1416,47 @@
             const rightControllerGrip = renderer.xr.getControllerGrip(1);
             scene.add(rightControllerGrip);
 
-            // レーザーポインター（右コントローラーのみ）
-            const raycasterGeometry = new THREE.BufferGeometry().setFromPoints([
+            // レーザーポインター（両コントローラーに追加）
+            createControllerRay(leftController, 0x00ff88);
+            createControllerRay(rightController, 0x00ff88);
+            
+            console.log('XR Controllers setup completed');
+        }
+        
+        // レーザーポインター作成関数
+        function createControllerRay(controller, color) {
+            // 既存のレイを削除
+            const existingRay = controller.children.find(child => child.userData.isRay);
+            if (existingRay) {
+                controller.remove(existingRay);
+            }
+            
+            const geometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -2)
+                new THREE.Vector3(0, 0, -3)
             ]);
-            const raycasterMaterial = new THREE.LineBasicMaterial({ 
-                color: 0x00ff88, 
+            const material = new THREE.LineBasicMaterial({ 
+                color: color, 
                 transparent: true, 
                 opacity: 0.8 
             });
 
-            const rightRay = new THREE.Line(raycasterGeometry, raycasterMaterial);
-            rightController.add(rightRay);
+            const ray = new THREE.Line(geometry, material);
+            ray.userData.isRay = true;
+            ray.visible = true; // 明示的に表示
+            controller.add(ray);
+            
+            // カーソル（レイの先端）も追加
+            const cursorGeometry = new THREE.SphereGeometry(0.01, 8, 8);
+            const cursorMaterial = new THREE.MeshBasicMaterial({ 
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5
+            });
+            const cursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
+            cursor.position.set(0, 0, -3);
+            cursor.userData.isCursor = true;
+            ray.add(cursor);
         }
 
         // XRイベントハンドラー
@@ -2152,18 +1863,17 @@
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 
-                // 既存のコントローラーをクリーンアップ
-                cleanupControllers();
-                
-                // 新しいコントローラーをセットアップ
-                setupXRControllers();
-                
-                // セッション開始後に再度セットアップ
+                // XRセッションの準備ができるまで少し待つ
                 setTimeout(() => {
-                    cleanupControllers();
+                    console.log('Setting up XR controllers...');
                     setupXRControllers();
-                    console.log('コントローラー再初期化完了');
-                }, 1000);
+                    
+                    // さらに確実にするため、もう一度初期化
+                    setTimeout(() => {
+                        setupXRControllers();
+                        console.log('XR controllers ready');
+                    }, 1000);
+                }, 200);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -2178,9 +1888,6 @@
                         bgMusic.pause();
                         bgMusic.currentTime = 0;
                     }
-                    
-                    // コントローラーをクリーンアップ
-                    cleanupControllers();
                     
                     // 3D情報パネルをクリーンアップ
                     hide3DPlanetInfo();
@@ -2259,9 +1966,9 @@
                 
                 planet.mesh.rotation.y += planet.rotationSpeed;
                 
-                // 太陽システムの更新
-                if (planet.data.name === '太陽' && planet.data.sunSystem) {
-                    planet.data.sunSystem.update(time);
+                // 太陽のグローエフェクト更新
+                if (planet.data.name === '太陽' && planet.data.glowMaterial) {
+                    planet.data.glowMaterial.uniforms.time.value = time;
                 }
                 
                 // 衛星の公転
@@ -2306,37 +2013,41 @@
                 }
             });
 
-            // レイキャスト（右コントローラーから惑星への当たり判定 - 常に動作）
-            if (xrActive && controllers.right && !planetInfoVisible) {
-                try {
-                    // コントローラーの位置と方向を取得
-                    const tempMatrix = new THREE.Matrix4();
-                    tempMatrix.identity().extractRotation(controllers.right.matrixWorld);
-                    
-                    const controllerPosition = new THREE.Vector3();
-                    controllerPosition.setFromMatrixPosition(controllers.right.matrixWorld);
-                    
-                    const controllerDirection = new THREE.Vector3(0, 0, -1);
-                    controllerDirection.applyMatrix4(tempMatrix);
-                    controllerDirection.normalize();
-                    
-                    raycaster.set(controllerPosition, controllerDirection);
-                    
-                    // 惑星のメッシュのみをチェック
-                    const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
-                    const intersects = raycaster.intersectObjects(planetMeshes);
-                    
-                    if (intersects.length > 0) {
-                        const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
-                        if (intersectedPlanet && intersectedPlanet !== highlightedPlanet) {
-                            highlightPlanet(intersectedPlanet);
+            // レイキャスト（両方のコントローラーから惑星への当たり判定）
+            if (xrActive && !planetInfoVisible) {
+                // 右コントローラーまたは左コントローラーからレイキャスト
+                const activeController = controllers.right || controllers.left;
+                if (activeController && activeController.visible) {
+                    try {
+                        // コントローラーの位置と方向を取得
+                        const tempMatrix = new THREE.Matrix4();
+                        tempMatrix.identity().extractRotation(activeController.matrixWorld);
+                        
+                        const controllerPosition = new THREE.Vector3();
+                        controllerPosition.setFromMatrixPosition(activeController.matrixWorld);
+                        
+                        const controllerDirection = new THREE.Vector3(0, 0, -1);
+                        controllerDirection.applyMatrix4(tempMatrix);
+                        controllerDirection.normalize();
+                        
+                        raycaster.set(controllerPosition, controllerDirection);
+                        
+                        // 惑星のメッシュのみをチェック
+                        const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
+                        const intersects = raycaster.intersectObjects(planetMeshes);
+                        
+                        if (intersects.length > 0) {
+                            const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                            if (intersectedPlanet && intersectedPlanet !== highlightedPlanet) {
+                                highlightPlanet(intersectedPlanet);
+                            }
+                        } else {
+                            clearHighlight();
                         }
-                    } else {
+                    } catch (error) {
+                        // エラーが発生した場合はハイライトをクリア
                         clearHighlight();
                     }
-                } catch (error) {
-                    // エラーが発生した場合はハイライトをクリア
-                    clearHighlight();
                 }
             }
 
