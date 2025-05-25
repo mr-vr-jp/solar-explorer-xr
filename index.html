@@ -1491,88 +1491,262 @@
             return starGroup;
         }
 
-        // 遠方の銀河を作成
+        // 現実的な銀河配置を作成
         function createDistantGalaxies() {
             const galaxyGroup = new THREE.Group();
-            const galaxyCount = 12; // 20から12に軽量化
             
-            for (let i = 0; i < galaxyCount; i++) {
-                // 非常に遠方の銀河
-                const distance = 150 + Math.random() * 200;
-                const theta = Math.random() * Math.PI * 2;
-                const phi = Math.acos(2 * Math.random() - 1);
+            // 実際の有名な銀河を配置
+            const realGalaxies = [
+                // 局所銀河群（近距離）
+                {name: 'アンドロメダ銀河(M31)', distance: 120, direction: {x: 0.8, y: 0.3, z: -0.5}, size: 8, type: 'spiral', brightness: 0.9},
+                {name: '大マゼラン雲', distance: 80, direction: {x: -0.6, y: -0.4, z: 0.7}, size: 4, type: 'irregular', brightness: 0.7},
+                {name: '小マゼラン雲', distance: 85, direction: {x: -0.5, y: -0.5, z: 0.7}, size: 2, type: 'irregular', brightness: 0.6},
+                {name: 'さんかく座銀河(M33)', distance: 140, direction: {x: 0.7, y: 0.6, z: -0.4}, size: 5, type: 'spiral', brightness: 0.6},
                 
-                // 銀河の形状を作成
-                const galaxyGeometry = new THREE.PlaneGeometry(2 + Math.random() * 4, 1 + Math.random() * 2);
+                // おとめ座銀河団（中距離）
+                {name: 'おとめ座A(M87)', distance: 200, direction: {x: 0.2, y: 0.8, z: 0.6}, size: 6, type: 'elliptical', brightness: 0.8},
+                {name: 'ソンブレロ銀河(M104)', distance: 210, direction: {x: 0.4, y: 0.7, z: 0.6}, size: 4, type: 'spiral', brightness: 0.7},
+                {name: '子持ち銀河(M51)', distance: 190, direction: {x: 0.6, y: 0.8, z: 0.1}, size: 4, type: 'spiral', brightness: 0.6},
+                {name: 'M81(ボーデ銀河)', distance: 180, direction: {x: 0.9, y: 0.3, z: 0.3}, size: 5, type: 'spiral', brightness: 0.7},
+                {name: 'M82(葉巻銀河)', distance: 185, direction: {x: 0.9, y: 0.35, z: 0.25}, size: 3, type: 'starburst', brightness: 0.8},
                 
-                // 銀河テクスチャを作成
-                const canvas = document.createElement('canvas');
-                canvas.width = 128;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d');
+                // かみのけ座銀河団（遠距離）
+                {name: 'かみのけ座銀河団', distance: 280, direction: {x: 0.1, y: 0.9, z: 0.4}, size: 7, type: 'cluster', brightness: 0.5},
                 
-                // 銀河の渦巻き模様
-                const centerX = canvas.width / 2;
-                const centerY = canvas.height / 2;
-                
-                // 背景
-                ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                
-                // 銀河コア
-                const coreGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 20);
-                coreGradient.addColorStop(0, 'rgba(255, 220, 150, 0.8)');
-                coreGradient.addColorStop(0.5, 'rgba(200, 150, 100, 0.4)');
-                coreGradient.addColorStop(1, 'rgba(100, 100, 150, 0.1)');
-                ctx.fillStyle = coreGradient;
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, 20, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 渦巻きアーム
-                for (let arm = 0; arm < 2; arm++) {
-                    ctx.strokeStyle = `rgba(150, 150, 200, ${0.3 + Math.random() * 0.2})`;
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    
-                    for (let angle = 0; angle < Math.PI * 4; angle += 0.1) {
-                        const radius = 5 + angle * 3;
-                        const x = centerX + Math.cos(angle + arm * Math.PI) * radius;
-                        const y = centerY + Math.sin(angle + arm * Math.PI) * radius * 0.3;
-                        
-                        if (angle === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.stroke();
-                }
-                
-                const galaxyTexture = new THREE.CanvasTexture(canvas);
-                const galaxyMaterial = new THREE.MeshBasicMaterial({
-                    map: galaxyTexture,
-                    transparent: true,
-                    opacity: 0.6,
-                    side: THREE.DoubleSide
-                });
-                
-                const galaxy = new THREE.Mesh(galaxyGeometry, galaxyMaterial);
-                galaxy.position.x = distance * Math.sin(phi) * Math.cos(theta);
-                galaxy.position.y = distance * Math.sin(phi) * Math.sin(theta);
-                galaxy.position.z = distance * Math.cos(phi);
-                
-                // 銀河をカメラの方向に向ける
-                galaxy.lookAt(0, 0, 0);
-                
-                // ゆっくりとした回転
-                galaxy.userData = {
-                    rotationSpeed: (Math.random() - 0.5) * 0.001
-                };
-                
+                // より遠方の銀河（超遠距離）
+                {name: 'ケンタウルス座A', distance: 250, direction: {x: -0.3, y: -0.7, z: 0.6}, size: 5, type: 'elliptical', brightness: 0.6},
+                {name: 'NGC253(ちょうこくしつ座銀河)', distance: 170, direction: {x: -0.8, y: -0.4, z: -0.4}, size: 4, type: 'spiral', brightness: 0.6},
+                {name: 'M101(回転花火銀河)', distance: 220, direction: {x: 0.7, y: 0.7, z: 0.1}, size: 6, type: 'spiral', brightness: 0.5},
+                {name: 'M106', distance: 200, direction: {x: 0.8, y: 0.5, z: 0.3}, size: 4, type: 'spiral', brightness: 0.6},
+                {name: 'NGC5128', distance: 240, direction: {x: -0.2, y: -0.8, z: 0.6}, size: 5, type: 'elliptical', brightness: 0.7}
+            ];
+            
+            realGalaxies.forEach(galaxyData => {
+                const galaxy = createGalaxyMesh(galaxyData);
                 galaxyGroup.add(galaxy);
+            });
+            
+            // 追加のランダム銀河群（現実的な分布）
+            for (let cluster = 0; cluster < 5; cluster++) {
+                const clusterCenter = {
+                    x: (Math.random() - 0.5) * 2,
+                    y: (Math.random() - 0.5) * 2,
+                    z: (Math.random() - 0.5) * 2
+                };
+                const clusterDistance = 300 + Math.random() * 200;
+                const galaxyCount = 8 + Math.floor(Math.random() * 15);
+                
+                for (let i = 0; i < galaxyCount; i++) {
+                    const offset = {
+                        x: (Math.random() - 0.5) * 0.4,
+                        y: (Math.random() - 0.5) * 0.4,
+                        z: (Math.random() - 0.5) * 0.4
+                    };
+                    
+                    const direction = {
+                        x: clusterCenter.x + offset.x,
+                        y: clusterCenter.y + offset.y,
+                        z: clusterCenter.z + offset.z
+                    };
+                    
+                    // 銀河の種類を現実的な比率で決定
+                    let type;
+                    const typeRand = Math.random();
+                    if (typeRand < 0.6) type = 'elliptical';      // 60% 楕円銀河
+                    else if (typeRand < 0.9) type = 'spiral';     // 30% 渦巻銀河
+                    else type = 'irregular';                      // 10% 不規則銀河
+                    
+                    const galaxyData = {
+                        name: `銀河群${cluster}-${i}`,
+                        distance: clusterDistance + (Math.random() - 0.5) * 50,
+                        direction: direction,
+                        size: 1 + Math.random() * 3,
+                        type: type,
+                        brightness: 0.2 + Math.random() * 0.4
+                    };
+                    
+                    const galaxy = createGalaxyMesh(galaxyData);
+                    galaxyGroup.add(galaxy);
+                }
             }
             
             scene.add(galaxyGroup);
             registerUniverseElement(galaxyGroup);
             return galaxyGroup;
+        }
+        
+        // 銀河メッシュ作成関数
+        function createGalaxyMesh(galaxyData) {
+            const normalizedDir = new THREE.Vector3(galaxyData.direction.x, galaxyData.direction.y, galaxyData.direction.z);
+            normalizedDir.normalize();
+            
+            const position = normalizedDir.multiplyScalar(galaxyData.distance);
+            
+            // 銀河のサイズを距離に応じて調整
+            const apparentSize = galaxyData.size * (100 / galaxyData.distance);
+            const geometry = new THREE.PlaneGeometry(apparentSize, apparentSize * 0.7);
+            
+            // 銀河の種類に応じたテクスチャ作成
+            const texture = createGalaxyTexture(galaxyData.type, galaxyData.brightness);
+            const material = new THREE.MeshBasicMaterial({
+                map: texture,
+                transparent: true,
+                opacity: galaxyData.brightness,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const galaxy = new THREE.Mesh(geometry, material);
+            galaxy.position.copy(position);
+            galaxy.lookAt(0, 0, 0);
+            galaxy.name = galaxyData.name;
+            
+            // 非常にゆっくりとした回転
+            galaxy.userData = {
+                rotationSpeed: (Math.random() - 0.5) * 0.0005,
+                originalBrightness: galaxyData.brightness
+            };
+            
+            return galaxy;
+        }
+        
+        // 銀河タイプ別テクスチャ作成
+        function createGalaxyTexture(type, brightness) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            switch(type) {
+                case 'spiral':
+                    // 渦巻銀河
+                    // 中央バルジ
+                    const bulgeGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 40);
+                    bulgeGradient.addColorStop(0, `rgba(255, 220, 150, ${brightness})`);
+                    bulgeGradient.addColorStop(0.5, `rgba(200, 150, 100, ${brightness * 0.8})`);
+                    bulgeGradient.addColorStop(1, `rgba(100, 100, 150, ${brightness * 0.3})`);
+                    ctx.fillStyle = bulgeGradient;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 渦巻きアーム（4本）
+                    for (let arm = 0; arm < 4; arm++) {
+                        ctx.strokeStyle = `rgba(150, 180, 255, ${brightness * 0.6})`;
+                        ctx.lineWidth = 3 + Math.random() * 2;
+                        ctx.beginPath();
+                        
+                        for (let angle = 0; angle < Math.PI * 3; angle += 0.05) {
+                            const radius = 20 + angle * 15;
+                            const x = centerX + Math.cos(angle + arm * Math.PI / 2) * radius;
+                            const y = centerY + Math.sin(angle + arm * Math.PI / 2) * radius * 0.6;
+                            
+                            if (angle === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                    
+                    // 星形成領域
+                    for (let i = 0; i < 20; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const radius = 30 + Math.random() * 60;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const y = centerY + Math.sin(angle) * radius * 0.6;
+                        
+                        ctx.fillStyle = `rgba(255, 100, 150, ${brightness * (0.3 + Math.random() * 0.4)})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 2 + Math.random() * 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                case 'elliptical':
+                    // 楕円銀河
+                    const ellipseGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 80);
+                    ellipseGradient.addColorStop(0, `rgba(255, 200, 120, ${brightness})`);
+                    ellipseGradient.addColorStop(0.3, `rgba(220, 180, 100, ${brightness * 0.8})`);
+                    ellipseGradient.addColorStop(0.6, `rgba(180, 140, 80, ${brightness * 0.5})`);
+                    ellipseGradient.addColorStop(1, `rgba(120, 100, 60, ${brightness * 0.1})`);
+                    
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.scale(1, 0.7); // 楕円形に
+                    ctx.fillStyle = ellipseGradient;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 80, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    break;
+                    
+                case 'irregular':
+                    // 不規則銀河
+                    for (let i = 0; i < 15; i++) {
+                        const x = centerX + (Math.random() - 0.5) * 120;
+                        const y = centerY + (Math.random() - 0.5) * 100;
+                        const size = 5 + Math.random() * 15;
+                        
+                        const irregularGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+                        irregularGradient.addColorStop(0, `rgba(150, 200, 255, ${brightness * (0.5 + Math.random() * 0.5)})`);
+                        irregularGradient.addColorStop(1, `rgba(100, 150, 200, 0)`);
+                        
+                        ctx.fillStyle = irregularGradient;
+                        ctx.beginPath();
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                case 'starburst':
+                    // スターバースト銀河
+                    const starburstGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 50);
+                    starburstGradient.addColorStop(0, `rgba(255, 150, 100, ${brightness})`);
+                    starburstGradient.addColorStop(0.5, `rgba(255, 100, 150, ${brightness * 0.8})`);
+                    starburstGradient.addColorStop(1, `rgba(200, 100, 200, ${brightness * 0.3})`);
+                    
+                    ctx.fillStyle = starburstGradient;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, 50, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 明るい星形成領域
+                    for (let i = 0; i < 30; i++) {
+                        const x = centerX + (Math.random() - 0.5) * 80;
+                        const y = centerY + (Math.random() - 0.5) * 60;
+                        
+                        ctx.fillStyle = `rgba(255, 255, 200, ${brightness * (0.4 + Math.random() * 0.6)})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1 + Math.random() * 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                case 'cluster':
+                    // 銀河団（複数の小さな銀河）
+                    for (let i = 0; i < 8; i++) {
+                        const x = centerX + (Math.random() - 0.5) * 150;
+                        const y = centerY + (Math.random() - 0.5) * 120;
+                        const size = 8 + Math.random() * 12;
+                        
+                        const clusterGradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+                        clusterGradient.addColorStop(0, `rgba(200, 180, 150, ${brightness * 0.8})`);
+                        clusterGradient.addColorStop(1, `rgba(150, 130, 100, 0)`);
+                        
+                        ctx.fillStyle = clusterGradient;
+                        ctx.beginPath();
+                        ctx.arc(x, y, size, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+            }
+            
+            return new THREE.CanvasTexture(canvas);
         }
 
         // 有名な星座を作成
