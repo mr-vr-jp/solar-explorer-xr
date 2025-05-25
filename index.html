@@ -314,8 +314,8 @@
               fact: '海王星は計算によって発見された唯一の惑星で、天王星の軌道の乱れから存在が予測された。海王星は2011年にようやく発見以来初めての公転を完了した。海王星の衛星トリトンは太陽系で最も寒い場所の一つで、-235°Cという極低温。海王星のコアの温度は約5,000°Cで、太陽の表面とほぼ同じ温度。' }
         ];
 
-        // 惑星テクスチャ生成
-        function createPlanetTexture(type, size = 1024) {
+        // 惑星テクスチャ生成（大幅強化）
+        function createPlanetTexture(type, size = 2048) { // 解像度を2倍に
             const canvas = document.createElement('canvas');
             canvas.width = size;
             canvas.height = size;
@@ -323,121 +323,177 @@
             
             switch(type) {
                 case 'sun':
-                    // 高品質な太陽テクスチャ
+                    // 超高品質な太陽テクスチャ
                     const centerX = size / 2;
                     const centerY = size / 2;
                     const radius = size / 2;
                     
-                    // ベースの放射グラデーション（より明るく強化）
-                    const sunGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-                    sunGradient.addColorStop(0, '#FFFFFF');  // 純白の中心
-                    sunGradient.addColorStop(0.1, '#FFFFCC'); // 明るい黄白
-                    sunGradient.addColorStop(0.3, '#FFFF66'); // 明るい黄色
-                    sunGradient.addColorStop(0.5, '#FFCC33'); // 明るいオレンジ黄
-                    sunGradient.addColorStop(0.7, '#FF9900'); // 強いオレンジ
-                    sunGradient.addColorStop(0.9, '#FF6600'); // 深いオレンジ
-                    sunGradient.addColorStop(1, '#DD4400');   // 赤みのある縁
-                    ctx.fillStyle = sunGradient;
+                    // ベースレイヤー：核から表面への現実的なグラデーション
+                    const baseGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+                    baseGradient.addColorStop(0, '#FFFFFF');    // 核心部：純白
+                    baseGradient.addColorStop(0.05, '#FFFFEE'); // 内部：白
+                    baseGradient.addColorStop(0.15, '#FFFFDD'); // 放射層
+                    baseGradient.addColorStop(0.35, '#FFFF99'); // 対流層
+                    baseGradient.addColorStop(0.55, '#FFEE66'); // 光球下層
+                    baseGradient.addColorStop(0.75, '#FFDD44'); // 光球上層
+                    baseGradient.addColorStop(0.90, '#FFCC22'); // 彩層
+                    baseGradient.addColorStop(1, '#FFB800');    // 表面
+                    ctx.fillStyle = baseGradient;
                     ctx.fillRect(0, 0, size, size);
                     
-                    // 強化されたコロナ効果
-                    for(let i = 0; i < 12; i++) {
-                        const angle = (i / 12) * Math.PI * 2;
-                        const coronaX = centerX + Math.cos(angle) * radius * 0.6;
-                        const coronaY = centerY + Math.sin(angle) * radius * 0.6;
-                        const coronaGradient = ctx.createRadialGradient(coronaX, coronaY, 0, coronaX, coronaY, radius * 0.4);
-                        coronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)'); // より明るい白
-                        coronaGradient.addColorStop(0.4, 'rgba(255, 255, 180, 0.7)');
-                        coronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
-                        ctx.fillStyle = coronaGradient;
-                        ctx.fillRect(0, 0, size, size);
-                    }
-                    
-                    // 追加の明るいコロナリング
-                    const mainCoronaGradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, radius);
-                    mainCoronaGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-                    mainCoronaGradient.addColorStop(0.5, 'rgba(255, 255, 200, 0.4)');
-                    mainCoronaGradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
-                    ctx.fillStyle = mainCoronaGradient;
-                    ctx.fillRect(0, 0, size, size);
-                    
-                    // プロミネンス（太陽フレア）
-                    for(let i = 0; i < 12; i++) {
-                        const angle = Math.random() * Math.PI * 2;
-                        const flareX = centerX + Math.cos(angle) * radius * 0.8;
-                        const flareY = centerY + Math.sin(angle) * radius * 0.8;
-                        const flareLength = 20 + Math.random() * 40;
-                        
+                    // 対流セル（スーパーグラニュレーション）
+                    for(let i = 0; i < 80; i++) {
+                        const cellX = Math.random() * size;
+                        const cellY = Math.random() * size;
+                        const cellRadius = 30 + Math.random() * 80;
+                        const cellGradient = ctx.createRadialGradient(cellX, cellY, 0, cellX, cellY, cellRadius);
+                        cellGradient.addColorStop(0, `rgba(255, ${240 + Math.random() * 15}, ${180 + Math.random() * 40}, 0.6)`);
+                        cellGradient.addColorStop(0.7, `rgba(255, ${220 + Math.random() * 20}, ${160 + Math.random() * 40}, 0.3)`);
+                        cellGradient.addColorStop(1, 'rgba(255, 200, 140, 0)');
+                        ctx.fillStyle = cellGradient;
                         ctx.beginPath();
-                        ctx.moveTo(flareX, flareY);
-                        ctx.lineTo(flareX + Math.cos(angle) * flareLength, flareY + Math.sin(angle) * flareLength);
-                        ctx.strokeStyle = `rgba(255, ${200 + Math.random() * 55}, 100, ${0.4 + Math.random() * 0.4})`;
-                        ctx.lineWidth = 2 + Math.random() * 3;
-                        ctx.stroke();
-                    }
-                    
-                    // 表面の粒状斑
-                    for(let i = 0; i < 200; i++) {
-                        const granuleX = Math.random() * size;
-                        const granuleY = Math.random() * size;
-                        const granuleSize = 2 + Math.random() * 8;
-                        const intensity = 0.2 + Math.random() * 0.3;
-                        
-                        ctx.beginPath();
-                        ctx.arc(granuleX, granuleY, granuleSize, 0, Math.PI * 2);
-                        ctx.fillStyle = `rgba(255, ${180 + Math.random() * 75}, 80, ${intensity})`;
+                        ctx.arc(cellX, cellY, cellRadius, 0, Math.PI * 2);
                         ctx.fill();
                     }
                     
-                    // 磁場ライン
-                    for(let i = 0; i < 15; i++) {
-                        ctx.beginPath();
-                        const startAngle = Math.random() * Math.PI * 2;
-                        const startX = centerX + Math.cos(startAngle) * radius * 0.6;
-                        const startY = centerY + Math.sin(startAngle) * radius * 0.6;
+                    // 太陽黒点
+                    for(let i = 0; i < 8; i++) {
+                        const spotX = centerX + (Math.random() - 0.5) * size * 0.6;
+                        const spotY = centerY + (Math.random() - 0.5) * size * 0.6;
+                        const spotSize = 8 + Math.random() * 25;
                         
-                        ctx.moveTo(startX, startY);
-                        for(let j = 1; j <= 5; j++) {
-                            const t = j / 5;
-                            const currentAngle = startAngle + (Math.random() - 0.5) * 0.5;
-                            const currentRadius = radius * (0.6 + t * 0.3);
-                            const x = centerX + Math.cos(currentAngle) * currentRadius;
-                            const y = centerY + Math.sin(currentAngle) * currentRadius;
+                        // 黒点の影の部分
+                        const umbraGradient = ctx.createRadialGradient(spotX, spotY, 0, spotX, spotY, spotSize * 0.4);
+                        umbraGradient.addColorStop(0, 'rgba(20, 10, 5, 0.9)');
+                        umbraGradient.addColorStop(1, 'rgba(50, 25, 15, 0.6)');
+                        ctx.fillStyle = umbraGradient;
+                        ctx.beginPath();
+                        ctx.arc(spotX, spotY, spotSize * 0.4, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // 黒点の半影
+                        const penumbraGradient = ctx.createRadialGradient(spotX, spotY, spotSize * 0.4, spotX, spotY, spotSize);
+                        penumbraGradient.addColorStop(0, 'rgba(80, 40, 25, 0.5)');
+                        penumbraGradient.addColorStop(1, 'rgba(120, 80, 50, 0)');
+                        ctx.fillStyle = penumbraGradient;
+                        ctx.beginPath();
+                        ctx.arc(spotX, spotY, spotSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 高品質な粒状斑
+                    for(let i = 0; i < 500; i++) {
+                        const granuleX = Math.random() * size;
+                        const granuleY = Math.random() * size;
+                        const granuleSize = 1 + Math.random() * 4;
+                        const brightness = 220 + Math.random() * 35;
+                        
+                        ctx.fillStyle = `rgba(255, ${brightness}, ${brightness * 0.7}, ${0.3 + Math.random() * 0.4})`;
+                        ctx.beginPath();
+                        ctx.arc(granuleX, granuleY, granuleSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 太陽フレア（プロミネンス）
+                    for(let i = 0; i < 20; i++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const distance = radius * (0.85 + Math.random() * 0.1);
+                        const flareX = centerX + Math.cos(angle) * distance;
+                        const flareY = centerY + Math.sin(angle) * distance;
+                        const flareLength = 30 + Math.random() * 80;
+                        const flareWidth = 2 + Math.random() * 6;
+                        
+                        // フレアの軌跡を描く
+                        ctx.strokeStyle = `rgba(255, ${240 + Math.random() * 15}, ${150 + Math.random() * 50}, ${0.6 + Math.random() * 0.4})`;
+                        ctx.lineWidth = flareWidth;
+                        ctx.lineCap = 'round';
+                        ctx.beginPath();
+                        ctx.moveTo(flareX, flareY);
+                        
+                        // 曲線的なフレア
+                        for(let j = 0; j < 5; j++) {
+                            const t = j / 4;
+                            const currentAngle = angle + (Math.random() - 0.5) * 0.3;
+                            const currentDistance = distance + flareLength * t * (1 + Math.random() * 0.3);
+                            const x = centerX + Math.cos(currentAngle) * currentDistance;
+                            const y = centerY + Math.sin(currentAngle) * currentDistance;
                             ctx.lineTo(x, y);
                         }
-                        
-                        ctx.strokeStyle = `rgba(255, 255, 150, ${0.2 + Math.random() * 0.2})`;
-                        ctx.lineWidth = 1;
                         ctx.stroke();
+                    }
+                    
+                    // 光球面のディテール
+                    for(let i = 0; i < 100; i++) {
+                        const detailX = Math.random() * size;
+                        const detailY = Math.random() * size;
+                        const detailSize = 3 + Math.random() * 12;
+                        
+                        const detailGradient = ctx.createRadialGradient(detailX, detailY, 0, detailX, detailY, detailSize);
+                        detailGradient.addColorStop(0, `rgba(255, 255, ${200 + Math.random() * 55}, 0.4)`);
+                        detailGradient.addColorStop(1, `rgba(255, 255, ${200 + Math.random() * 55}, 0)`);
+                        ctx.fillStyle = detailGradient;
+                        ctx.beginPath();
+                        ctx.arc(detailX, detailY, detailSize, 0, Math.PI * 2);
+                        ctx.fill();
                     }
                     break;
                     
                 case 'earth':
-                    // 高品質な地球テクスチャ
-                    const earthGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-                    earthGradient.addColorStop(0, '#5BA3E0');
-                    earthGradient.addColorStop(0.6, '#4A90E2');
-                    earthGradient.addColorStop(0.8, '#2E5A87');
-                    earthGradient.addColorStop(1, '#1A3B5C');
-                    ctx.fillStyle = earthGradient;
+                    // 超高品質な地球テクスチャ
+                    // 海洋の詳細なベース
+                    const oceanGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    oceanGradient.addColorStop(0, '#4D79A4');    // 深海
+                    oceanGradient.addColorStop(0.4, '#5B8BC7');  // 中間の海
+                    oceanGradient.addColorStop(0.7, '#6BA6E8');  // 浅海
+                    oceanGradient.addColorStop(0.85, '#7AB5F0'); // 近海
+                    oceanGradient.addColorStop(1, '#4A7BA7');    // 海岸線
+                    ctx.fillStyle = oceanGradient;
                     ctx.fillRect(0, 0, size, size);
                     
-                    // より詳細な大陸配置
+                    // 海流パターン
+                    ctx.strokeStyle = 'rgba(100, 150, 200, 0.3)';
+                    ctx.lineWidth = 3;
+                    for(let i = 0; i < 15; i++) {
+                        ctx.beginPath();
+                        const startX = Math.random() * size;
+                        const startY = Math.random() * size;
+                        ctx.moveTo(startX, startY);
+                        for(let j = 1; j <= 10; j++) {
+                            const x = startX + j * 20 + Math.sin(j * 0.5) * 30;
+                            const y = startY + (Math.random() - 0.5) * 10;
+                            ctx.lineTo(x % size, y);
+                        }
+                        ctx.stroke();
+                    }
+                    
+                    // 超詳細な大陸配置（実際の地球に近い形状）
                     const continents = [
-                        // ユーラシア大陸
-                        {x: size*0.4, y: size*0.35, w: 160, h: 80, rotation: 0.1},
-                        {x: size*0.55, y: size*0.4, w: 140, h: 70, rotation: -0.1},
-                        // アフリカ大陸
-                        {x: size*0.45, y: size*0.55, w: 80, h: 120, rotation: 0},
+                        // ユーラシア大陸（詳細分割）
+                        {name: 'europe', x: size*0.45, y: size*0.3, w: 80, h: 60, rotation: 0},
+                        {name: 'asia', x: size*0.6, y: size*0.35, w: 200, h: 120, rotation: 0.1},
+                        {name: 'siberia', x: size*0.55, y: size*0.25, w: 180, h: 80, rotation: 0},
+                        {name: 'india', x: size*0.6, y: size*0.48, w: 50, h: 70, rotation: -0.2},
+                        {name: 'china', x: size*0.65, y: size*0.35, w: 90, h: 80, rotation: 0},
+                        
+                        // アフリカ大陸（詳細）
+                        {name: 'africa', x: size*0.48, y: size*0.55, w: 85, h: 160, rotation: 0.05},
+                        {name: 'madagascar', x: size*0.55, y: size*0.65, w: 12, h: 30, rotation: 0},
+                        
                         // 北米大陸
-                        {x: size*0.15, y: size*0.4, w: 100, h: 140, rotation: 0.2},
+                        {name: 'north_america', x: size*0.2, y: size*0.35, w: 130, h: 170, rotation: 0.1},
+                        {name: 'greenland', x: size*0.35, y: size*0.15, w: 50, h: 80, rotation: 0.3},
+                        
                         // 南米大陸
-                        {x: size*0.25, y: size*0.65, w: 60, h: 100, rotation: -0.15},
-                        // オーストラリア
-                        {x: size*0.75, y: size*0.7, w: 50, h: 40, rotation: 0},
-                        // その他の島々
-                        {x: size*0.8, y: size*0.5, w: 30, h: 60, rotation: 0.3},
-                        {x: size*0.1, y: size*0.65, w: 25, h: 35, rotation: 0}
+                        {name: 'south_america', x: size*0.3, y: size*0.7, w: 70, h: 140, rotation: -0.1},
+                        
+                        // オセアニア
+                        {name: 'australia', x: size*0.78, y: size*0.7, w: 80, h: 50, rotation: 0},
+                        {name: 'new_zealand', x: size*0.85, y: size*0.78, w: 15, h: 25, rotation: 0},
+                        
+                        // 諸島
+                        {name: 'japan', x: size*0.72, y: size*0.38, w: 25, h: 35, rotation: 0.2},
+                        {name: 'uk', x: size*0.42, y: size*0.28, w: 20, h: 25, rotation: 0},
+                        {name: 'indonesia', x: size*0.72, y: size*0.55, w: 60, h: 20, rotation: 0}
                     ];
                     
                     continents.forEach(continent => {
@@ -445,59 +501,123 @@
                         ctx.translate(continent.x, continent.y);
                         ctx.rotate(continent.rotation);
                         
-                        // 大陸の影
-                        ctx.fillStyle = '#1E5A1E';
+                        // 大陸棚（浅海）
+                        ctx.fillStyle = 'rgba(120, 180, 220, 0.6)';
                         ctx.beginPath();
-                        ctx.ellipse(2, 2, continent.w/2, continent.h/2, 0, 0, Math.PI * 2);
+                        ctx.ellipse(0, 0, continent.w/2 * 1.2, continent.h/2 * 1.2, 0, 0, Math.PI * 2);
                         ctx.fill();
                         
-                        // メイン大陸
-                        ctx.fillStyle = '#228B22';
+                        // 地形による色分け
+                        let terrainColors = {
+                            desert: '#D2B48C',
+                            forest: '#228B22',
+                            mountain: '#8B7355',
+                            plain: '#9ACD32',
+                            tundra: '#B0C4DE'
+                        };
+                        
+                        // 基本地形
+                        ctx.fillStyle = terrainColors.plain;
+                        if(['africa', 'australia'].includes(continent.name)) ctx.fillStyle = terrainColors.desert;
+                        if(['siberia', 'greenland'].includes(continent.name)) ctx.fillStyle = terrainColors.tundra;
+                        if(['south_america', 'asia'].includes(continent.name)) ctx.fillStyle = terrainColors.forest;
+                        
                         ctx.beginPath();
                         ctx.ellipse(0, 0, continent.w/2, continent.h/2, 0, 0, Math.PI * 2);
                         ctx.fill();
                         
-                        // 山脈や高地
-                        ctx.fillStyle = '#8B7355';
-                        for(let i = 0; i < 3; i++) {
-                            const mx = (Math.random() - 0.5) * continent.w * 0.6;
-                            const my = (Math.random() - 0.5) * continent.h * 0.6;
+                        // 山脈システム
+                        ctx.fillStyle = terrainColors.mountain;
+                        const mountainRanges = Math.floor(continent.w * continent.h / 3000) + 1;
+                        for(let i = 0; i < mountainRanges; i++) {
+                            const mx = (Math.random() - 0.5) * continent.w * 0.7;
+                            const my = (Math.random() - 0.5) * continent.h * 0.7;
+                            const mw = 10 + Math.random() * 20;
+                            const mh = 5 + Math.random() * 10;
                             ctx.beginPath();
-                            ctx.ellipse(mx, my, 8 + Math.random() * 15, 4 + Math.random() * 8, Math.random() * Math.PI, 0, Math.PI * 2);
+                            ctx.ellipse(mx, my, mw, mh, Math.random() * Math.PI, 0, Math.PI * 2);
                             ctx.fill();
+                        }
+                        
+                        // 河川システム
+                        ctx.strokeStyle = 'rgba(100, 150, 255, 0.8)';
+                        ctx.lineWidth = 2;
+                        const riverCount = Math.floor(continent.w * continent.h / 5000) + 1;
+                        for(let i = 0; i < riverCount; i++) {
+                            ctx.beginPath();
+                            const startX = (Math.random() - 0.5) * continent.w * 0.6;
+                            const startY = (Math.random() - 0.5) * continent.h * 0.6;
+                            ctx.moveTo(startX, startY);
+                            
+                            for(let j = 1; j <= 8; j++) {
+                                const x = startX + j * 8 + (Math.random() - 0.5) * 10;
+                                const y = startY + j * 5 + (Math.random() - 0.5) * 10;
+                                ctx.lineTo(x, y);
+                            }
+                            ctx.stroke();
+                        }
+                        
+                        // 都市の光（主要都市）
+                        if(!['greenland', 'madagascar', 'antarctica'].includes(continent.name)) {
+                            ctx.fillStyle = 'rgba(255, 255, 150, 0.8)';
+                            const cityCount = Math.floor(continent.w * continent.h / 8000) + 1;
+                            for(let i = 0; i < cityCount; i++) {
+                                const cityX = (Math.random() - 0.5) * continent.w * 0.6;
+                                const cityY = (Math.random() - 0.5) * continent.h * 0.6;
+                                ctx.beginPath();
+                                ctx.arc(cityX, cityY, 1 + Math.random() * 2, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
                         }
                         
                         ctx.restore();
                     });
                     
-                    // 極地の氷
-                    const northIceGradient = ctx.createRadialGradient(size/2, 20, 0, size/2, 20, 40);
+                    // 極地の氷（より詳細）
+                    // 北極
+                    const northIceGradient = ctx.createRadialGradient(size/2, 30, 0, size/2, 30, 60);
                     northIceGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-                    northIceGradient.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+                    northIceGradient.addColorStop(0.6, 'rgba(240, 248, 255, 0.9)');
+                    northIceGradient.addColorStop(1, 'rgba(200, 220, 255, 0.3)');
                     ctx.fillStyle = northIceGradient;
                     ctx.beginPath();
-                    ctx.arc(size/2, 20, 40, 0, Math.PI * 2);
+                    ctx.arc(size/2, 30, 60, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    const southIceGradient = ctx.createRadialGradient(size/2, size-20, 0, size/2, size-20, 35);
+                    // 南極
+                    const southIceGradient = ctx.createRadialGradient(size/2, size-30, 0, size/2, size-30, 80);
                     southIceGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-                    southIceGradient.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+                    southIceGradient.addColorStop(0.5, 'rgba(240, 248, 255, 0.95)');
+                    southIceGradient.addColorStop(1, 'rgba(200, 220, 255, 0.4)');
                     ctx.fillStyle = southIceGradient;
                     ctx.beginPath();
-                    ctx.arc(size/2, size-20, 35, 0, Math.PI * 2);
+                    ctx.arc(size/2, size-30, 80, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // 雲のシステム
-                    ctx.globalAlpha = 0.6;
-                    for(let i = 0; i < 30; i++) {
+                    // 高品質な雲システム
+                    ctx.globalAlpha = 0.7;
+                    for(let i = 0; i < 60; i++) {
                         const cloudX = Math.random() * size;
                         const cloudY = Math.random() * size;
-                        const cloudSize = 20 + Math.random() * 40;
+                        const cloudSize = 15 + Math.random() * 50;
+                        const cloudType = Math.random();
+                        
+                        let cloudColor;
+                        if(cloudType < 0.6) {
+                            // 普通の雲
+                            cloudColor = 'rgba(255, 255, 255, 0.8)';
+                        } else if(cloudType < 0.8) {
+                            // 薄い雲
+                            cloudColor = 'rgba(250, 250, 255, 0.5)';
+                        } else {
+                            // 厚い雲
+                            cloudColor = 'rgba(240, 240, 240, 0.9)';
+                        }
                         
                         const cloudGradient = ctx.createRadialGradient(cloudX, cloudY, 0, cloudX, cloudY, cloudSize);
-                        cloudGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-                        cloudGradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.4)');
-                        cloudGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                        cloudGradient.addColorStop(0, cloudColor);
+                        cloudGradient.addColorStop(0.7, cloudColor.replace(/[\d.]+\)$/g, '0.3)'));
+                        cloudGradient.addColorStop(1, cloudColor.replace(/[\d.]+\)$/g, '0)'));
                         
                         ctx.fillStyle = cloudGradient;
                         ctx.beginPath();
@@ -506,148 +626,552 @@
                     }
                     ctx.globalAlpha = 1;
                     
-                    // 夜の部分（都市の光）
-                    ctx.globalCompositeOperation = 'multiply';
-                    const nightGradient = ctx.createLinearGradient(0, 0, size, 0);
-                    nightGradient.addColorStop(0, 'rgba(100, 100, 150, 0.3)');
-                    nightGradient.addColorStop(0.3, 'rgba(255, 255, 255, 1)');
-                    nightGradient.addColorStop(1, 'rgba(100, 100, 150, 0.3)');
-                    ctx.fillStyle = nightGradient;
+                    // 大気の散乱効果
+                    const earthAtmosphereGradient = ctx.createRadialGradient(size/2, size/2, size/2 * 0.8, size/2, size/2, size/2);
+                    earthAtmosphereGradient.addColorStop(0, 'rgba(135, 206, 250, 0)');
+                    earthAtmosphereGradient.addColorStop(1, 'rgba(100, 149, 237, 0.3)');
+                    ctx.fillStyle = earthAtmosphereGradient;
                     ctx.fillRect(0, 0, size, size);
-                    ctx.globalCompositeOperation = 'source-over';
                     break;
                     
                 case 'mars':
-                    const marsGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-                    marsGradient.addColorStop(0, '#CD853F');
-                    marsGradient.addColorStop(0.5, '#CD5C5C');
-                    marsGradient.addColorStop(1, '#8B0000');
-                    ctx.fillStyle = marsGradient;
+                    // 超高品質な火星テクスチャ
+                    // 地形による色分けベース
+                    const marsBase = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    marsBase.addColorStop(0, '#D2691E');    // 中央部
+                    marsBase.addColorStop(0.3, '#CD853F');  // 中間地帯
+                    marsBase.addColorStop(0.6, '#B8860B');  // 外縁部
+                    marsBase.addColorStop(0.8, '#8B4513');  // 縁
+                    marsBase.addColorStop(1, '#654321');    // 最外縁
+                    ctx.fillStyle = marsBase;
                     ctx.fillRect(0, 0, size, size);
                     
-                    // オリンポス山
-                    ctx.fillStyle = '#A0522D';
+                    // 地形の詳細レイヤー
+                    // 古代の衝突クレーター（多数）
+                    for(let i = 0; i < 50; i++) {
+                        const craterX = Math.random() * size;
+                        const craterY = Math.random() * size;
+                        const craterSize = 3 + Math.random() * 25;
+                        
+                        // クレーターの縁（隆起）
+                        ctx.fillStyle = `rgba(${160 + Math.random() * 40}, ${110 + Math.random() * 30}, ${70 + Math.random() * 20}, 0.6)`;
+                        ctx.beginPath();
+                        ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
+                        ctx.fill();
+                        
+                        // クレーターの底（くぼみ）
+                        ctx.fillStyle = `rgba(${100 + Math.random() * 30}, ${60 + Math.random() * 25}, ${40 + Math.random() * 15}, 0.8)`;
+                        ctx.beginPath();
+                        ctx.arc(craterX, craterY, craterSize * 0.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 巨大なオリンポス山（太陽系最大の火山）
+                    const olympusX = size * 0.25;
+                    const olympusY = size * 0.35;
+                    const olympusSize = 35;
+                    
+                    // オリンポス山の影とハイライト
+                    ctx.fillStyle = 'rgba(80, 50, 30, 0.7)';
                     ctx.beginPath();
-                    ctx.arc(size*0.3, size*0.4, 18, 0, Math.PI * 2);
+                    ctx.arc(olympusX + 2, olympusY + 2, olympusSize, 0, Math.PI * 2);
                     ctx.fill();
                     
-                    // 極冠
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                    // オリンポス山のメイン
+                    const olympusGradient = ctx.createRadialGradient(olympusX, olympusY, 0, olympusX, olympusY, olympusSize);
+                    olympusGradient.addColorStop(0, '#D2B48C');   // 頂上（明るい）
+                    olympusGradient.addColorStop(0.3, '#CD853F'); // 中腹
+                    olympusGradient.addColorStop(0.6, '#A0522D'); // 下部
+                    olympusGradient.addColorStop(1, '#8B4513');   // 麓
+                    ctx.fillStyle = olympusGradient;
                     ctx.beginPath();
-                    ctx.arc(size/2, 10, 35, 0, Math.PI * 2);
+                    ctx.arc(olympusX, olympusY, olympusSize, 0, Math.PI * 2);
                     ctx.fill();
+                    
+                    // オリンポス山のカルデラ
+                    ctx.fillStyle = 'rgba(100, 60, 40, 0.8)';
                     ctx.beginPath();
-                    ctx.arc(size/2, size-10, 30, 0, Math.PI * 2);
+                    ctx.arc(olympusX, olympusY, olympusSize * 0.3, 0, Math.PI * 2);
                     ctx.fill();
+                    
+                    // 他の主要火山
+                    const volcanoes = [
+                        {name: 'Arsia Mons', x: size*0.28, y: size*0.55, size: 18},
+                        {name: 'Pavonis Mons', x: size*0.25, y: size*0.5, size: 16},
+                        {name: 'Ascraeus Mons', x: size*0.23, y: size*0.45, size: 17}
+                    ];
+                    
+                    volcanoes.forEach(volcano => {
+                        const volcGradient = ctx.createRadialGradient(volcano.x, volcano.y, 0, volcano.x, volcano.y, volcano.size);
+                        volcGradient.addColorStop(0, '#CD853F');
+                        volcGradient.addColorStop(0.7, '#A0522D');
+                        volcGradient.addColorStop(1, '#8B4513');
+                        ctx.fillStyle = volcGradient;
+                        ctx.beginPath();
+                        ctx.arc(volcano.x, volcano.y, volcano.size, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    
+                    // ヴァレス・マリネリス（巨大峡谷）
+                    ctx.strokeStyle = 'rgba(120, 80, 50, 0.8)';
+                    ctx.lineWidth = 8;
+                    ctx.lineCap = 'round';
+                    ctx.beginPath();
+                    ctx.moveTo(size * 0.1, size * 0.5);
+                    ctx.quadraticCurveTo(size * 0.4, size * 0.45, size * 0.7, size * 0.5);
+                    ctx.stroke();
+                    
+                    // 峡谷の支流
+                    ctx.lineWidth = 4;
+                    for(let i = 0; i < 8; i++) {
+                        const branchX = size * (0.2 + i * 0.08);
+                        const branchY = size * (0.48 + (Math.random() - 0.5) * 0.1);
+                        ctx.beginPath();
+                        ctx.moveTo(branchX, branchY);
+                        ctx.lineTo(branchX + (Math.random() - 0.5) * 40, branchY + (Math.random() - 0.5) * 30);
+                        ctx.stroke();
+                    }
+                    
+                    // 古代の水の痕跡（乾いた河床）
+                    ctx.strokeStyle = 'rgba(150, 100, 70, 0.5)';
+                    ctx.lineWidth = 2;
+                    for(let i = 0; i < 20; i++) {
+                        ctx.beginPath();
+                        const startX = Math.random() * size;
+                        const startY = Math.random() * size;
+                        ctx.moveTo(startX, startY);
+                        
+                        for(let j = 1; j <= 10; j++) {
+                            const x = startX + j * 8 + (Math.random() - 0.5) * 15;
+                            const y = startY + j * 5 + (Math.random() - 0.5) * 10;
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                    
+                    // 砂嵐の痕跡
+                    for(let i = 0; i < 30; i++) {
+                        const dustX = Math.random() * size;
+                        const dustY = Math.random() * size;
+                        const dustSize = 5 + Math.random() * 20;
+                        
+                        const dustGradient = ctx.createRadialGradient(dustX, dustY, 0, dustX, dustY, dustSize);
+                        dustGradient.addColorStop(0, `rgba(${200 + Math.random() * 35}, ${140 + Math.random() * 30}, ${90 + Math.random() * 20}, 0.3)`);
+                        dustGradient.addColorStop(1, `rgba(${200 + Math.random() * 35}, ${140 + Math.random() * 30}, ${90 + Math.random() * 20}, 0)`);
+                        
+                        ctx.fillStyle = dustGradient;
+                        ctx.beginPath();
+                        ctx.arc(dustX, dustY, dustSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 極冠（季節により変化する氷）
+                    // 北極冠
+                    const northCapGradient = ctx.createRadialGradient(size/2, 15, 0, size/2, 15, 50);
+                    northCapGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');     // 中央（純粋な氷）
+                    northCapGradient.addColorStop(0.4, 'rgba(240, 248, 255, 0.9)'); // 中間（氷と塵の混合）
+                    northCapGradient.addColorStop(0.7, 'rgba(220, 230, 240, 0.7)'); // 外縁（薄い氷）
+                    northCapGradient.addColorStop(1, 'rgba(200, 210, 220, 0.3)');   // 最外縁（霜）
+                    ctx.fillStyle = northCapGradient;
+                    ctx.beginPath();
+                    ctx.arc(size/2, 15, 50, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 南極冠（より小さく、不規則）
+                    const southCapGradient = ctx.createRadialGradient(size/2, size-15, 0, size/2, size-15, 40);
+                    southCapGradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+                    southCapGradient.addColorStop(0.5, 'rgba(240, 248, 255, 0.8)');
+                    southCapGradient.addColorStop(1, 'rgba(220, 230, 240, 0.4)');
+                    ctx.fillStyle = southCapGradient;
+                    ctx.beginPath();
+                    ctx.arc(size/2, size-15, 40, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 極冠の層状構造
+                    ctx.strokeStyle = 'rgba(200, 220, 240, 0.6)';
+                    ctx.lineWidth = 1;
+                    for(let i = 1; i <= 5; i++) {
+                        ctx.beginPath();
+                        ctx.arc(size/2, 15, 10 * i, 0, Math.PI * 2);
+                        ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.arc(size/2, size-15, 8 * i, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    
+                    // 大気の薄いヘイズ効果
+                    const marsAtmosphereGradient = ctx.createRadialGradient(size/2, size/2, size/2 * 0.7, size/2, size/2, size/2);
+                    marsAtmosphereGradient.addColorStop(0, 'rgba(255, 200, 150, 0)');
+                    marsAtmosphereGradient.addColorStop(1, 'rgba(200, 120, 80, 0.2)');
+                    ctx.fillStyle = marsAtmosphereGradient;
+                    ctx.fillRect(0, 0, size, size);
                     break;
                     
                 case 'jupiter':
-                    // 高品質な木星テクスチャ
+                    // 超高品質な木星テクスチャ
+                    // 大気層の詳細なベース
                     const jupiterBase = ctx.createLinearGradient(0, 0, 0, size);
-                    jupiterBase.addColorStop(0, '#F4E4BC');
-                    jupiterBase.addColorStop(0.15, '#E6B87D');
-                    jupiterBase.addColorStop(0.3, '#D2691E');
-                    jupiterBase.addColorStop(0.45, '#CD853F');
-                    jupiterBase.addColorStop(0.6, '#A0522D');
-                    jupiterBase.addColorStop(0.75, '#8B4513');
-                    jupiterBase.addColorStop(0.9, '#654321');
-                    jupiterBase.addColorStop(1, '#4A2C17');
+                    jupiterBase.addColorStop(0, '#FFEEDD');   // 極域（明るいクリーム）
+                    jupiterBase.addColorStop(0.1, '#F4E4BC'); // 高緯度帯
+                    jupiterBase.addColorStop(0.2, '#E6B87D'); // 温帯
+                    jupiterBase.addColorStop(0.3, '#D2691E'); // 亜熱帯
+                    jupiterBase.addColorStop(0.4, '#CD853F'); // 熱帯北
+                    jupiterBase.addColorStop(0.5, '#B8860B'); // 赤道帯
+                    jupiterBase.addColorStop(0.6, '#A0522D'); // 熱帯南
+                    jupiterBase.addColorStop(0.7, '#8B4513'); // 亜熱帯南
+                    jupiterBase.addColorStop(0.8, '#654321'); // 温帯南
+                    jupiterBase.addColorStop(0.9, '#4A2C17'); // 高緯度南
+                    jupiterBase.addColorStop(1, '#3A1F10');   // 南極域
                     ctx.fillStyle = jupiterBase;
                     ctx.fillRect(0, 0, size, size);
                     
-                    // より詳細な縞模様
-                    for(let i = 0; i < 40; i++) {
-                        const y = (i / 40) * size;
-                        const beltHeight = 8 + Math.random() * 25;
-                        const opacity = 0.2 + Math.random() * 0.5;
-                        const variation = Math.sin(i * 0.3) * 0.2;
+                    // 超詳細な縞模様システム
+                    for(let i = 0; i < 60; i++) {
+                        const y = (i / 60) * size;
+                        const beltHeight = 6 + Math.random() * 30;
+                        const opacity = 0.15 + Math.random() * 0.6;
+                        const turbulence = Math.sin(i * 0.4) * 0.3;
                         
-                        // ベルトの基本色
-                        const beltColors = [
-                            `rgba(${220 + Math.random() * 35}, ${170 + Math.random() * 50}, ${100 + Math.random() * 40}, ${opacity})`,
-                            `rgba(${180 + Math.random() * 40}, ${120 + Math.random() * 50}, ${80 + Math.random() * 30}, ${opacity})`,
-                            `rgba(${160 + Math.random() * 30}, ${100 + Math.random() * 40}, ${60 + Math.random() * 25}, ${opacity})`
-                        ];
+                        // 帯の種類による色分け
+                        let beltColor;
+                        const beltType = i % 4;
+                        if(beltType === 0) {
+                            // 明るい帯（Zone）
+                            beltColor = `rgba(${240 + Math.random() * 15}, ${200 + Math.random() * 30}, ${140 + Math.random() * 20}, ${opacity})`;
+                        } else if(beltType === 1) {
+                            // 暗い帯（Belt）
+                            beltColor = `rgba(${160 + Math.random() * 30}, ${110 + Math.random() * 25}, ${70 + Math.random() * 20}, ${opacity})`;
+                        } else if(beltType === 2) {
+                            // 中間の帯
+                            beltColor = `rgba(${190 + Math.random() * 25}, ${140 + Math.random() * 25}, ${90 + Math.random() * 20}, ${opacity})`;
+                        } else {
+                            // 特殊な帯（赤みがかった）
+                            beltColor = `rgba(${200 + Math.random() * 30}, ${130 + Math.random() * 30}, ${80 + Math.random() * 25}, ${opacity})`;
+                        }
                         
-                        ctx.fillStyle = beltColors[i % 3];
+                        ctx.fillStyle = beltColor;
                         
-                        // 波打つ縞模様
+                        // 複雑な波打つ縞模様
                         ctx.beginPath();
                         ctx.moveTo(0, y);
-                        for(let x = 0; x <= size; x += 10) {
-                            const waveY = y + Math.sin(x * 0.02 + i) * (3 + variation * 5);
+                        for(let x = 0; x <= size; x += 8) {
+                            const primaryWave = Math.sin(x * 0.025 + i * 0.5) * (4 + turbulence * 8);
+                            const secondaryWave = Math.sin(x * 0.08 + i * 0.3) * (1 + turbulence * 3);
+                            const waveY = y + primaryWave + secondaryWave;
                             ctx.lineTo(x, waveY);
                         }
-                        for(let x = size; x >= 0; x -= 10) {
-                            const waveY = y + beltHeight + Math.sin(x * 0.015 + i + 1) * (2 + variation * 3);
+                        for(let x = size; x >= 0; x -= 8) {
+                            const primaryWave = Math.sin(x * 0.02 + i * 0.5 + 1) * (3 + turbulence * 6);
+                            const secondaryWave = Math.sin(x * 0.06 + i * 0.3 + 1) * (1.5 + turbulence * 2);
+                            const waveY = y + beltHeight + primaryWave + secondaryWave;
                             ctx.lineTo(x, waveY);
                         }
                         ctx.closePath();
                         ctx.fill();
                     }
                     
-                    // 大赤斑（より詳細）
-                    const grsX = size * 0.7;
-                    const grsY = size * 0.45;
-                    const grsWidth = 60;
-                    const grsHeight = 40;
+                    // 大赤斑（超詳細）
+                    const grsX = size * 0.72;
+                    const grsY = size * 0.42;
+                    const grsWidth = 80;
+                    const grsHeight = 50;
                     
-                    // 大赤斑の影
-                    ctx.fillStyle = 'rgba(100, 0, 0, 0.4)';
-                    ctx.beginPath();
-                    ctx.ellipse(grsX + 2, grsY + 2, grsWidth/2, grsHeight/2, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // 大赤斑のメイン
-                    const grsGradient = ctx.createRadialGradient(grsX, grsY, 0, grsX, grsY, grsWidth/2);
-                    grsGradient.addColorStop(0, '#CC4444');
-                    grsGradient.addColorStop(0.3, '#BB2222');
-                    grsGradient.addColorStop(0.6, '#AA1111');
-                    grsGradient.addColorStop(1, '#880000');
-                    ctx.fillStyle = grsGradient;
-                    ctx.beginPath();
-                    ctx.ellipse(grsX, grsY, grsWidth/2, grsHeight/2, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    
-                    // 大赤斑の渦巻き
-                    ctx.strokeStyle = 'rgba(150, 50, 50, 0.6)';
-                    ctx.lineWidth = 2;
-                    for(let i = 0; i < 3; i++) {
+                    // 大赤斑の周囲の乱流
+                    for(let i = 0; i < 12; i++) {
+                        const angle = (i / 12) * Math.PI * 2;
+                        const turbX = grsX + Math.cos(angle) * (grsWidth/2 + 20 + Math.random() * 30);
+                        const turbY = grsY + Math.sin(angle) * (grsHeight/2 + 15 + Math.random() * 20);
+                        const turbSize = 8 + Math.random() * 15;
+                        
+                        ctx.fillStyle = `rgba(${180 + Math.random() * 40}, ${100 + Math.random() * 40}, ${60 + Math.random() * 30}, 0.4)`;
                         ctx.beginPath();
-                        const radius = 15 + i * 8;
-                        for(let angle = 0; angle < Math.PI * 4; angle += 0.1) {
-                            const spiralRadius = radius * (1 - angle / (Math.PI * 4)) * 0.8;
-                            const x = grsX + Math.cos(angle) * spiralRadius;
-                            const y = grsY + Math.sin(angle) * spiralRadius * 0.7; // 楕円形に
+                        ctx.arc(turbX, turbY, turbSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 大赤斑の影とハイライト
+                    ctx.fillStyle = 'rgba(80, 20, 10, 0.5)';
+                    ctx.beginPath();
+                    ctx.ellipse(grsX + 3, grsY + 3, grsWidth/2, grsHeight/2, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 大赤斑のメイン（複数層）
+                    const grsLayers = [
+                        {color: '#DD5555', size: 1.0},
+                        {color: '#CC3333', size: 0.8},
+                        {color: '#BB2222', size: 0.6},
+                        {color: '#AA1111', size: 0.4},
+                        {color: '#990000', size: 0.2}
+                    ];
+                    
+                    grsLayers.forEach(layer => {
+                        const layerGradient = ctx.createRadialGradient(grsX, grsY, 0, grsX, grsY, (grsWidth/2) * layer.size);
+                        layerGradient.addColorStop(0, layer.color);
+                        layerGradient.addColorStop(0.7, layer.color + '99');
+                        layerGradient.addColorStop(1, layer.color + '00');
+                        ctx.fillStyle = layerGradient;
+                        ctx.beginPath();
+                        ctx.ellipse(grsX, grsY, (grsWidth/2) * layer.size, (grsHeight/2) * layer.size, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                    
+                    // 大赤斑の詳細な渦巻き構造
+                    ctx.strokeStyle = 'rgba(180, 80, 80, 0.7)';
+                    ctx.lineWidth = 1.5;
+                    for(let i = 0; i < 5; i++) {
+                        ctx.beginPath();
+                        const spiralRadius = 10 + i * 12;
+                        for(let angle = 0; angle < Math.PI * 6; angle += 0.08) {
+                            const currentRadius = spiralRadius * (1 - angle / (Math.PI * 6)) * 0.9;
+                            const x = grsX + Math.cos(angle + i * 0.5) * currentRadius;
+                            const y = grsY + Math.sin(angle + i * 0.5) * currentRadius * 0.6;
                             if(angle === 0) ctx.moveTo(x, y);
                             else ctx.lineTo(x, y);
                         }
                         ctx.stroke();
                     }
                     
-                    // 小さな嵐や渦
-                    for(let i = 0; i < 8; i++) {
+                    // 小さな嵐システム（複数のサイズ）
+                    for(let i = 0; i < 25; i++) {
                         const stormX = Math.random() * size;
                         const stormY = Math.random() * size;
-                        const stormSize = 8 + Math.random() * 15;
+                        const stormSize = 4 + Math.random() * 20;
+                        const stormIntensity = Math.random();
+                        
+                        let stormColor;
+                        if(stormIntensity > 0.8) {
+                            // 強い嵐（白色）
+                            stormColor = `rgba(${240 + Math.random() * 15}, ${220 + Math.random() * 20}, ${180 + Math.random() * 30}, 0.7)`;
+                        } else if(stormIntensity > 0.5) {
+                            // 中程度の嵐（茶色）
+                            stormColor = `rgba(${160 + Math.random() * 40}, ${120 + Math.random() * 30}, ${80 + Math.random() * 25}, 0.5)`;
+                        } else {
+                            // 弱い嵐（暗い）
+                            stormColor = `rgba(${120 + Math.random() * 30}, ${90 + Math.random() * 25}, ${60 + Math.random() * 20}, 0.3)`;
+                        }
                         
                         const stormGradient = ctx.createRadialGradient(stormX, stormY, 0, stormX, stormY, stormSize);
-                        stormGradient.addColorStop(0, 'rgba(200, 150, 100, 0.6)');
-                        stormGradient.addColorStop(1, 'rgba(200, 150, 100, 0)');
+                        stormGradient.addColorStop(0, stormColor);
+                        stormGradient.addColorStop(0.6, stormColor.replace(/[\d.]+\)$/g, '0.2)'));
+                        stormGradient.addColorStop(1, stormColor.replace(/[\d.]+\)$/g, '0)'));
                         
                         ctx.fillStyle = stormGradient;
                         ctx.beginPath();
                         ctx.arc(stormX, stormY, stormSize, 0, Math.PI * 2);
                         ctx.fill();
                     }
+                    
+                    // 大気の乱流パターン
+                    ctx.strokeStyle = 'rgba(200, 150, 100, 0.2)';
+                    ctx.lineWidth = 1;
+                    for(let i = 0; i < 40; i++) {
+                        ctx.beginPath();
+                        const startX = Math.random() * size;
+                        const startY = Math.random() * size;
+                        ctx.moveTo(startX, startY);
+                        
+                        for(let j = 1; j <= 15; j++) {
+                            const x = startX + j * 10 + Math.sin(j * 0.3) * 15;
+                            const y = startY + (Math.random() - 0.5) * 8;
+                            ctx.lineTo(x % size, y);
+                        }
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'mercury':
+                    // 水星：極端な温度差を持つクレーターだらけの世界
+                    const mercuryBase = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    mercuryBase.addColorStop(0, '#C0C0C0'); // 明るい中央
+                    mercuryBase.addColorStop(0.5, '#8C7853'); // 茶色がかった
+                    mercuryBase.addColorStop(1, '#696969'); // 暗い縁
+                    ctx.fillStyle = mercuryBase;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // カロリス盆地（巨大衝突クレーター）
+                    const calorisX = size * 0.6;
+                    const calorisY = size * 0.4;
+                    const calorisSize = 60;
+                    
+                    ctx.fillStyle = 'rgba(120, 120, 120, 0.7)';
+                    ctx.beginPath();
+                    ctx.arc(calorisX, calorisY, calorisSize, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = 'rgba(80, 80, 80, 0.8)';
+                    ctx.beginPath();
+                    ctx.arc(calorisX, calorisY, calorisSize * 0.6, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 多数の小クレーター
+                    for(let i = 0; i < 80; i++) {
+                        const craterX = Math.random() * size;
+                        const craterY = Math.random() * size;
+                        const craterSize = 2 + Math.random() * 15;
+                        
+                        ctx.fillStyle = `rgba(${100 + Math.random() * 50}, ${100 + Math.random() * 50}, ${100 + Math.random() * 50}, 0.6)`;
+                        ctx.beginPath();
+                        ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                case 'venus':
+                    // 金星：厚い雲に覆われた灼熱の世界
+                    const venusBase = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    venusBase.addColorStop(0, '#FFF8DC'); // 明るいクリーム
+                    venusBase.addColorStop(0.4, '#F5DEB3'); // ベージュ
+                    venusBase.addColorStop(0.7, '#DEB887'); // より濃いベージュ
+                    venusBase.addColorStop(1, '#D2B48C'); // 茶色がかったベージュ
+                    ctx.fillStyle = venusBase;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // 硫酸の雲層
+                    for(let i = 0; i < 100; i++) {
+                        const cloudX = Math.random() * size;
+                        const cloudY = Math.random() * size;
+                        const cloudSize = 10 + Math.random() * 40;
+                        
+                        const venusCloudGradient = ctx.createRadialGradient(cloudX, cloudY, 0, cloudX, cloudY, cloudSize);
+                        venusCloudGradient.addColorStop(0, `rgba(${250 + Math.random() * 5}, ${240 + Math.random() * 10}, ${200 + Math.random() * 20}, 0.6)`);
+                        venusCloudGradient.addColorStop(1, `rgba(${250 + Math.random() * 5}, ${240 + Math.random() * 10}, ${200 + Math.random() * 20}, 0)`);
+                        
+                        ctx.fillStyle = venusCloudGradient;
+                        ctx.beginPath();
+                        ctx.arc(cloudX, cloudY, cloudSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    
+                    // 大気の渦巻きパターン
+                    for(let i = 0; i < 20; i++) {
+                        ctx.strokeStyle = `rgba(${230 + Math.random() * 20}, ${220 + Math.random() * 20}, ${180 + Math.random() * 30}, 0.4)`;
+                        ctx.lineWidth = 2 + Math.random() * 3;
+                        ctx.beginPath();
+                        
+                        const centerX = Math.random() * size;
+                        const centerY = Math.random() * size;
+                        for(let angle = 0; angle < Math.PI * 4; angle += 0.2) {
+                            const radius = angle * 3;
+                            const x = centerX + Math.cos(angle) * radius;
+                            const y = centerY + Math.sin(angle) * radius;
+                            if(angle === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
+                    break;
+                    
+                case 'saturn':
+                    // 土星：美しいリングと縞模様
+                    const saturnBase = ctx.createLinearGradient(0, 0, 0, size);
+                    saturnBase.addColorStop(0, '#F5DEB3');   // 極域
+                    saturnBase.addColorStop(0.2, '#DEB887'); // 高緯度
+                    saturnBase.addColorStop(0.4, '#D2B48C'); // 中緯度
+                    saturnBase.addColorStop(0.6, '#BC9A6A'); // 赤道域
+                    saturnBase.addColorStop(0.8, '#A0845C'); // 中緯度南
+                    saturnBase.addColorStop(1, '#8B7355');   // 極域南
+                    ctx.fillStyle = saturnBase;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // 土星の縞模様（木星より穏やか）
+                    for(let i = 0; i < 30; i++) {
+                        const y = (i / 30) * size;
+                        const beltHeight = 10 + Math.random() * 20;
+                        const opacity = 0.1 + Math.random() * 0.3;
+                        
+                        ctx.fillStyle = `rgba(${180 + Math.random() * 40}, ${150 + Math.random() * 30}, ${120 + Math.random() * 25}, ${opacity})`;
+                        ctx.fillRect(0, y, size, beltHeight);
+                    }
+                    
+                    // 六角形の嵐（北極）
+                    const hexCenterX = size/2;
+                    const hexCenterY = size * 0.1;
+                    const hexRadius = 20;
+                    
+                    ctx.strokeStyle = 'rgba(200, 180, 150, 0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    for(let i = 0; i < 6; i++) {
+                        const angle = (i / 6) * Math.PI * 2;
+                        const x = hexCenterX + Math.cos(angle) * hexRadius;
+                        const y = hexCenterY + Math.sin(angle) * hexRadius;
+                        if(i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.stroke();
+                    break;
+                    
+                case 'uranus':
+                    // 天王星：横倒しの氷の巨星
+                    const uranusBase = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    uranusBase.addColorStop(0, '#87CEEB');   // 明るい青
+                    uranusBase.addColorStop(0.4, '#4FD0E7'); // 青緑
+                    uranusBase.addColorStop(0.7, '#00CED1'); // ターコイズ
+                    uranusBase.addColorStop(1, '#008B8B');   // 濃いターコイズ
+                    ctx.fillStyle = uranusBase;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // メタン氷の雲
+                    for(let i = 0; i < 40; i++) {
+                        const cloudX = Math.random() * size;
+                        const cloudY = Math.random() * size;
+                        const cloudSize = 8 + Math.random() * 25;
+                        
+                        ctx.fillStyle = `rgba(${150 + Math.random() * 30}, ${200 + Math.random() * 30}, ${220 + Math.random() * 35}, 0.4)`;
+                        ctx.beginPath();
+                        ctx.arc(cloudX, cloudY, cloudSize, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                    
+                case 'neptune':
+                    // 海王星：深い青の嵐の惑星
+                    const neptuneBase = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    neptuneBase.addColorStop(0, '#6495ED');  // 明るい青
+                    neptuneBase.addColorStop(0.4, '#4169E1'); // ロイヤルブルー
+                    neptuneBase.addColorStop(0.7, '#0000CD'); // 中程度の青
+                    neptuneBase.addColorStop(1, '#000080');   // 濃紺
+                    ctx.fillStyle = neptuneBase;
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // 大暗斑（かつて存在した巨大嵐）
+                    const darkSpotX = size * 0.3;
+                    const darkSpotY = size * 0.4;
+                    const darkSpotW = 40;
+                    const darkSpotH = 25;
+                    
+                    ctx.fillStyle = 'rgba(0, 0, 100, 0.7)';
+                    ctx.beginPath();
+                    ctx.ellipse(darkSpotX, darkSpotY, darkSpotW, darkSpotH, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 高速風の痕跡
+                    for(let i = 0; i < 15; i++) {
+                        ctx.strokeStyle = `rgba(${100 + Math.random() * 50}, ${150 + Math.random() * 50}, ${200 + Math.random() * 55}, 0.5)`;
+                        ctx.lineWidth = 2 + Math.random() * 3;
+                        ctx.beginPath();
+                        
+                        const startX = Math.random() * size;
+                        const startY = Math.random() * size;
+                        ctx.moveTo(startX, startY);
+                        
+                        for(let j = 1; j <= 8; j++) {
+                            const x = startX + j * 15;
+                            const y = startY + Math.sin(j * 0.5) * 10;
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                    }
                     break;
                     
                 default:
-                    // その他の惑星
-                    const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
-                    gradient.addColorStop(0, '#AAAAAA');
-                    gradient.addColorStop(1, '#666666');
-                    ctx.fillStyle = gradient;
+                    // その他の天体（小惑星など）
+                    const defaultGradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+                    defaultGradient.addColorStop(0, '#AAAAAA');
+                    defaultGradient.addColorStop(1, '#666666');
+                    ctx.fillStyle = defaultGradient;
                     ctx.fillRect(0, 0, size, size);
             }
             
@@ -1241,8 +1765,8 @@
             
             // 惑星作成
             planetData.forEach((data, index) => {
-                const geometry = new THREE.SphereGeometry(data.size, 32, 16);
-                const texture = createPlanetTexture(data.type, 1024);
+                const geometry = new THREE.SphereGeometry(data.size, 64, 32); // より高品質なジオメトリ
+                const texture = createPlanetTexture(data.type, 2048); // 高解像度テクスチャ
                 
                 let material;
                 if (data.name === '太陽') {
@@ -1363,8 +1887,9 @@
                 solarSystemGroup.add(planet);
             });
 
-            setupXRControllers();
             animate();
+            
+            // 初期化時はXRコントローラーをセットアップしない（XRセッション開始時にセットアップ）
             
             // データ読み込み完了
             dataLoaded = true;
@@ -1381,31 +1906,67 @@
 
         // XRコントローラーセットアップ
         function setupXRControllers() {
-            // 既存のコントローラーをクリーンアップ
-            if (controllers.left) {
-                scene.remove(controllers.left);
-                controllers.left = null;
-            }
-            if (controllers.right) {
-                scene.remove(controllers.right);
-                controllers.right = null;
-            }
+            console.log('Setting up XR controllers...');
             
             // 左コントローラー
             const leftController = renderer.xr.getController(0);
-            leftController.addEventListener('selectstart', (event) => onSelectStart(event, 'left'));
-            leftController.addEventListener('selectend', (event) => onSelectEnd(event, 'left'));
-            leftController.addEventListener('squeezestart', () => onGripStart('left'));
-            leftController.addEventListener('squeezeend', () => onGripEnd('left'));
+            leftController.addEventListener('selectstart', (event) => {
+                console.log('Left controller select start');
+                onSelectStart(event, 'left');
+            });
+            leftController.addEventListener('selectend', (event) => {
+                console.log('Left controller select end');
+                onSelectEnd(event, 'left');
+            });
+            leftController.addEventListener('squeezestart', () => {
+                console.log('Left controller squeeze start');
+                onGripStart('left');
+            });
+            leftController.addEventListener('squeezeend', () => {
+                console.log('Left controller squeeze end');
+                onGripEnd('left');
+            });
+            
+            // レーザーポインターの作成（シンプル版）
+            const leftLine = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -1)
+            ]);
+            const leftMaterial = new THREE.LineBasicMaterial({ color: 0x00ff88 });
+            const leftRay = new THREE.Line(leftLine, leftMaterial);
+            leftController.add(leftRay);
+            
             scene.add(leftController);
             controllers.left = leftController;
 
             // 右コントローラー
             const rightController = renderer.xr.getController(1);
-            rightController.addEventListener('selectstart', (event) => onSelectStart(event, 'right'));
-            rightController.addEventListener('selectend', (event) => onSelectEnd(event, 'right'));
-            rightController.addEventListener('squeezestart', () => onGripStart('right'));
-            rightController.addEventListener('squeezeend', () => onGripEnd('right'));
+            rightController.addEventListener('selectstart', (event) => {
+                console.log('Right controller select start');
+                onSelectStart(event, 'right');
+            });
+            rightController.addEventListener('selectend', (event) => {
+                console.log('Right controller select end');
+                onSelectEnd(event, 'right');
+            });
+            rightController.addEventListener('squeezestart', () => {
+                console.log('Right controller squeeze start');
+                onGripStart('right');
+            });
+            rightController.addEventListener('squeezeend', () => {
+                console.log('Right controller squeeze end');
+                onGripEnd('right');
+            });
+            
+            // レーザーポインターの作成（シンプル版）
+            const rightLine = new THREE.BufferGeometry().setFromPoints([
+                new THREE.Vector3(0, 0, 0),
+                new THREE.Vector3(0, 0, -1)
+            ]);
+            const rightMaterial = new THREE.LineBasicMaterial({ color: 0x00ff88 });
+            const rightRay = new THREE.Line(rightLine, rightMaterial);
+            rightController.add(rightRay);
+            
             scene.add(rightController);
             controllers.right = rightController;
 
@@ -1415,49 +1976,10 @@
 
             const rightControllerGrip = renderer.xr.getControllerGrip(1);
             scene.add(rightControllerGrip);
-
-            // レーザーポインター（両コントローラーに追加）
-            createControllerRay(leftController, 0x00ff88);
-            createControllerRay(rightController, 0x00ff88);
             
             console.log('XR Controllers setup completed');
         }
-        
-        // レーザーポインター作成関数
-        function createControllerRay(controller, color) {
-            // 既存のレイを削除
-            const existingRay = controller.children.find(child => child.userData.isRay);
-            if (existingRay) {
-                controller.remove(existingRay);
-            }
-            
-            const geometry = new THREE.BufferGeometry().setFromPoints([
-                new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -3)
-            ]);
-            const material = new THREE.LineBasicMaterial({ 
-                color: color, 
-                transparent: true, 
-                opacity: 0.8 
-            });
 
-            const ray = new THREE.Line(geometry, material);
-            ray.userData.isRay = true;
-            ray.visible = true; // 明示的に表示
-            controller.add(ray);
-            
-            // カーソル（レイの先端）も追加
-            const cursorGeometry = new THREE.SphereGeometry(0.01, 8, 8);
-            const cursorMaterial = new THREE.MeshBasicMaterial({ 
-                color: color,
-                emissive: color,
-                emissiveIntensity: 0.5
-            });
-            const cursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
-            cursor.position.set(0, 0, -3);
-            cursor.userData.isCursor = true;
-            ray.add(cursor);
-        }
 
         // XRイベントハンドラー
         function onSelectStart(event, hand) {
@@ -1838,6 +2360,8 @@
             if (!xrSupported || !dataLoaded) return;
 
             try {
+                console.log('Starting XR session...');
+                
                 // BGM再生開始
                 if (bgMusic) {
                     try {
@@ -1856,24 +2380,38 @@
                 let session;
                 try {
                     session = await navigator.xr.requestSession('immersive-ar', sessionInit);
+                    console.log('AR session created');
                 } catch (arError) {
+                    console.log('AR not available, trying VR...');
                     session = await navigator.xr.requestSession('immersive-vr', sessionInit);
+                    console.log('VR session created');
                 }
 
                 await renderer.xr.setSession(session);
                 xrActive = true;
+                console.log('XR session set');
                 
-                // XRセッションの準備ができるまで少し待つ
+                // XRセッション開始のイベントリスナーを設定
+                session.addEventListener('visibilitychange', () => {
+                    if (session.visibilityState === 'visible') {
+                        console.log('XR session became visible, setting up controllers...');
+                        setTimeout(() => {
+                            setupXRControllers();
+                        }, 100);
+                    }
+                });
+                
+                // 初回のコントローラーセットアップ
                 setTimeout(() => {
-                    console.log('Setting up XR controllers...');
+                    console.log('Initial controller setup...');
                     setupXRControllers();
                     
-                    // さらに確実にするため、もう一度初期化
+                    // さらに確実にするため、追加セットアップ
                     setTimeout(() => {
+                        console.log('Secondary controller setup...');
                         setupXRControllers();
-                        console.log('XR controllers ready');
                     }, 1000);
-                }, 200);
+                }, 500);
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -1881,6 +2419,7 @@
                 document.getElementById('info-panel').style.display = 'block';
 
                 session.addEventListener('end', () => {
+                    console.log('XR session ended');
                     xrActive = false;
                     
                     // BGM停止
@@ -1904,6 +2443,7 @@
                 });
 
             } catch (error) {
+                console.error('XR session error:', error);
                 alert('XRセッションの開始に失敗しました: ' + error.message);
             }
         }
