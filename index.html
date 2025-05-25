@@ -242,7 +242,8 @@
         let planetInfoVisible = false;
         let isDragging = false;
         let dragStartPosition = new THREE.Vector3();
-        let solarSystemStartPosition = new THREE.Vector3();
+        let userStartPosition = new THREE.Vector3();
+        let userPosition = new THREE.Vector3(0, 1.6, 5); // ユーザーの仮想位置
         let planetInfoPanel = null;
         let sunScaleAnimation = { target: 1, current: 1, speed: 0.05 };
         let panelFadeAnimation = { opacity: 0, target: 0, speed: 0.05 };
@@ -688,11 +689,11 @@
             const starColors = [];
             const starSizes = [];
             
-            for (let i = 0; i < 25000; i++) {
+            for (let i = 0; i < 12000; i++) { // 25000から12000に軽量化
                 // より広範囲に星を配置（天の川銀河を模擬）
                 let radius, x, y, z;
                 
-                if (i < 20000) {
+                if (i < 9000) { // 20000から9000に調整
                     // 天の川銀河の円盤部分
                     const diskRadius = 100 + Math.random() * 200;
                     const diskAngle = Math.random() * Math.PI * 2;
@@ -779,7 +780,7 @@
         // 小惑星帯を作成（火星と木星の間）
         function createAsteroidBelt() {
             const asteroidGroup = new THREE.Group();
-            const asteroidCount = 200;
+            const asteroidCount = 80; // 200から80に軽量化
             const innerRadius = 1.7;  // 火星軌道より外側
             const outerRadius = 1.9;  // 木星軌道より内側
             
@@ -836,7 +837,7 @@
         // カイパーベルトを作成（海王星の外側）
         function createKuiperBelt() {
             const kuiperGroup = new THREE.Group();
-            const objectCount = 150;
+            const objectCount = 60; // 150から60に軽量化
             const innerRadius = 4.2;  // 海王星軌道より外側
             const outerRadius = 6.0;  // さらに外側
             
@@ -877,7 +878,7 @@
         // 太陽系外の恒星を作成
         function createDistantStars() {
             const starGroup = new THREE.Group();
-            const starCount = 50;
+            const starCount = 25; // 50から25に軽量化
             
             for (let i = 0; i < starCount; i++) {
                 // 遠方の恒星
@@ -938,7 +939,7 @@
         // 遠方の銀河を作成
         function createDistantGalaxies() {
             const galaxyGroup = new THREE.Group();
-            const galaxyCount = 20;
+            const galaxyCount = 12; // 20から12に軽量化
             
             for (let i = 0; i < galaxyCount; i++) {
                 // 非常に遠方の銀河
@@ -1170,6 +1171,9 @@
             solarSystemGroup = new THREE.Group();
             solarSystemGroup.position.set(0, 1, -2);
             scene.add(solarSystemGroup);
+            
+            // 初期ユーザー位置を設定
+            updateUserPosition();
 
             // 星空
             const stars = createStarField();
@@ -1185,8 +1189,8 @@
             backgroundSphere = createBackgroundSphere();
             scene.add(backgroundSphere);
 
-            // メイン太陽光源（テクスチャ保護のため調整）
-            const sunLight = new THREE.PointLight(0xFFFFDD, 3.5, 100);
+            // メイン太陽光源（白飛び防止のためさらに調整）
+            const sunLight = new THREE.PointLight(0xFFFFDD, 2.5, 100);
             sunLight.position.set(0, 0, 0);
             sunLight.castShadow = true;
             sunLight.shadow.mapSize.width = 4096;
@@ -1195,13 +1199,13 @@
             sunLight.shadow.camera.far = 100;
             solarSystemGroup.add(sunLight);
             
-            // 追加の太陽光源（より現実的な光の広がり）
-            const sunLight2 = new THREE.PointLight(0xFFDD88, 2, 80);
+            // 追加の太陽光源（控えめに）
+            const sunLight2 = new THREE.PointLight(0xFFDD88, 1.2, 80);
             sunLight2.position.set(0, 0, 0);
             solarSystemGroup.add(sunLight2);
             
-            // 太陽コロナ光源（控えめに）
-            const coronaLight = new THREE.PointLight(0xFFFFFF, 1, 60);
+            // 太陽コロナ光源（さらに控えめに）
+            const coronaLight = new THREE.PointLight(0xFFFFFF, 0.6, 60);
             coronaLight.position.set(0, 0, 0);
             solarSystemGroup.add(coronaLight);
 
@@ -1239,12 +1243,12 @@
                         side: THREE.DoubleSide
                     });
                     
-                    // 太陽にグロー効果を追加
-                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.3, 32, 16);
+                    // 太陽にグロー効果を追加（より自然に調整）
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.15, 24, 12); // サイズを小さく、ポリゴン数削減
                     const glowMaterial = new THREE.ShaderMaterial({
                         uniforms: {
                             time: { value: 0 },
-                            glowColor: { value: new THREE.Color(0xFFDD88) }
+                            glowColor: { value: new THREE.Color(0xFFCC66) } // より自然な色に
                         },
                         vertexShader: `
                             varying vec3 vNormal;
@@ -1258,14 +1262,16 @@
                             uniform vec3 glowColor;
                             varying vec3 vNormal;
                             void main() {
-                                float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-                                intensity *= (0.8 + 0.2 * sin(time * 3.0));
-                                gl_FragColor = vec4(glowColor, 1.0) * intensity;
+                                float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.5);
+                                intensity *= (0.5 + 0.15 * sin(time * 2.0)); // より控えめなアニメーション
+                                intensity *= 0.4; // 全体的に透明度を下げる
+                                gl_FragColor = vec4(glowColor, intensity);
                             }
                         `,
                         side: THREE.BackSide,
                         blending: THREE.AdditiveBlending,
-                        transparent: true
+                        transparent: true,
+                        depthWrite: false // 深度書き込みを無効にしてより自然に
                     });
                     const glowMesh = new THREE.Mesh(glowGeometry, glowMaterial);
                     data.glowMaterial = glowMaterial; // アニメーション用に保存
@@ -1284,7 +1290,7 @@
                 
                 // 太陽の場合はグローエフェクトを追加
                 if (data.name === '太陽' && data.glowMaterial) {
-                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.3, 32, 16);
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.15, 24, 12); // 軽量化
                     const glowMesh = new THREE.Mesh(glowGeometry, data.glowMaterial);
                     planet.add(glowMesh);
                     data.glowMesh = glowMesh; // 参照を保存
@@ -1447,7 +1453,7 @@
                     const tempMatrix = new THREE.Matrix4();
                     tempMatrix.identity().extractRotation(controller.matrixWorld);
                     dragStartPosition.setFromMatrixPosition(controller.matrixWorld);
-                    solarSystemStartPosition.copy(solarSystemGroup.position);
+                    userStartPosition.copy(userPosition);
                 }
             }
             
@@ -1988,7 +1994,7 @@
                 }
             }
 
-            // 片手グリップでのドラッグ移動（常に動作）
+            // 片手グリップでのドラッグ移動（ユーザー位置を移動）
             if (isDragging) {
                 const activeController = gripStates.left ? controllers.left : controllers.right;
                 if (activeController) {
@@ -1996,9 +2002,12 @@
                     currentPosition.setFromMatrixPosition(activeController.matrixWorld);
                     
                     const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
-                    // 移動距離を3倍にする
-                    deltaPosition.multiplyScalar(3);
-                    solarSystemGroup.position.copy(solarSystemStartPosition).add(deltaPosition);
+                    // 移動方向を反転させてユーザーが移動している感覚にする
+                    deltaPosition.multiplyScalar(-5);
+                    userPosition.copy(userStartPosition).add(deltaPosition);
+                    
+                    // カメラとシーン全体の位置を更新
+                    updateUserPosition();
                 }
             }
 
@@ -2247,6 +2256,31 @@
                     child.visible = visible;
                 }
             });
+        }
+
+        // ユーザー位置の更新
+        function updateUserPosition() {
+            if (!xrActive) {
+                // 非XRモードでのカメラ位置更新
+                camera.position.copy(userPosition);
+            } else {
+                // XRモードでは太陽系グループの位置を相対的に調整
+                const offset = new THREE.Vector3().subVectors(new THREE.Vector3(0, 1.6, 5), userPosition);
+                solarSystemGroup.position.copy(offset);
+                
+                // 他の宇宙要素も同じオフセットを適用
+                scene.children.forEach(child => {
+                    if (child !== solarSystemGroup && child.isGroup && child.children.length > 0) {
+                        // 星座や遠方天体のグループを移動
+                        if (child.children[0] && child.children[0].name && 
+                            (child.children[0].name.includes('ベテルギウス') || 
+                             child.children[0].name.includes('北斗七星') ||
+                             child.children[0].userData)) {
+                            child.position.copy(offset);
+                        }
+                    }
+                });
+            }
         }
     </script>
 </body>
