@@ -4,7 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebXR MR 太陽系探索</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r158/three.min.js"></script>
+    <!-- Three.js 複数CDNフォールバック -->
+    <script src="https://threejs.org/build/three.min.js"></script>
+    <script>
+        // Three.jsが読み込まれているかチェック
+        if (typeof THREE === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r146/three.min.js"><\/script>');
+        }
+    </script>
+    <script>
+        // さらなるフォールバック
+        if (typeof THREE === 'undefined') {
+            document.write('<script src="https://unpkg.com/three@0.146.0/build/three.min.js"><\/script>');
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -229,6 +242,19 @@
     </div>
 
     <script>
+        // Three.js読み込み確認
+        if (typeof THREE === 'undefined') {
+            document.getElementById('loading').innerHTML = `
+                <div style="text-align: center; color: red;">
+                    <div>❌ Three.jsライブラリの読み込みに失敗しました</div>
+                    <div style="margin-top: 20px; font-size: 16px;">
+                        ネットワーク接続を確認してページを再読み込みしてください
+                    </div>
+                </div>
+            `;
+            throw new Error('Three.js library not loaded');
+        }
+
         let scene, camera, renderer, solarSystemGroup;
         let planets = [];
         let controllers = { left: null, right: null };
@@ -1178,7 +1204,7 @@
             }
             
             const texture = new THREE.CanvasTexture(canvas);
-            texture.colorSpace = THREE.SRGBColorSpace; // 最新版対応
+            texture.encoding = THREE.sRGBEncoding; // Three.js r146対応
             return texture;
         }
 
@@ -1526,7 +1552,7 @@
                 }
                 
                 const galaxyTexture = new THREE.CanvasTexture(canvas);
-                galaxyTexture.colorSpace = THREE.SRGBColorSpace; // 最新版対応
+                galaxyTexture.encoding = THREE.sRGBEncoding; // Three.js r146対応
                 const galaxyMaterial = new THREE.MeshBasicMaterial({
                     map: galaxyTexture,
                     transparent: true,
@@ -1669,8 +1695,8 @@
                     }
                 } catch (error) {
                     console.error('WebXR support check failed:', error);
-                    xrSupported = false;
-                }
+                        xrSupported = false;
+                    }
             } else {
                 console.log('Navigator.xr not available');
             }
@@ -1711,7 +1737,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
-            renderer.outputColorSpace = THREE.SRGBColorSpace; // 最新版対応
+            renderer.outputEncoding = THREE.sRGBEncoding; // Three.js r146対応
             container.appendChild(renderer.domElement);
 
             // 太陽系グループ
@@ -2340,7 +2366,7 @@
             
             const texture = new THREE.CanvasTexture(canvas);
             texture.needsUpdate = true;
-            texture.colorSpace = THREE.SRGBColorSpace; // 最新版対応
+            texture.encoding = THREE.sRGBEncoding; // Three.js r146対応
             
             return texture;
         }
@@ -2539,7 +2565,7 @@
                 } catch (arError) {
                     console.log('AR not available, trying VR...', arError.message);
                     try {
-                        session = await navigator.xr.requestSession('immersive-vr', sessionInit);
+                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
                         console.log('VR session created successfully');
                     } catch (vrError) {
                         console.error('Both AR and VR failed:', vrError.message);
@@ -2816,9 +2842,36 @@
         window.addEventListener('resize', onWindowResize);
         document.getElementById('xr-button').addEventListener('click', startXRSession);
 
-        // 初期化開始
-        checkXRSupport().then(() => {
-            init();
+        // DOMとThree.js読み込み完了後に初期化開始
+        document.addEventListener('DOMContentLoaded', function() {
+            // 少し遅延してThree.jsの読み込みを確実にする
+            setTimeout(() => {
+                if (typeof THREE === 'undefined') {
+                    document.getElementById('loading').innerHTML = `
+                        <div style="text-align: center; color: red;">
+                            <div>❌ Three.jsライブラリの読み込みエラー</div>
+                            <div style="margin-top: 20px; font-size: 16px;">
+                                ページを再読み込みしてください
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                checkXRSupport().then(() => {
+                    init();
+                }).catch(error => {
+                    console.error('Initialization error:', error);
+                    document.getElementById('loading').innerHTML = `
+                        <div style="text-align: center; color: red;">
+                            <div>❌ 初期化エラー</div>
+                            <div style="margin-top: 20px; font-size: 16px;">
+                                ${error.message}
+                            </div>
+                        </div>
+                    `;
+                });
+            }, 500);
         });
 
         // 宇宙空間モード切り替え
