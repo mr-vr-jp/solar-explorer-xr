@@ -1914,12 +1914,11 @@
             controllers.forEach((controller, index) => {
                 if (!controller) return;
                 
-                const hand = index === 0 ? 'left' : 'right';
-                
-                controller.addEventListener('selectstart', (event) => onSelectStart(event, hand));
-                controller.addEventListener('selectend', (event) => onSelectEnd(event, hand));
-                controller.addEventListener('squeezestart', () => onGripStart(hand));
-                controller.addEventListener('squeezeend', () => onGripEnd(hand));
+                // 参考プログラムと同じ方式：handパラメータを使わない
+                controller.addEventListener('selectstart', onSelectStart);
+                controller.addEventListener('selectend', onSelectEnd);
+                controller.addEventListener('squeezestart', onGripStart);
+                controller.addEventListener('squeezeend', onGripEnd);
                 
                 // レーザーポインター追加
                 createControllerRay(controller, 0x00ff88);
@@ -1966,7 +1965,7 @@
         }
 
         // XRイベントハンドラー
-        function onSelectStart(event, hand) {
+        function onSelectStart(event) {
             // 情報パネルが表示されている場合は閉じる
             if (planetInfoVisible) {
                 hide3DPlanetInfo();
@@ -1993,11 +1992,16 @@
             }
         }
 
-        function onSelectEnd(event, hand) {
+        function onSelectEnd(event) {
             // トリガー終了
         }
 
-        function onGripStart(hand) {
+        function onGripStart(event) {
+            // 参考プログラムと同じ方式：event.targetからコントローラーを特定
+            const controllerIndex = controllers.indexOf(event.target);
+            if (controllerIndex === -1) return;
+            
+            const hand = controllerIndex === 0 ? 'left' : 'right';
             gripStates[hand] = true;
             
             // 片手グリップの場合はドラッグ開始
@@ -2025,7 +2029,12 @@
             updateGripStatus();
         }
 
-        function onGripEnd(hand) {
+        function onGripEnd(event) {
+            // 参考プログラムと同じ方式：event.targetからコントローラーを特定
+            const controllerIndex = controllers.indexOf(event.target);
+            if (controllerIndex === -1) return;
+            
+            const hand = controllerIndex === 0 ? 'left' : 'right';
             gripStates[hand] = false;
             isDragging = false;
             updateGripStatus();
