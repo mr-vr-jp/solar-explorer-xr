@@ -297,15 +297,15 @@
             phase: 'waiting', // 'waiting', 'accelerating', 'cruising', 'decelerating', 'arrived'
             startTime: 0,
             waitDuration: 1000, // 1秒待機
-            accelerateDuration: 2000, // 2秒で加速
-            cruiseDuration: 3000, // 3秒で移動
-            decelerateDuration: 2000, // 2秒で減速
-            totalDuration: 8000, // 合計8秒
-            startPosition: new THREE.Vector3(0, 1.6, -500), // 遥か彼方からスタート
-            targetPosition: new THREE.Vector3(0, 1.6, 5), // 最終位置
+            accelerateDuration: 2500, // 2.5秒で加速
+            cruiseDuration: 4000, // 4秒で移動
+            decelerateDuration: 3000, // 3秒で減速
+            totalDuration: 10500, // 合計10.5秒
+            startPosition: new THREE.Vector3(0, 1.6, -1500), // さらに遥か彼方からスタート（太陽系の後方）
+            targetPosition: new THREE.Vector3(0, 1.6, 3), // 太陽系の前方少し手前で停止
             currentPosition: new THREE.Vector3(),
             speed: 0,
-            maxSpeed: 150 // 最大速度
+            maxSpeed: 250 // 最大速度を上げて遠距離に対応
         };
 
         // MRへの切り替えエフェクト
@@ -351,37 +351,45 @@
             const moveStartTime = warpEffect.waitDuration;
             const moveDuration = warpEffect.totalDuration - warpEffect.waitDuration;
             const moveElapsed = elapsed - moveStartTime;
-            const moveProgress = Math.min(1, moveElapsed / moveDuration);
 
-            // カーブを描く進行度（イージング関数）
-            let easedProgress;
+            // カーブを描く進行度（改良されたイージング関数）
+            let easedProgress = 0;
+            
             if (warpEffect.phase === 'accelerating') {
                 const phaseProgress = (elapsed - warpEffect.waitDuration) / warpEffect.accelerateDuration;
-                easedProgress = 0.5 * phaseProgress * phaseProgress; // 加速カーブ
+                // より滑らかな加速カーブ（三次関数）
+                easedProgress = 0.3 * phaseProgress * phaseProgress * phaseProgress;
             } else if (warpEffect.phase === 'cruising') {
-                const prevProgress = 0.5 * 1 * 1; // 加速終了時の進行度
+                const accelerateEndProgress = 0.3; // 加速終了時の進行度
                 const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration) / warpEffect.cruiseDuration;
-                easedProgress = prevProgress + phaseProgress * 0.3; // 線形移動
+                // 線形移動で大部分の距離を移動
+                easedProgress = accelerateEndProgress + phaseProgress * 0.6;
             } else if (warpEffect.phase === 'decelerating') {
-                const prevProgress = 0.5 + 0.3; // 巡航終了時の進行度
+                const cruiseEndProgress = 0.3 + 0.6; // 巡航終了時の進行度
                 const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration - warpEffect.cruiseDuration) / warpEffect.decelerateDuration;
-                easedProgress = prevProgress + 0.2 * (1 - 0.5 * (1 - phaseProgress) * (1 - phaseProgress)); // 減速カーブ
+                // より自然な減速カーブ（着地時に滑らか）
+                const smoothDeceleration = 1 - Math.pow(1 - phaseProgress, 3);
+                easedProgress = cruiseEndProgress + 0.1 * smoothDeceleration;
             }
 
-            // 位置の補間
-            warpEffect.currentPosition.lerpVectors(warpEffect.startPosition, warpEffect.targetPosition, easedProgress);
+            // Z軸のみの直線移動（横方向の移動を完全に防止）
+            const currentZ = warpEffect.startPosition.z + (warpEffect.targetPosition.z - warpEffect.startPosition.z) * easedProgress;
+            warpEffect.currentPosition.set(0, 1.6, currentZ); // X, Y座標は固定
+            
             userPosition.copy(warpEffect.currentPosition);
             updateUserPosition();
 
             // 速度の計算（視覚効果用）
             if (warpEffect.phase === 'accelerating') {
                 const phaseProgress = (elapsed - warpEffect.waitDuration) / warpEffect.accelerateDuration;
-                warpEffect.speed = warpEffect.maxSpeed * phaseProgress;
+                // 三次関数による滑らかな加速
+                warpEffect.speed = warpEffect.maxSpeed * phaseProgress * phaseProgress;
             } else if (warpEffect.phase === 'cruising') {
                 warpEffect.speed = warpEffect.maxSpeed;
             } else if (warpEffect.phase === 'decelerating') {
                 const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration - warpEffect.cruiseDuration) / warpEffect.decelerateDuration;
-                warpEffect.speed = warpEffect.maxSpeed * (1 - phaseProgress);
+                // 三次関数による滑らかな減速
+                warpEffect.speed = warpEffect.maxSpeed * Math.pow(1 - phaseProgress, 2);
             }
         }
 
@@ -446,8 +454,10 @@
             warpEffect.active = true;
             warpEffect.phase = 'waiting';
             warpEffect.startTime = Date.now();
-            warpEffect.currentPosition.copy(warpEffect.startPosition);
-            userPosition.copy(warpEffect.startPosition);
+            
+            // 正確にスタート位置を設定（横方向の移動を防止）
+            warpEffect.currentPosition.set(0, 1.6, warpEffect.startPosition.z);
+            userPosition.set(0, 1.6, warpEffect.startPosition.z);
             
             // 最初はVRモードで開始
             spaceMode = true;
