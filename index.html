@@ -4115,19 +4115,22 @@
         function initOrbitMovement() {
             if (!focusedPlanet) return;
             
-            // フォーカス惑星の現在位置
-            const planetPos = new THREE.Vector3(
-                focusedPlanet.mesh.position.x,
-                focusedPlanet.mesh.position.y,
-                focusedPlanet.mesh.position.z
-            );
+            // フォーカス惑星のワールド座標を正しく取得
+            const planetPos = new THREE.Vector3();
+            
+            // 太陽系グループの変換も考慮してワールド座標を計算
+            solarSystemGroup.updateMatrixWorld(); // マトリックス更新を確実に実行
+            const solarSystemMatrix = solarSystemGroup.matrixWorld;
+            const planetLocalPos = focusedPlanet.mesh.position.clone();
+            planetPos.copy(planetLocalPos).applyMatrix4(solarSystemMatrix);
             
             // 惑星との距離と適切な軌道半径を設定
             const userToPlanet = new THREE.Vector3().subVectors(planetPos, userPosition);
             const currentDistance = userToPlanet.length();
             
-            // 軌道半径を設定（適切な観察距離）
-            orbitRadius = Math.max(3.0, Math.min(currentDistance, 8.0)); // 3-8の範囲
+            // 軌道半径を設定（適切な観察距離、スケールを考慮）
+            const baseRadius = Math.max(3.0, Math.min(currentDistance * 0.8, 8.0));
+            orbitRadius = baseRadius * scaleFactor; // 現在のスケールファクターを適用
             
             // 惑星正面の位置を目標位置として設定（惑星を中央に見る位置）
             viewStartPosition.copy(userPosition);
@@ -4143,19 +4146,26 @@
             // 視点移動アニメーション開始
             startViewTransition();
             
-            console.log('軌道移動初期化 - 半径:', orbitRadius, '目標位置:', viewTargetPosition);
+            console.log('軌道移動初期化');
+            console.log('- 惑星名:', focusedPlanet.data.name);
+            console.log('- 惑星ワールド座標:', planetPos);
+            console.log('- 軌道半径:', orbitRadius);
+            console.log('- 開始位置:', viewStartPosition);
+            console.log('- 目標位置:', viewTargetPosition);
         }
 
         // フォーカス惑星中心の操作制御
         function updateFocusedPlanetMovement() {
             if (!focusedPlanet || !planetInfoVisible) return;
             
-            // フォーカス惑星の現在位置
-            const planetPos = new THREE.Vector3(
-                focusedPlanet.mesh.position.x,
-                focusedPlanet.mesh.position.y,
-                focusedPlanet.mesh.position.z
-            );
+            // フォーカス惑星のワールド座標を正しく取得
+            const planetPos = new THREE.Vector3();
+            
+            // 太陽系グループの変換も考慮してワールド座標を計算
+            solarSystemGroup.updateMatrixWorld(); // マトリックス更新を確実に実行
+            const solarSystemMatrix = solarSystemGroup.matrixWorld;
+            const planetLocalPos = focusedPlanet.mesh.position.clone();
+            planetPos.copy(planetLocalPos).applyMatrix4(solarSystemMatrix);
             
             // 両手グリップでのスケール調整（フォーカス惑星中心）
             if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging && !isViewTransitioning) {
