@@ -1202,14 +1202,14 @@
             return new THREE.CanvasTexture(canvas);
         }
 
-        // MRモード用星空作成（大幅増加）
+        // MRモード用星空作成（超大幅増加）
         function createStarField() {
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = [];
             const starSizes = [];
             const starColors = [];
             
-            for (let i = 0; i < 25000; i++) { // 8000から25000に大幅増加
+            for (let i = 0; i < 80000; i++) { // 25000から80000に超大幅増加
                 // 全方向に均等分布
                 const radius = 50 + Math.random() * 350;
                 const theta = Math.random() * Math.PI * 2;
@@ -1252,9 +1252,9 @@
             
             const starMaterial = new THREE.PointsMaterial({
                 vertexColors: true, // 色情報を使用
-                size: 0.06, // 少し大きく
+                size: 0.09, // より大きく美しく
                 transparent: true,
-                opacity: 0.8,
+                opacity: 0.9, // より明るく
                 sizeAttenuation: true,
                 blending: THREE.AdditiveBlending
             });
@@ -1262,18 +1262,18 @@
             return new THREE.Points(starGeometry, starMaterial);
         }
 
-        // 天の川銀河の星空作成（宇宙全体に大幅拡張 - 150,000個の星）
+        // 天の川銀河の星空作成（超大幅拡張 - 500,000個の星）
         function createSpaceStarField() {
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = [];
             const starColors = [];
             const starSizes = [];
             
-            for (let i = 0; i < 150000; i++) { // 50,000から150,000に大幅増加
+            for (let i = 0; i < 500000; i++) { // 150,000から500,000に超大幅増加
                 // より均等で広大な宇宙空間の星空を作成
                 let radius, x, y, z;
                 
-                if (i < 60000) { // 40%が近距離の均等分布
+                if (i < 100000) { // 20%が近距離の均等分布
                     // 太陽系周辺の星々（全方向に均等配置）
                     radius = 50 + Math.random() * 200;
                     const theta = Math.random() * Math.PI * 2;
@@ -1283,25 +1283,49 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else if (i < 100000) { // 27%が天の川銀河円盤部分
-                    // 天の川銀河の渦巻き構造を模擬（より大きく拡張）
-                    const armNum = Math.floor(Math.random() * 4); // 4本の渦巻き腕
-                    const armAngle = (armNum * Math.PI / 2) + (Math.random() - 0.5) * Math.PI / 3;
-                    const spiralTightness = 0.2;
+                } else if (i < 350000) { // 50%が天の川銀河円盤部分（大幅強化）
+                    // 天の川銀河の美しい渦巻き構造を詳細に模擬
+                    const armNum = Math.floor(Math.random() * 4); // 4本の主要渦巻き腕
+                    let armAngle;
                     
-                    const diskRadius = 250 + Math.random() * 400; // より広範囲
+                    // より現実的な渦巻き腕の配置
+                    if (armNum === 0) armAngle = 0;           // ペルセウス腕
+                    else if (armNum === 1) armAngle = Math.PI / 2;     // いて座腕
+                    else if (armNum === 2) armAngle = Math.PI;         // 外側腕
+                    else armAngle = 3 * Math.PI / 2;                   // ケンタウルス腕
+                    
+                    const spiralTightness = 0.15; // より緩やかな渦巻き
+                    const diskRadius = 150 + Math.random() * 600; // さらに広範囲
+                    
+                    // 渦巻き腕の密度変化（腕の中心ほど密度が高い）
+                    const armWidth = Math.PI / 6; // 腕の幅
                     const spiralAngle = armAngle + diskRadius * spiralTightness;
+                    const armDeviation = (Math.random() - 0.5) * armWidth;
+                    const finalAngle = spiralAngle + armDeviation;
                     
-                    x = diskRadius * Math.cos(spiralAngle);
-                    z = diskRadius * Math.sin(spiralAngle);
+                    // 腕の中心ほど星密度が高くなるように調整
+                    const armCenterDistance = Math.abs(armDeviation);
+                    const armDensity = Math.exp(-armCenterDistance * 3);
                     
-                    // 銀河円盤の厚み（適度に厚く）
-                    const diskHeight = (Math.random() - 0.5) * Math.min(80, diskRadius * 0.15);
+                    if (Math.random() < armDensity) {
+                        // 渦巻き腕の内部
+                        x = diskRadius * Math.cos(finalAngle);
+                        z = diskRadius * Math.sin(finalAngle);
+                    } else {
+                        // 腕間領域（密度低下）
+                        const interArmAngle = armAngle + Math.PI / 4 + diskRadius * spiralTightness;
+                        x = diskRadius * Math.cos(interArmAngle + (Math.random() - 0.5) * Math.PI / 3);
+                        z = diskRadius * Math.sin(interArmAngle + (Math.random() - 0.5) * Math.PI / 3);
+                    }
+                    
+                    // 銀河円盤の現実的な厚み分布
+                    const scaleHeight = Math.min(25, diskRadius * 0.08);
+                    const diskHeight = (Math.random() - 0.5) * scaleHeight * 2;
                     y = diskHeight;
                     
-                } else if (i < 130000) { // 20%が球状銀河ハロー部分
+                } else if (i < 430000) { // 16%が球状銀河ハロー部分
                     // 銀河ハロー（全方向に球状分布）
-                    radius = 400 + Math.random() * 500;
+                    radius = 400 + Math.random() * 800;
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
                     
@@ -1309,9 +1333,9 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else if (i < 140000) { // 7%が超遠距離星
+                } else if (i < 470000) { // 8%が超遠距離星
                     // 非常に遠い星々（宇宙の広がりを演出）
-                    radius = 900 + Math.random() * 600;
+                    radius = 1200 + Math.random() * 1000;
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
                     
@@ -1319,15 +1343,25 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else { // 6%が銀河中心バルジ
-                    // 銀河中心のバルジ（楕円体分布）
-                    const bulgeRadius = 20 + Math.random() * 60;
+                } else { // 6%が銀河中心バルジ（強化）
+                    // 銀河中心のバルジ（楕円体分布、より密集）
+                    const bulgeRadius = 15 + Math.random() * 80;
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
                     
-                    x = bulgeRadius * Math.sin(phi) * Math.cos(theta) * 1.5; // x方向に伸長
-                    y = bulgeRadius * Math.sin(phi) * Math.sin(theta) * 0.8; // y方向に圧縮
-                    z = bulgeRadius * Math.cos(phi) * 1.2; // z方向に中程度
+                    // より密集した中心バルジ
+                    const densityFactor = Math.exp(-bulgeRadius / 30);
+                    if (Math.random() < densityFactor) {
+                        x = bulgeRadius * Math.sin(phi) * Math.cos(theta) * 1.8; // x方向に伸長
+                        y = bulgeRadius * Math.sin(phi) * Math.sin(theta) * 0.6; // y方向に圧縮
+                        z = bulgeRadius * Math.cos(phi) * 1.4; // z方向に中程度
+                    } else {
+                        // バルジ外縁部
+                        const outerRadius = 50 + Math.random() * 40;
+                        x = outerRadius * Math.sin(phi) * Math.cos(theta) * 1.3;
+                        y = outerRadius * Math.sin(phi) * Math.sin(theta) * 0.7;
+                        z = outerRadius * Math.cos(phi) * 1.1;
+                    }
                 }
                 
                 starPositions.push(x, y, z);
@@ -1398,25 +1432,47 @@
                 starSizes[starSizes.length - 1] = lastSize * distanceFactor;
             }
             
-            // 明るい星域・星雲を全宇宙に配置（さらに20000個の明るい星）
-            for (let i = 0; i < 20000; i++) {
+            // 明るい星域・星雲を全宇宙に配置（さらに80000個の明るい星）
+            for (let i = 0; i < 80000; i++) {
                 let x, y, z;
                 
-                if (i < 8000) {
-                    // 天の川の中心平面に集中して配置（従来の天の川）
-                    const galacticRadius = 100 + Math.random() * 300;
-                    const galacticAngle = Math.random() * Math.PI * 2;
+                if (i < 30000) {
+                    // 天の川の渦巻き腕に沿った明るい星域（HII領域・星形成領域）
+                    const armNum = Math.floor(Math.random() * 4);
+                    let armAngle;
+                    if (armNum === 0) armAngle = 0;           // ペルセウス腕
+                    else if (armNum === 1) armAngle = Math.PI / 2;     // いて座腕
+                    else if (armNum === 2) armAngle = Math.PI;         // 外側腕
+                    else armAngle = 3 * Math.PI / 2;                   // ケンタウルス腕
                     
-                    // 天の川の帯状構造を強調
-                    const heightVariation = (Math.random() - 0.5) * 20;
+                    const spiralTightness = 0.15;
+                    const galacticRadius = 120 + Math.random() * 450;
+                    const spiralAngle = armAngle + galacticRadius * spiralTightness;
                     
-                    x = galacticRadius * Math.cos(galacticAngle);
+                    // 渦巻き腕の明るい星形成領域
+                    const armDeviation = (Math.random() - 0.5) * Math.PI / 8; // 腕の幅
+                    const finalAngle = spiralAngle + armDeviation;
+                    
+                    x = galacticRadius * Math.cos(finalAngle);
+                    z = galacticRadius * Math.sin(finalAngle);
+                    
+                    // 星形成領域は薄い円盤に集中
+                    const heightVariation = (Math.random() - 0.5) * 15;
                     y = heightVariation;
-                    z = galacticRadius * Math.sin(galacticAngle);
                     
-                } else if (i < 14000) {
+                } else if (i < 50000) {
                     // 全方向に散らばった明るい星（中距離）
-                    const radius = 150 + Math.random() * 400;
+                    const radius = 150 + Math.random() * 500;
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    
+                    x = radius * Math.sin(phi) * Math.cos(theta);
+                    y = radius * Math.sin(phi) * Math.sin(theta);
+                    z = radius * Math.cos(phi);
+                    
+                } else if (i < 70000) {
+                    // 遠距離の明るい星（全方向）
+                    const radius = 600 + Math.random() * 1000;
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
                     
@@ -1425,8 +1481,8 @@
                     z = radius * Math.cos(phi);
                     
                 } else {
-                    // 遠距離の明るい星（全方向）
-                    const radius = 600 + Math.random() * 800;
+                    // 超遠距離の明るい星・クエーサー（宇宙の端）
+                    const radius = 1500 + Math.random() * 1500;
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
                     
@@ -1468,7 +1524,7 @@
             
             const starMaterial = new THREE.PointsMaterial({
                 vertexColors: true,
-                size: 0.08, // 少し大きくして天の川の美しさを強調
+                size: 0.12, // より大きくして天の川の美しさを最大限に強調
                 transparent: true,
                 opacity: 0, // 初期値を0に設定
                 sizeAttenuation: true,
