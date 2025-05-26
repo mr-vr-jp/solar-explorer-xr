@@ -97,15 +97,16 @@
         #troubleshooting {
             position: absolute;
             bottom: 20px;
-            right: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             color: white;
             font-size: 12px;
             max-width: 300px;
             background: rgba(40, 20, 0, 0.8);
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             border: 2px solid rgba(255, 170, 0, 0.6);
-            text-align: left;
+            text-align: center;
             z-index: 100;
             box-shadow: 0 4px 15px rgba(255, 170, 0, 0.2);
         }
@@ -202,9 +203,8 @@
         </div>
 
         <div id="troubleshooting">
-            <h3 class="warning" style="margin: 0 0 10px 0;">コントローラーが効かない場合</h3>
             <div style="color: #ffaa00;">
-                ホームボタンを押して閉じる
+                ⚠️ コントローラーが効かない場合：ホームボタンで終了
             </div>
         </div>
 
@@ -1490,177 +1490,6 @@
             return starGroup;
         }
 
-        // 太陽レンズフレア効果を作成
-        function createSunLensFlare() {
-            const sunPosition = new THREE.Vector3(0, 0, 0);
-            
-            // レンズフレア用のグループ
-            const lensFlareGroup = new THREE.Group();
-            
-            // メインフレア（最も明るい中央の光）
-            const mainFlareGeometry = new THREE.PlaneGeometry(1.2, 1.2);
-            const mainFlareMaterial = new THREE.ShaderMaterial({
-                uniforms: {
-                    time: { value: 0 },
-                    sunColor: { value: new THREE.Color(0xFFFFFF) },
-                    center: { value: new THREE.Vector2(0.5, 0.5) }
-                },
-                vertexShader: `
-                    varying vec2 vUv;
-                    void main() {
-                        vUv = uv;
-                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                    }
-                `,
-                fragmentShader: `
-                    uniform float time;
-                    uniform vec3 sunColor;
-                    uniform vec2 center;
-                    varying vec2 vUv;
-                    
-                    void main() {
-                        vec2 coord = vUv - center;
-                        float dist = length(coord);
-                        
-                        // 中央から外側への明るさグラデーション
-                        float brightness = 1.0 - smoothstep(0.0, 0.5, dist);
-                        brightness = pow(brightness, 2.0);
-                        
-                        // 微細な脈動効果
-                        brightness *= (0.8 + 0.2 * sin(time * 3.0));
-                        
-                        // 放射状の光の筋
-                        float angle = atan(coord.y, coord.x);
-                        float rays = sin(angle * 8.0) * 0.1 + 1.0;
-                        brightness *= rays;
-                        
-                        gl_FragColor = vec4(sunColor, brightness * 0.3);
-                    }
-                `,
-                transparent: true,
-                blending: THREE.AdditiveBlending,
-                depthWrite: false,
-                side: THREE.DoubleSide
-            });
-            
-            const mainFlare = new THREE.Mesh(mainFlareGeometry, mainFlareMaterial);
-            lensFlareGroup.add(mainFlare);
-            
-            // 光のリング（複数の同心円状の光）
-            for (let i = 0; i < 3; i++) {
-                const ringSize = 0.8 + i * 0.4;
-                const ringGeometry = new THREE.PlaneGeometry(ringSize, ringSize);
-                const ringMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        ringColor: { value: new THREE.Color(0xFFDD88) },
-                        ringIndex: { value: i }
-                    },
-                    vertexShader: `
-                        varying vec2 vUv;
-                        void main() {
-                            vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        uniform vec3 ringColor;
-                        uniform float ringIndex;
-                        varying vec2 vUv;
-                        
-                        void main() {
-                            vec2 coord = vUv - vec2(0.5);
-                            float dist = length(coord);
-                            
-                            // リング状の光
-                            float ringRadius = 0.2 + ringIndex * 0.1;
-                            float ringWidth = 0.05;
-                            float ring = 1.0 - smoothstep(ringRadius - ringWidth, ringRadius + ringWidth, abs(dist - ringRadius));
-                            
-                            // 回転する光の波
-                            float angle = atan(coord.y, coord.x);
-                            float wave = sin(angle * 6.0 + time * 2.0 + ringIndex * 2.0) * 0.5 + 0.5;
-                            ring *= wave;
-                            
-                            // 脈動効果
-                            ring *= (0.6 + 0.4 * sin(time * 1.5 + ringIndex));
-                            
-                            gl_FragColor = vec4(ringColor, ring * 0.15);
-                        }
-                    `,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                    side: THREE.DoubleSide
-                });
-                
-                const ring = new THREE.Mesh(ringGeometry, ringMaterial);
-                ring.userData = { type: 'lensFlareRing', material: ringMaterial };
-                lensFlareGroup.add(ring);
-            }
-            
-            // 光の筋（レイ）
-            for (let i = 0; i < 8; i++) {
-                const rayGeometry = new THREE.PlaneGeometry(0.02, 2.0);
-                const rayMaterial = new THREE.ShaderMaterial({
-                    uniforms: {
-                        time: { value: 0 },
-                        rayColor: { value: new THREE.Color(0xFFFFAA) }
-                    },
-                    vertexShader: `
-                        varying vec2 vUv;
-                        void main() {
-                            vUv = uv;
-                            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                        }
-                    `,
-                    fragmentShader: `
-                        uniform float time;
-                        uniform vec3 rayColor;
-                        varying vec2 vUv;
-                        
-                        void main() {
-                            float intensity = 1.0 - abs(vUv.x - 0.5) * 2.0;
-                            intensity *= smoothstep(0.0, 0.2, vUv.y) * smoothstep(1.0, 0.8, vUv.y);
-                            intensity *= (0.7 + 0.3 * sin(time * 4.0));
-                            
-                            gl_FragColor = vec4(rayColor, intensity * 0.1);
-                        }
-                    `,
-                    transparent: true,
-                    blending: THREE.AdditiveBlending,
-                    depthWrite: false,
-                    side: THREE.DoubleSide
-                });
-                
-                const ray = new THREE.Mesh(rayGeometry, rayMaterial);
-                ray.rotation.z = (i / 8) * Math.PI * 2;
-                ray.userData = { type: 'lensFlareRay', material: rayMaterial };
-                lensFlareGroup.add(ray);
-            }
-            
-            // レンズフレアグループ全体を太陽の位置に配置
-            lensFlareGroup.position.copy(sunPosition);
-            lensFlareGroup.userData = { 
-                type: 'lensFlare',
-                mainFlareMaterial: mainFlareMaterial,
-                updateMaterials: function(time) {
-                    // メインフレアの時間更新
-                    mainFlareMaterial.uniforms.time.value = time;
-                    
-                    // リングと光線の時間更新
-                    this.children.forEach(child => {
-                        if (child.userData.material && child.userData.material.uniforms.time) {
-                            child.userData.material.uniforms.time.value = time;
-                        }
-                    });
-                }
-            };
-            
-            return lensFlareGroup;
-        }
-
         // 現実的な銀河配置を作成（粒子システム版）
         function createDistantGalaxies() {
             const galaxyGroup = new THREE.Group();
@@ -1685,23 +1514,26 @@
                 
                 // より遠方の銀河（超遠距離）
                 {name: 'ケンタウルス座A', distance: 250, direction: {x: -0.3, y: -0.7, z: 0.6}, size: 5, type: 'elliptical', brightness: 0.6},
-                {name: 'NGC253(ちょうこくしつ座銀河)', distance: 170, direction: {x: -0.8, y: -0.4, z: -0.4}, size: 4, type: 'spiral', brightness: 0.6}
+                {name: 'NGC253(ちょうこくしつ座銀河)', distance: 170, direction: {x: -0.8, y: -0.4, z: -0.4}, size: 4, type: 'spiral', brightness: 0.6},
+                {name: 'M101(回転花火銀河)', distance: 220, direction: {x: 0.7, y: 0.7, z: 0.1}, size: 6, type: 'spiral', brightness: 0.5},
+                {name: 'M106', distance: 200, direction: {x: 0.8, y: 0.5, z: 0.3}, size: 4, type: 'spiral', brightness: 0.6},
+                {name: 'NGC5128', distance: 240, direction: {x: -0.2, y: -0.8, z: 0.6}, size: 5, type: 'elliptical', brightness: 0.7}
             ];
             
             realGalaxies.forEach(galaxyData => {
-                const galaxy = createParticleGalaxy(galaxyData);
+                const galaxy = createGalaxyParticleSystem(galaxyData);
                 galaxyGroup.add(galaxy);
             });
             
             // 追加のランダム銀河群（現実的な分布）
-            for (let cluster = 0; cluster < 3; cluster++) {
+            for (let cluster = 0; cluster < 3; cluster++) { // 5から3に削減（パフォーマンス向上）
                 const clusterCenter = {
                     x: (Math.random() - 0.5) * 2,
                     y: (Math.random() - 0.5) * 2,
                     z: (Math.random() - 0.5) * 2
                 };
                 const clusterDistance = 300 + Math.random() * 200;
-                const galaxyCount = 4 + Math.floor(Math.random() * 8);
+                const galaxyCount = 5 + Math.floor(Math.random() * 8); // 数を削減
                 
                 for (let i = 0; i < galaxyCount; i++) {
                     const offset = {
@@ -1732,7 +1564,7 @@
                         brightness: 0.2 + Math.random() * 0.4
                     };
                     
-                    const galaxy = createParticleGalaxy(galaxyData);
+                    const galaxy = createGalaxyParticleSystem(galaxyData);
                     galaxyGroup.add(galaxy);
                 }
             }
@@ -1742,138 +1574,41 @@
             return galaxyGroup;
         }
         
-        // 粒子銀河作成関数
-        function createParticleGalaxy(galaxyData) {
+        // 銀河粒子システム作成関数
+        function createGalaxyParticleSystem(galaxyData) {
             const normalizedDir = new THREE.Vector3(galaxyData.direction.x, galaxyData.direction.y, galaxyData.direction.z);
             normalizedDir.normalize();
             
             const position = normalizedDir.multiplyScalar(galaxyData.distance);
             
             // 銀河のサイズを距離に応じて調整
-            const apparentSize = galaxyData.size * (50 / galaxyData.distance);
+            const apparentSize = galaxyData.size * (100 / galaxyData.distance);
             
-            // 粒子の数（銀河のサイズと種類に応じて調整）
-            let particleCount;
-            if (galaxyData.type === 'spiral') {
-                particleCount = Math.floor(800 + galaxyData.size * 50);
-            } else if (galaxyData.type === 'elliptical') {
-                particleCount = Math.floor(600 + galaxyData.size * 40);
-            } else if (galaxyData.type === 'irregular') {
-                particleCount = Math.floor(300 + galaxyData.size * 20);
-            } else if (galaxyData.type === 'starburst') {
-                particleCount = Math.floor(500 + galaxyData.size * 30);
-            } else { // cluster
-                particleCount = Math.floor(1000 + galaxyData.size * 60);
-            }
+            // 粒子データを生成
+            const particleData = generateGalaxyParticles(galaxyData.type, apparentSize, galaxyData.brightness);
             
-            const positions = [];
-            const colors = [];
-            const sizes = [];
-            
-            // 銀河の種類に応じた粒子配置
-            for (let i = 0; i < particleCount; i++) {
-                let x, y, z, color, size;
-                
-                if (galaxyData.type === 'spiral') {
-                    // 渦巻銀河：腕に沿った配置
-                    const armIndex = Math.floor(Math.random() * 4); // 4本の腕
-                    const armAngle = (armIndex / 4) * Math.PI * 2;
-                    const radius = Math.random() * apparentSize;
-                    const theta = armAngle + radius * 0.3 + (Math.random() - 0.5) * 0.5; // 渦巻き
-                    
-                    x = radius * Math.cos(theta) + (Math.random() - 0.5) * apparentSize * 0.1;
-                    z = radius * Math.sin(theta) + (Math.random() - 0.5) * apparentSize * 0.1;
-                    y = (Math.random() - 0.5) * apparentSize * 0.05; // 薄い円盤
-                    
-                    // 腕により明るく、中心に向かって赤く
-                    if (radius < apparentSize * 0.3) {
-                        color = new THREE.Color().setHSL(0.1, 0.8, 0.7 + Math.random() * 0.3); // 赤みがかった中心
-                    } else {
-                        color = new THREE.Color().setHSL(0.6, 0.6, 0.5 + Math.random() * 0.5); // 青白い腕
-                    }
-                    size = 0.5 + Math.random() * 1.5;
-                    
-                } else if (galaxyData.type === 'elliptical') {
-                    // 楕円銀河：楕円体分布
-                    const phi = Math.random() * Math.PI * 2;
-                    const cosTheta = 2 * Math.random() - 1;
-                    const sinTheta = Math.sqrt(1 - cosTheta * cosTheta);
-                    const radius = Math.pow(Math.random(), 0.3) * apparentSize; // 中心に集中
-                    
-                    x = radius * sinTheta * Math.cos(phi);
-                    y = radius * sinTheta * Math.sin(phi) * 0.6; // 扁平
-                    z = radius * cosTheta * 0.8;
-                    
-                    // 古い星の色（赤み）
-                    color = new THREE.Color().setHSL(0.08, 0.7, 0.5 + Math.random() * 0.4);
-                    size = 0.8 + Math.random() * 1.2;
-                    
-                } else if (galaxyData.type === 'irregular') {
-                    // 不規則銀河：ランダム分布
-                    x = (Math.random() - 0.5) * apparentSize;
-                    y = (Math.random() - 0.5) * apparentSize * 0.6;
-                    z = (Math.random() - 0.5) * apparentSize;
-                    
-                    // 多様な色
-                    const hue = Math.random() * 0.7;
-                    color = new THREE.Color().setHSL(hue, 0.5, 0.4 + Math.random() * 0.6);
-                    size = 0.3 + Math.random() * 1.0;
-                    
-                } else if (galaxyData.type === 'starburst') {
-                    // スターバースト銀河：中心に集中した明るい星
-                    const radius = Math.pow(Math.random(), 1.5) * apparentSize * 0.7;
-                    const theta = Math.random() * Math.PI * 2;
-                    
-                    x = radius * Math.cos(theta) + (Math.random() - 0.5) * apparentSize * 0.2;
-                    y = (Math.random() - 0.5) * apparentSize * 0.3;
-                    z = radius * Math.sin(theta) + (Math.random() - 0.5) * apparentSize * 0.2;
-                    
-                    // 明るい若い星の色
-                    color = new THREE.Color().setHSL(0.55, 0.8, 0.7 + Math.random() * 0.3);
-                    size = 1.0 + Math.random() * 2.0;
-                    
-                } else { // cluster
-                    // 銀河団：複数の小さな銀河
-                    const subGalaxyIndex = Math.floor(Math.random() * 8);
-                    const subCenter = {
-                        x: (Math.random() - 0.5) * apparentSize,
-                        y: (Math.random() - 0.5) * apparentSize * 0.8,
-                        z: (Math.random() - 0.5) * apparentSize
-                    };
-                    
-                    const localRadius = Math.random() * apparentSize * 0.2;
-                    const localTheta = Math.random() * Math.PI * 2;
-                    
-                    x = subCenter.x + localRadius * Math.cos(localTheta);
-                    y = subCenter.y + (Math.random() - 0.5) * apparentSize * 0.1;
-                    z = subCenter.z + localRadius * Math.sin(localTheta);
-                    
-                    color = new THREE.Color().setHSL(0.15, 0.6, 0.4 + Math.random() * 0.4);
-                    size = 0.6 + Math.random() * 1.0;
-                }
-                
-                positions.push(x, y, z);
-                colors.push(color.r, color.g, color.b);
-                sizes.push(size * galaxyData.brightness);
-            }
-            
+            // ジオメトリとマテリアルを作成
             const geometry = new THREE.BufferGeometry();
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(particleData.positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(particleData.colors, 3));
+            geometry.setAttribute('size', new THREE.Float32BufferAttribute(particleData.sizes, 1));
             
             const material = new THREE.PointsMaterial({
-                size: 0.1,
                 vertexColors: true,
+                size: 0.02, // 基本サイズ
                 transparent: true,
                 opacity: galaxyData.brightness,
                 sizeAttenuation: true,
-                blending: THREE.AdditiveBlending
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
             });
             
             const galaxy = new THREE.Points(geometry, material);
             galaxy.position.copy(position);
             galaxy.name = galaxyData.name;
+            
+            // 銀河を地球方向に向ける
+            galaxy.lookAt(0, 0, 0);
             
             // 非常にゆっくりとした回転
             galaxy.userData = {
@@ -1885,6 +1620,160 @@
             return galaxy;
         }
         
+        // 銀河タイプ別粒子生成
+        function generateGalaxyParticles(type, size, brightness) {
+            const positions = [];
+            const colors = [];
+            const sizes = [];
+            
+            let particleCount;
+            
+            // 銀河タイプに応じてパラメータ設定
+            switch(type) {
+                case 'spiral':
+                    particleCount = Math.min(1000, Math.max(300, size * 30)); // 粒子数を制限
+                    break;
+                case 'elliptical':
+                    particleCount = Math.min(800, Math.max(200, size * 25));
+                    break;
+                case 'irregular':
+                    particleCount = Math.min(400, Math.max(150, size * 15));
+                    break;
+                case 'starburst':
+                    particleCount = Math.min(600, Math.max(200, size * 20));
+                    break;
+                case 'cluster':
+                    particleCount = Math.min(1200, Math.max(400, size * 35));
+                    break;
+                default:
+                    particleCount = 300;
+            }
+            
+            for (let i = 0; i < particleCount; i++) {
+                let x, y, z, color, particleSize;
+                
+                switch(type) {
+                    case 'spiral':
+                        // 渦巻銀河：4本のアームを持つ螺旋構造
+                        const armIndex = Math.floor(Math.random() * 4);
+                        const armAngle = (armIndex * Math.PI / 2) + (Math.random() - 0.5) * 0.3;
+                        const radius = Math.random() * size / 2;
+                        const spiralAngle = armAngle + radius * 3;
+                        
+                        // 中央バルジも含める
+                        if (Math.random() < 0.3) {
+                            // 中央バルジ
+                            const bulgeRadius = (size / 4) * Math.sqrt(Math.random());
+                            const bulgeAngle = Math.random() * Math.PI * 2;
+                            x = Math.cos(bulgeAngle) * bulgeRadius;
+                            z = Math.sin(bulgeAngle) * bulgeRadius * 0.6; // 扁平
+                            y = (Math.random() - 0.5) * size / 8;
+                            color = [1, 0.9, 0.7]; // 黄色っぽい古い星
+                        } else {
+                            // 渦巻きアーム
+                            x = Math.cos(spiralAngle) * radius;
+                            z = Math.sin(spiralAngle) * radius * 0.8;
+                            y = (Math.random() - 0.5) * size / 12;
+                            
+                            // 星形成領域は青っぽく
+                            if (Math.random() < 0.2) {
+                                color = [0.7, 0.9, 1]; // 青い若い星
+                            } else {
+                                color = [1, 1, 0.9]; // 白っぽい星
+                            }
+                        }
+                        
+                        particleSize = 0.3 + Math.random() * 0.7;
+                        break;
+                        
+                    case 'elliptical':
+                        // 楕円銀河：楕円体分布
+                        const ellipseRadius = size / 2 * Math.pow(Math.random(), 0.5); // 中心に集中
+                        const theta = Math.random() * Math.PI * 2;
+                        const phi = Math.acos(2 * Math.random() - 1);
+                        
+                        x = ellipseRadius * Math.sin(phi) * Math.cos(theta);
+                        z = ellipseRadius * Math.sin(phi) * Math.sin(theta) * 0.6; // 扁平
+                        y = ellipseRadius * Math.cos(phi) * 0.4;
+                        
+                        // 古い星が多い（赤っぽい）
+                        color = [1, 0.8 + Math.random() * 0.2, 0.6 + Math.random() * 0.2];
+                        particleSize = 0.4 + Math.random() * 0.6;
+                        break;
+                        
+                    case 'irregular':
+                        // 不規則銀河：ランダム分布だが若干の集中あり
+                        const irregularRadius = size / 2;
+                        const clumpX = (Math.random() - 0.5) * irregularRadius;
+                        const clumpZ = (Math.random() - 0.5) * irregularRadius;
+                        
+                        x = clumpX + (Math.random() - 0.5) * irregularRadius / 2;
+                        z = clumpZ + (Math.random() - 0.5) * irregularRadius / 2;
+                        y = (Math.random() - 0.5) * size / 6;
+                        
+                        // 多様な星の色
+                        const colorType = Math.random();
+                        if (colorType < 0.4) {
+                            color = [0.7, 0.9, 1]; // 青い星
+                        } else if (colorType < 0.7) {
+                            color = [1, 1, 0.9]; // 白い星
+                        } else {
+                            color = [1, 0.8, 0.6]; // 黄色い星
+                        }
+                        
+                        particleSize = 0.2 + Math.random() * 0.8;
+                        break;
+                        
+                    case 'starburst':
+                        // スターバースト銀河：中心部に集中した活発な星形成
+                        const starburstRadius = size / 3 * Math.sqrt(Math.random());
+                        const starburstAngle = Math.random() * Math.PI * 2;
+                        
+                        x = Math.cos(starburstAngle) * starburstRadius;
+                        z = Math.sin(starburstAngle) * starburstRadius;
+                        y = (Math.random() - 0.5) * size / 10;
+                        
+                        // 非常に明るい若い星（青白い）
+                        color = [0.8 + Math.random() * 0.2, 0.9 + Math.random() * 0.1, 1];
+                        particleSize = 0.5 + Math.random() * 1;
+                        break;
+                        
+                    case 'cluster':
+                        // 銀河団：複数の小さな銀河の集合
+                        const clusterCount = 5 + Math.floor(Math.random() * 5);
+                        const whichCluster = Math.floor(Math.random() * clusterCount);
+                        const clusterAngle = (whichCluster / clusterCount) * Math.PI * 2;
+                        const clusterDistance = size / 4 + Math.random() * size / 4;
+                        const clusterCenterX = Math.cos(clusterAngle) * clusterDistance;
+                        const clusterCenterZ = Math.sin(clusterAngle) * clusterDistance;
+                        
+                        const localRadius = size / 8 * Math.random();
+                        const localAngle = Math.random() * Math.PI * 2;
+                        
+                        x = clusterCenterX + Math.cos(localAngle) * localRadius;
+                        z = clusterCenterZ + Math.sin(localAngle) * localRadius;
+                        y = (Math.random() - 0.5) * size / 8;
+                        
+                        // 様々な銀河タイプの星の色
+                        color = [0.9 + Math.random() * 0.1, 0.8 + Math.random() * 0.2, 0.7 + Math.random() * 0.3];
+                        particleSize = 0.3 + Math.random() * 0.5;
+                        break;
+                        
+                    default:
+                        x = (Math.random() - 0.5) * size;
+                        z = (Math.random() - 0.5) * size;
+                        y = (Math.random() - 0.5) * size / 4;
+                        color = [1, 1, 1];
+                        particleSize = 0.5;
+                }
+                
+                positions.push(x, y, z);
+                colors.push(color[0] * brightness, color[1] * brightness, color[2] * brightness);
+                sizes.push(particleSize);
+            }
+            
+            return { positions, colors, sizes };
+        }
 
 
         // 有名な星座を作成
@@ -2099,10 +1988,6 @@
             
             // 有名な星座を作成
             createConstellations();
-            
-            // 太陽のレンズフレア効果を作成
-            const sunLensFlare = createSunLensFlare();
-            solarSystemGroup.add(sunLensFlare);
             
             // 惑星作成
             planetData.forEach((data, index) => {
@@ -2887,24 +2772,19 @@
                 }
             });
 
-            // 遠方の銀河の回転
+            // 遠方の銀河の回転（粒子システム用）
             scene.children.forEach(child => {
                 if (child.isGroup && child.children.length > 0) {
                     child.children.forEach(galaxy => {
                         if (galaxy.userData && galaxy.userData.rotationSpeed) {
-                            galaxy.rotation.z += galaxy.userData.rotationSpeed;
+                            // 粒子システムの場合は適切な軸で回転
+                            if (galaxy.userData.type === 'spiral') {
+                                galaxy.rotation.y += galaxy.userData.rotationSpeed; // 渦巻きは平面回転
+                            } else {
+                                galaxy.rotation.z += galaxy.userData.rotationSpeed;
+                            }
                         }
                     });
-                }
-            });
-
-            // 太陽レンズフレア効果の更新
-            solarSystemGroup.children.forEach(child => {
-                if (child.userData && child.userData.type === 'lensFlare') {
-                    child.userData.updateMaterials(time);
-                    
-                    // カメラの方向を向くように
-                    child.lookAt(camera.position);
                 }
             });
 
