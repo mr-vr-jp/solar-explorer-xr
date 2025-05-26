@@ -335,6 +335,13 @@
             } else {
                 warpEffect.phase = 'arrived';
                 warpEffect.active = false;
+                
+                // ワープ完了時にユーザー位置を確実に目標位置に設定
+                userPosition.copy(warpEffect.targetPosition);
+                updateUserPosition();
+                
+                console.log('ワープ完了 - ユーザー位置:', userPosition);
+                
                 // ワープ完了後、MR切り替えを開始
                 startMRTransition();
                 return;
@@ -446,8 +453,19 @@
                     originalStars.material.opacity = 1;
                 }
                 
+                // MRモード用のカメラとユーザー位置を設定
+                userPosition.set(0, 1.6, 5);
+                if (!xrActive) {
+                    camera.position.copy(userPosition);
+                } else {
+                    // XRモードでは宇宙要素の位置を調整
+                    updateUserPosition();
+                }
+                
                 // 軌道線を表示
                 toggleOrbitVisibility(true);
+                
+                console.log('MR切り替え完了 - カメラ位置:', camera.position, 'ユーザー位置:', userPosition);
             }
         }
 
