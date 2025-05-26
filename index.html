@@ -183,9 +183,9 @@
     <div id="container">
         <div id="loading">
             <div style="text-align: center;">
-                <div>🌌 MR太陽系を準備中...</div>
+                <div>🌌 宇宙を創造中...</div>
                 <div style="margin-top: 20px; font-size: 16px;">
-                    WebXRセッションを初期化しています
+                    ビッグバン準備中...
                 </div>
             </div>
         </div>
@@ -289,6 +289,20 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
+
+        // ビッグバンアニメーション設定
+        let bigBangAnimation = {
+            active: false,
+            startScale: 0.001,  // 非常に小さな開始サイズ
+            targetScale: 1.0,   // 最終的な通常サイズ
+            currentScale: 0.001,
+            duration: 8000,     // 8秒間のアニメーション
+            startTime: 0,
+            easeFunction: function(t) {
+                // Ease-in-out カーブ（S字カーブ）
+                return t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+            }
+        };
 
         // 惑星データ
         const planetData = [
@@ -2744,6 +2758,10 @@
             initMeteorSystem();
 
             setupXRControllers();
+            
+            // ビッグバンアニメーションを開始
+            startBigBangAnimation();
+            
             animate();
             
             // データ読み込み完了
@@ -3395,6 +3413,9 @@
             renderer.setAnimationLoop(animate);
             time += 0.01;
 
+            // ビッグバンアニメーション更新
+            updateBigBangAnimation();
+
             // 太陽のスケールアニメーション
             if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
                 sunScaleAnimation.current += (sunScaleAnimation.target - sunScaleAnimation.current) * sunScaleAnimation.speed;
@@ -3600,8 +3621,8 @@
                 }
             }
 
-            // 両手グリップでのスケール調整（常に動作）
-            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging) {
+            // 両手グリップでのスケール調整（ビッグバンアニメーション中は無効）
+            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging && !bigBangAnimation.active) {
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
                 leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
@@ -4007,6 +4028,63 @@
 
         // 移動対象となる宇宙要素のリスト
         let universeElements = [];
+
+        // ビッグバンアニメーション開始関数
+        function startBigBangAnimation() {
+            bigBangAnimation.active = true;
+            bigBangAnimation.startTime = Date.now();
+            bigBangAnimation.currentScale = bigBangAnimation.startScale;
+            
+            // 全ての宇宙要素を初期の極小サイズに設定
+            universeElements.forEach(element => {
+                if (element && element.scale) {
+                    element.scale.setScalar(bigBangAnimation.startScale);
+                }
+            });
+            
+            // scaleFactorも初期値に設定
+            scaleFactor = bigBangAnimation.startScale;
+            
+            console.log('🌌 ビッグバンアニメーション開始！');
+        }
+
+        // ビッグバンアニメーション更新関数
+        function updateBigBangAnimation() {
+            if (!bigBangAnimation.active) return;
+            
+            const currentTime = Date.now();
+            const elapsed = currentTime - bigBangAnimation.startTime;
+            const progress = Math.min(elapsed / bigBangAnimation.duration, 1);
+            
+            // Ease-in-out カーブを適用
+            const easedProgress = bigBangAnimation.easeFunction(progress);
+            
+            // 現在のスケールを計算
+            bigBangAnimation.currentScale = bigBangAnimation.startScale + 
+                (bigBangAnimation.targetScale - bigBangAnimation.startScale) * easedProgress;
+            
+            // 全ての宇宙要素にスケールを適用
+            universeElements.forEach(element => {
+                if (element && element.scale) {
+                    element.scale.setScalar(bigBangAnimation.currentScale);
+                }
+            });
+            
+            // scaleFactorを更新
+            scaleFactor = bigBangAnimation.currentScale;
+            
+            // UI更新
+            const scaleValueElement = document.getElementById('scale-value');
+            if (scaleValueElement) {
+                scaleValueElement.textContent = scaleFactor.toFixed(3);
+            }
+            
+            // アニメーション完了チェック
+            if (progress >= 1) {
+                bigBangAnimation.active = false;
+                console.log('🌟 ビッグバンアニメーション完了！宇宙が誕生しました');
+            }
+        }
 
         // ユーザー位置の更新
         function updateUserPosition() {
