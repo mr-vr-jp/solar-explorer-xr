@@ -2448,6 +2448,10 @@
             lensFlare.visible = true;
             lensFlare.frustumCulled = false;
             
+            // 太陽系のスケールに応じてレンズフレア全体のサイズを調整
+            const currentScale = solarSystemGroup.scale.x || 1; // 現在のスケール値
+            lensFlare.scale.setScalar(currentScale);
+            
             // 各フレア要素の透明度と位置を調整（安定性向上・距離非依存）
             lensFlare.children.forEach((flare, index) => {
                 if (flare && flare.material) {
