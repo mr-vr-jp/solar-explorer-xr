@@ -1230,6 +1230,289 @@
             return new THREE.Points(starGeometry, starMaterial);
         }
 
+        // 太陽フレア効果を作成
+        function createSolarFlareEffects(sunPlanet, sunData) {
+            // 動的フレアパーティクルシステム
+            const flareGeometry = new THREE.BufferGeometry();
+            const flarePositions = [];
+            const flareColors = [];
+            const flareSizes = [];
+            const flareVelocities = [];
+            
+            // フレアパーティクルを生成
+            for (let i = 0; i < 150; i++) {
+                // 太陽表面付近から放射状に配置
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                const startRadius = sunData.size * (1.02 + Math.random() * 0.03);
+                
+                const x = startRadius * Math.sin(phi) * Math.cos(theta);
+                const y = startRadius * Math.sin(phi) * Math.sin(theta);
+                const z = startRadius * Math.cos(phi);
+                
+                flarePositions.push(x, y, z);
+                
+                // フレアの色（高温から低温へのグラデーション）
+                const temperature = Math.random();
+                if (temperature > 0.8) {
+                    // 超高温フレア（青白）
+                    flareColors.push(1, 1, 1);
+                    flareSizes.push(2 + Math.random() * 4);
+                } else if (temperature > 0.6) {
+                    // 高温フレア（白黄）
+                    flareColors.push(1, 1, 0.8);
+                    flareSizes.push(1.5 + Math.random() * 3);
+                } else if (temperature > 0.3) {
+                    // 中温フレア（黄オレンジ）
+                    flareColors.push(1, 0.8, 0.4);
+                    flareSizes.push(1 + Math.random() * 2.5);
+                } else {
+                    // 低温フレア（オレンジ赤）
+                    flareColors.push(1, 0.6, 0.2);
+                    flareSizes.push(0.8 + Math.random() * 2);
+                }
+                
+                // 放射速度
+                const direction = new THREE.Vector3(x, y, z).normalize();
+                const speed = 0.002 + Math.random() * 0.004;
+                flareVelocities.push(
+                    direction.x * speed,
+                    direction.y * speed,
+                    direction.z * speed
+                );
+            }
+            
+            flareGeometry.setAttribute('position', new THREE.Float32BufferAttribute(flarePositions, 3));
+            flareGeometry.setAttribute('color', new THREE.Float32BufferAttribute(flareColors, 3));
+            flareGeometry.setAttribute('size', new THREE.Float32BufferAttribute(flareSizes, 1));
+            flareGeometry.setAttribute('velocity', new THREE.Float32BufferAttribute(flareVelocities, 3));
+            
+            const flareMaterial = new THREE.PointsMaterial({
+                vertexColors: true,
+                size: 0.003,
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false,
+                sizeAttenuation: true
+            });
+            
+            const flareParticles = new THREE.Points(flareGeometry, flareMaterial);
+            flareParticles.userData = {
+                type: 'solarFlare',
+                sunData: sunData,
+                creationTime: 0,
+                maxLifetime: 300 // フレームカウント
+            };
+            
+            sunPlanet.add(flareParticles);
+            sunData.flareParticles = flareParticles;
+            
+            // コロナ放射エフェクト
+            createCoronaRadiation(sunPlanet, sunData);
+            
+            // レンズフレア効果
+            createLensFlare(sunPlanet, sunData);
+        }
+        
+        // コロナ放射エフェクト
+        function createCoronaRadiation(sunPlanet, sunData) {
+            const coronaGeometry = new THREE.SphereGeometry(sunData.size * 1.3, 32, 24);
+            const coronaMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    coronaColor: { value: new THREE.Color(0xFFAA44) },
+                    intensity: { value: 0.4 }
+                },
+                vertexShader: `
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    void main() {
+                        vNormal = normalize(normalMatrix * normal);
+                        vPosition = position;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform vec3 coronaColor;
+                    uniform float intensity;
+                    varying vec3 vNormal;
+                    varying vec3 vPosition;
+                    
+                    void main() {
+                        float fresnel = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+                        
+                        // 磁場ライン効果
+                        float magneticLines = sin(vPosition.y * 15.0 + time * 2.0) * 
+                                             sin(vPosition.x * 12.0 + time * 1.5) * 0.3 + 0.7;
+                        
+                        // コロナの密度変化
+                        float coronaDensity = sin(time * 0.8 + length(vPosition) * 8.0) * 0.2 + 0.8;
+                        
+                        // プラズマの渦
+                        float plasmaSwirl = sin(atan(vPosition.z, vPosition.x) * 6.0 + time * 3.0) * 0.25 + 0.75;
+                        
+                        float alpha = fresnel * intensity * magneticLines * coronaDensity * plasmaSwirl;
+                        
+                        gl_FragColor = vec4(coronaColor, alpha);
+                    }
+                `,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                transparent: true,
+                depthWrite: false
+            });
+            
+            const coronaMesh = new THREE.Mesh(coronaGeometry, coronaMaterial);
+            sunPlanet.add(coronaMesh);
+            sunData.coronaMaterial = coronaMaterial;
+        }
+        
+        // レンズフレア効果
+        function createLensFlare(sunPlanet, sunData) {
+            const flareTextures = [];
+            
+            // 複数のフレアテクスチャを生成
+            for (let i = 0; i < 5; i++) {
+                const canvas = document.createElement('canvas');
+                canvas.width = canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                
+                const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+                const opacity = 0.3 - i * 0.05;
+                
+                if (i === 0) {
+                    // メインフレア（大きな円）
+                    gradient.addColorStop(0, `rgba(255, 255, 255, ${opacity})`);
+                    gradient.addColorStop(0.3, `rgba(255, 240, 200, ${opacity * 0.8})`);
+                    gradient.addColorStop(1, 'rgba(255, 200, 100, 0)');
+                } else if (i === 1) {
+                    // セカンダリフレア（中サイズ）
+                    gradient.addColorStop(0, `rgba(255, 200, 150, ${opacity})`);
+                    gradient.addColorStop(0.5, `rgba(255, 150, 100, ${opacity * 0.6})`);
+                    gradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+                } else {
+                    // 小さなフレア
+                    gradient.addColorStop(0, `rgba(255, ${200 - i * 30}, ${100 - i * 20}, ${opacity})`);
+                    gradient.addColorStop(0.7, `rgba(255, ${150 - i * 25}, ${80 - i * 15}, ${opacity * 0.4})`);
+                    gradient.addColorStop(1, 'rgba(255, 100, 50, 0)');
+                }
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 128, 128);
+                
+                flareTextures.push(new THREE.CanvasTexture(canvas));
+            }
+            
+            // フレアスプライトを作成
+            flareTextures.forEach((texture, index) => {
+                const flareGeometry = new THREE.PlaneGeometry(
+                    sunData.size * (2.5 - index * 0.3), 
+                    sunData.size * (2.5 - index * 0.3)
+                );
+                const flareMaterial = new THREE.MeshBasicMaterial({
+                    map: texture,
+                    transparent: true,
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
+                
+                const flareSprite = new THREE.Mesh(flareGeometry, flareMaterial);
+                flareSprite.position.set(
+                    (Math.random() - 0.5) * sunData.size * 0.1,
+                    (Math.random() - 0.5) * sunData.size * 0.1,
+                    sunData.size * 0.05
+                );
+                
+                flareSprite.userData = {
+                    type: 'lensFlare',
+                    rotationSpeed: (Math.random() - 0.5) * 0.02,
+                    pulsateSpeed: 1 + Math.random() * 2,
+                    baseOpacity: 0.3 - index * 0.05
+                };
+                
+                sunPlanet.add(flareSprite);
+            });
+        }
+        
+        // フレアパーティクルシステムの更新
+        function updateSolarFlareParticles(flareParticles, time) {
+            if (!flareParticles || !flareParticles.geometry) return;
+            
+            const positions = flareParticles.geometry.attributes.position.array;
+            const velocities = flareParticles.geometry.attributes.velocity.array;
+            const colors = flareParticles.geometry.attributes.color.array;
+            const sizes = flareParticles.geometry.attributes.size.array;
+            
+            flareParticles.userData.creationTime++;
+            
+            for (let i = 0; i < positions.length; i += 3) {
+                // パーティクル位置を更新（放射状に移動）
+                positions[i] += velocities[i];
+                positions[i + 1] += velocities[i + 1];
+                positions[i + 2] += velocities[i + 2];
+                
+                // 距離による減衰
+                const distance = Math.sqrt(
+                    positions[i] * positions[i] + 
+                    positions[i + 1] * positions[i + 1] + 
+                    positions[i + 2] * positions[i + 2]
+                );
+                
+                const particleIndex = Math.floor(i / 3);
+                
+                // 太陽から離れるほど暗くなる
+                const fadeDistance = flareParticles.userData.sunData.size * 3;
+                if (distance > fadeDistance) {
+                    // パーティクルをリセット（太陽表面に戻す）
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(2 * Math.random() - 1);
+                    const startRadius = flareParticles.userData.sunData.size * (1.02 + Math.random() * 0.03);
+                    
+                    positions[i] = startRadius * Math.sin(phi) * Math.cos(theta);
+                    positions[i + 1] = startRadius * Math.sin(phi) * Math.sin(theta);
+                    positions[i + 2] = startRadius * Math.cos(phi);
+                    
+                    // 新しい速度を設定
+                    const direction = new THREE.Vector3(positions[i], positions[i + 1], positions[i + 2]).normalize();
+                    const speed = 0.002 + Math.random() * 0.004;
+                    velocities[i] = direction.x * speed;
+                    velocities[i + 1] = direction.y * speed;
+                    velocities[i + 2] = direction.z * speed;
+                } else {
+                    // 距離による色と透明度の調整
+                    const intensity = Math.max(0, 1 - (distance / fadeDistance));
+                    const colorIndex = particleIndex * 3;
+                    
+                    // 元の色を保持しつつ強度を調整
+                    const baseR = colors[colorIndex];
+                    const baseG = colors[colorIndex + 1];
+                    const baseB = colors[colorIndex + 2];
+                    
+                    colors[colorIndex] = baseR * intensity;
+                    colors[colorIndex + 1] = baseG * intensity;
+                    colors[colorIndex + 2] = baseB * intensity;
+                    
+                    // サイズも距離に応じて変化
+                    const sizeIndex = particleIndex;
+                    sizes[sizeIndex] = sizes[sizeIndex] * (0.5 + intensity * 0.5);
+                }
+                
+                // 磁場による軌道の歪み（太陽の磁場線を模擬）
+                const magneticEffect = Math.sin(time * 2 + distance * 5) * 0.0005;
+                velocities[i] += magneticEffect * Math.sin(time + positions[i] * 10);
+                velocities[i + 1] += magneticEffect * Math.cos(time + positions[i + 1] * 10);
+            }
+            
+            // ジオメトリ更新
+            flareParticles.geometry.attributes.position.needsUpdate = true;
+            flareParticles.geometry.attributes.color.needsUpdate = true;
+            flareParticles.geometry.attributes.size.needsUpdate = true;
+            flareParticles.geometry.attributes.velocity.needsUpdate = true;
+        }
+
         // 宇宙空間の星空作成（大幅強化）
         function createSpaceStarField() {
             const starGeometry = new THREE.BufferGeometry();
@@ -1999,34 +2282,53 @@
                     material = new THREE.MeshBasicMaterial({ 
                         map: texture,
                         emissive: new THREE.Color(0xFFFFFF), // 純白の強力な発光
-                        emissiveIntensity: 6.0, // さらに強化してリアルな輝きに
+                        emissiveIntensity: 7.5, // さらに強化してより輝かしく
                         transparent: false,
                         side: THREE.DoubleSide
                     });
                     
-                    // シンプルで自然なグロー効果のみ
-                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.05, 16, 12); // 非常に薄い層
+                    // 多層コロナエフェクト
+                    createSolarFlareEffects(planet, data);
+                    
+                    // 強化されたグロー効果
+                    const glowGeometry = new THREE.SphereGeometry(data.size * 1.08, 24, 16);
                     const glowMaterial = new THREE.ShaderMaterial({
                         uniforms: {
                             time: { value: 0 },
-                            glowColor: { value: new THREE.Color(0xFFFF88) }
+                            glowColor: { value: new THREE.Color(0xFFDD44) },
+                            intensity: { value: 0.8 }
                         },
                         vertexShader: `
                             varying vec3 vNormal;
+                            varying vec3 vPosition;
                             void main() {
                                 vNormal = normalize(normalMatrix * normal);
+                                vPosition = position;
                                 gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
                             }
                         `,
                         fragmentShader: `
                             uniform float time;
                             uniform vec3 glowColor;
+                            uniform float intensity;
                             varying vec3 vNormal;
+                            varying vec3 vPosition;
+                            
                             void main() {
-                                float intensity = pow(0.4 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.8);
-                                intensity *= (0.6 + 0.1 * sin(time * 2.0)); // 微細な脈動
-                                intensity *= 0.3; // 控えめな強度
-                                gl_FragColor = vec4(glowColor, intensity);
+                                float fresnel = pow(0.5 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.2);
+                                
+                                // 動的なフレア効果
+                                float flareIntensity = 0.7 + 0.3 * sin(time * 3.0 + vPosition.x * 10.0) * 
+                                                      sin(time * 2.5 + vPosition.y * 8.0) * 
+                                                      sin(time * 4.0 + vPosition.z * 6.0);
+                                
+                                // コロナの層構造
+                                float coronaLayer1 = sin(time * 1.5 + length(vPosition) * 20.0) * 0.15 + 0.85;
+                                float coronaLayer2 = sin(time * 2.8 + length(vPosition) * 15.0) * 0.1 + 0.9;
+                                
+                                float finalIntensity = fresnel * intensity * flareIntensity * coronaLayer1 * coronaLayer2;
+                                
+                                gl_FragColor = vec4(glowColor * 1.2, finalIntensity);
                             }
                         `,
                         side: THREE.BackSide,
@@ -2829,6 +3131,30 @@
                 // 太陽のグローエフェクト更新
                 if (planet.data.name === '太陽' && planet.data.glowMaterial) {
                     planet.data.glowMaterial.uniforms.time.value = time;
+                    
+                    // コロナエフェクト更新
+                    if (planet.data.coronaMaterial) {
+                        planet.data.coronaMaterial.uniforms.time.value = time;
+                    }
+                    
+                    // フレアパーティクルシステム更新
+                    if (planet.data.flareParticles) {
+                        updateSolarFlareParticles(planet.data.flareParticles, time);
+                    }
+                    
+                    // レンズフレア効果更新
+                    planet.mesh.children.forEach(child => {
+                        if (child.userData && child.userData.type === 'lensFlare') {
+                            // 回転とパルス効果
+                            child.rotation.z += child.userData.rotationSpeed;
+                            
+                            const pulse = Math.sin(time * child.userData.pulsateSpeed) * 0.3 + 0.7;
+                            child.material.opacity = child.userData.baseOpacity * pulse;
+                            
+                            // カメラの方向を向く
+                            child.lookAt(camera.position);
+                        }
+                    });
                 }
                 
                 // 衛星の公転
