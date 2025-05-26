@@ -269,7 +269,7 @@
         let userPosition = new THREE.Vector3(0, 1.6, 5); // ユーザーの仮想位置
         let planetInfoPanel = null;
         let sunScaleAnimation = { target: 1, current: 1, speed: 0.05 };
-        let panelFadeAnimation = { opacity: 0, target: 0, speed: 0.05 };
+        let panelFadeAnimation = { opacity: 0, target: 0, speed: 0.15 };
         let spaceMode = false;
         let spaceStars = null;
         let originalStars = null;
@@ -679,15 +679,15 @@
                         
                         // クレーターの縁（隆起）
                         ctx.fillStyle = `rgba(${160 + Math.random() * 40}, ${110 + Math.random() * 30}, ${70 + Math.random() * 20}, 0.6)`;
-                        ctx.beginPath();
+                    ctx.beginPath();
                         ctx.arc(craterX, craterY, craterSize, 0, Math.PI * 2);
-                        ctx.fill();
-                        
+                    ctx.fill();
+                    
                         // クレーターの底（くぼみ）
                         ctx.fillStyle = `rgba(${100 + Math.random() * 30}, ${60 + Math.random() * 25}, ${40 + Math.random() * 15}, 0.8)`;
-                        ctx.beginPath();
+                    ctx.beginPath();
                         ctx.arc(craterX, craterY, craterSize * 0.6, 0, Math.PI * 2);
-                        ctx.fill();
+                    ctx.fill();
                     }
                     
                     // 巨大なオリンポス山（太陽系最大の火山）
@@ -909,9 +909,9 @@
                         const turbSize = 8 + Math.random() * 15;
                         
                         ctx.fillStyle = `rgba(${180 + Math.random() * 40}, ${100 + Math.random() * 40}, ${60 + Math.random() * 30}, 0.4)`;
-                        ctx.beginPath();
+                    ctx.beginPath();
                         ctx.arc(turbX, turbY, turbSize, 0, Math.PI * 2);
-                        ctx.fill();
+                    ctx.fill();
                     }
                     
                     // 大赤斑の影とハイライト
@@ -1297,9 +1297,9 @@
                 } else if (i < 45000) { // 10%がハロー部分
                     // 銀河ハロー（球状分布）
                     radius = 200 + Math.random() * 150;
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.acos(2 * Math.random() - 1);
-                    
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                
                     x = radius * Math.sin(phi) * Math.cos(theta);
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
@@ -2446,7 +2446,7 @@
             sunLight.shadow.camera.near = 0.1;
             sunLight.shadow.camera.far = 100;
             solarSystemGroup.add(sunLight);
-            
+
             // 追加の太陽光源（控えめに）
             const sunLight2 = new THREE.PointLight(0xFFDD88, 1.2, 80);
             sunLight2.position.set(0, 0, 0);
@@ -2475,7 +2475,7 @@
             
             // 有名な星座を作成
             createConstellations();
-            
+
             // 惑星作成
             planetData.forEach((data, index) => {
                 const geometry = new THREE.SphereGeometry(data.size, 64, 32); // より高品質なジオメトリ
@@ -2590,7 +2590,9 @@
                         color: 0xD2691E,
                         side: THREE.DoubleSide,
                         transparent: true,
-                        opacity: 0.8
+                        opacity: 0.95,  // 透明度を上げて現実空間の透けを防止
+                        depthWrite: true,  // 深度書き込みを有効化
+                        alphaTest: 0.1     // アルファテストで透けを防止
                     });
                     const ring = new THREE.Mesh(ringGeometry, ringMaterial);
                     ring.rotation.x = Math.PI / 2;
@@ -2656,13 +2658,13 @@
                 
                 scene.add(controller);
             });
-            
+
             // コントローラーグリップも追加
             const leftControllerGrip = renderer.xr.getControllerGrip(0);
             const rightControllerGrip = renderer.xr.getControllerGrip(1);
             scene.add(leftControllerGrip);
             scene.add(rightControllerGrip);
-            
+
             console.log('XR Controllers setup completed');
         }
         
@@ -3039,7 +3041,9 @@
                 transparent: true,
                 side: THREE.DoubleSide,
                 opacity: 0, // 初期値を0に設定
-                alphaTest: 0.01 // 完全に透明な部分は描画しない
+                alphaTest: 0.1, // 完全に透明な部分は描画しない（アルファテスト強化）
+                depthWrite: true, // 深度書き込みを有効化して透けを防止
+                depthTest: true   // 深度テストを有効化
             });
             
             planetInfoPanel = new THREE.Mesh(geometry, material);
@@ -3078,7 +3082,7 @@
                 console.log('フェードアウトアニメーション開始');
                 
                 // 表示状態を即座に更新（トリガー判定用）
-                planetInfoVisible = false;
+            planetInfoVisible = false;
             } else if (!planetInfoPanel) {
                 console.log('No panel to hide, resetting states');
                 // パネルがない場合も状態をリセット
@@ -3154,24 +3158,24 @@
                     
                     if (!stillHighlighted) {
                         // 他のコントローラーでハイライトされていない場合のみハイライトを削除
-                        if (planet.data.name === '太陽') {
-                            // 太陽の場合はスケールアニメーションを元に戻す
-                            sunScaleAnimation.target = 1;
-                        } else {
-                            // 他の惑星は発光を元に戻す
-                            if (planet.mesh.material && planet.originalEmissive) {
-                                const material = planet.mesh.material;
-                                
-                                if (material.emissive && planet.originalEmissive) {
-                                    material.emissive.copy(planet.originalEmissive);
-                                }
-                                
-                                if (material.emissiveIntensity !== undefined && planet.originalEmissiveIntensity !== undefined) {
-                                    material.emissiveIntensity = planet.originalEmissiveIntensity;
-                                }
-                                
-                                planet.originalEmissive = null;
-                                planet.originalEmissiveIntensity = null;
+                    if (planet.data.name === '太陽') {
+                        // 太陽の場合はスケールアニメーションを元に戻す
+                        sunScaleAnimation.target = 1;
+                    } else {
+                        // 他の惑星は発光を元に戻す
+                        if (planet.mesh.material && planet.originalEmissive) {
+                            const material = planet.mesh.material;
+                            
+                            if (material.emissive && planet.originalEmissive) {
+                                material.emissive.copy(planet.originalEmissive);
+                            }
+                            
+                            if (material.emissiveIntensity !== undefined && planet.originalEmissiveIntensity !== undefined) {
+                                material.emissiveIntensity = planet.originalEmissiveIntensity;
+                            }
+                            
+                            planet.originalEmissive = null;
+                            planet.originalEmissiveIntensity = null;
                             }
                         }
                     }
@@ -3287,8 +3291,8 @@
                 const actualOpacity = Math.max(0, Math.min(1, panelFadeAnimation.opacity));
                 
                 if (planetInfoPanel && planetInfoPanel.material) {
-                    planetInfoPanel.material.opacity = actualOpacity;
-                    
+                planetInfoPanel.material.opacity = actualOpacity;
+                
                     // 完全に透明な場合は描画を無効化
                     if (actualOpacity <= 0.01) {
                         planetInfoPanel.visible = false;
@@ -3406,24 +3410,24 @@
                 // 各コントローラーで独立してレイキャスト処理
                 controllers.forEach((controller, index) => {
                     if (controller && controller.visible) {
-                        try {
-                            // コントローラーの位置と方向を取得
-                            const tempMatrix = new THREE.Matrix4();
+                try {
+                    // コントローラーの位置と方向を取得
+                    const tempMatrix = new THREE.Matrix4();
                             tempMatrix.identity().extractRotation(controller.matrixWorld);
-                            
-                            const controllerPosition = new THREE.Vector3();
+                    
+                    const controllerPosition = new THREE.Vector3();
                             controllerPosition.setFromMatrixPosition(controller.matrixWorld);
-                            
-                            const controllerDirection = new THREE.Vector3(0, 0, -1);
-                            controllerDirection.applyMatrix4(tempMatrix);
-                            controllerDirection.normalize();
-                            
-                            raycaster.set(controllerPosition, controllerDirection);
-                            
-                            // 惑星のメッシュのみをチェック
-                            const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
-                            const intersects = raycaster.intersectObjects(planetMeshes);
-                            
+                    
+                    const controllerDirection = new THREE.Vector3(0, 0, -1);
+                    controllerDirection.applyMatrix4(tempMatrix);
+                    controllerDirection.normalize();
+                    
+                    raycaster.set(controllerPosition, controllerDirection);
+                    
+                    // 惑星のメッシュのみをチェック
+                    const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
+                    const intersects = raycaster.intersectObjects(planetMeshes);
+                    
                             // レーザーポインターの長さを調整
                             updateControllerRayLength(controller, intersects);
                             
@@ -3432,23 +3436,23 @@
                             
                             // 情報パネル表示中はハイライト処理をスキップ
                             if (!planetInfoVisible) {
-                                if (intersects.length > 0) {
-                                    const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                    if (intersects.length > 0) {
+                        const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
                                     if (intersectedPlanet && intersectedPlanet !== highlightedPlanets[index]) {
                                         highlightPlanet(intersectedPlanet, index);
-                                    }
-                                } else {
+                        }
+                    } else {
                                     clearHighlight(index);
                                 }
-                            }
-                        } catch (error) {
+                    }
+                } catch (error) {
                             // エラーが発生した場合はこのコントローラーのハイライトをクリア
                             clearHighlight(index);
                         }
                     } else {
                         // コントローラーが非表示の場合はハイライトをクリア
                         clearHighlight(index);
-                    }
+                }
                 });
             }
 
