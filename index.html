@@ -293,10 +293,13 @@
         // ビッグバンアニメーション設定
         let bigBangAnimation = {
             active: false,
+            waiting: false,     // 待機状態フラグ
             startScale: 0.001,  // 非常に小さな開始サイズ
             targetScale: 1.0,   // 最終的な通常サイズ
             currentScale: 0.001,
-            duration: 8000,     // 8秒間のアニメーション
+            waitDuration: 2000, // 2秒の待機時間
+            duration: 12000,    // 12秒間のより長いアニメーション
+            waitStartTime: 0,   // 待機開始時間
             startTime: 0,
             easeFunction: function(t) {
                 // Ease-in-out カーブ（S字カーブ）
@@ -1241,23 +1244,23 @@
                 if (starType < 0.1) {
                     // 青白い星
                     starColors.push(0.9, 0.95, 1);
-                    starSizes.push(Math.random() * 2.5 + 1);
+                    starSizes.push(Math.random() * 0.25 + 0.1);
                 } else if (starType < 0.3) {
                     // 白い星
                     starColors.push(1, 1, 0.95);
-                    starSizes.push(Math.random() * 2 + 0.8);
+                    starSizes.push(Math.random() * 0.2 + 0.08);
                 } else if (starType < 0.5) {
                     // 黄色い星
                     starColors.push(1, 0.95, 0.8);
-                    starSizes.push(Math.random() * 1.8 + 0.7);
+                    starSizes.push(Math.random() * 0.18 + 0.07);
                 } else if (starType < 0.7) {
                     // オレンジの星
                     starColors.push(1, 0.8, 0.6);
-                    starSizes.push(Math.random() * 1.5 + 0.6);
+                    starSizes.push(Math.random() * 0.15 + 0.06);
                 } else {
                     // 赤い星
                     starColors.push(1, 0.7, 0.5);
-                    starSizes.push(Math.random() * 1.2 + 0.5);
+                    starSizes.push(Math.random() * 0.12 + 0.05);
                 }
             }
             
@@ -1415,42 +1418,42 @@
                 if (colorType < 0.00003) {
                     // O型星（青色巨星、極稀）
                     starColors.push(0.5, 0.7, 1);
-                    starSizes.push(Math.random() * 6 + 4);
+                    starSizes.push(Math.random() * 0.6 + 0.4);
                 } else if (colorType < 0.0013) {
                     // B型星（青白色、稀）
                     starColors.push(0.7, 0.85, 1);
-                    starSizes.push(Math.random() * 4 + 2);
+                    starSizes.push(Math.random() * 0.4 + 0.2);
                 } else if (colorType < 0.0073) {
                     // A型星（白色）
                     starColors.push(0.95, 0.98, 1);
-                    starSizes.push(Math.random() * 3 + 1.5);
+                    starSizes.push(Math.random() * 0.3 + 0.15);
                 } else if (colorType < 0.0373) {
                     // F型星（黄白色）
                     starColors.push(1, 1, 0.9);
-                    starSizes.push(Math.random() * 2.5 + 1.2);
+                    starSizes.push(Math.random() * 0.25 + 0.12);
                 } else if (colorType < 0.1133) {
                     // G型星（黄色、太陽型）
                     starColors.push(1, 0.96, 0.8);
-                    starSizes.push(Math.random() * 2 + 1);
+                    starSizes.push(Math.random() * 0.2 + 0.1);
                 } else if (colorType < 0.2343) {
                     // K型星（オレンジ色、多い）
                     starColors.push(1, 0.85, 0.65);
-                    starSizes.push(Math.random() * 1.8 + 0.8);
+                    starSizes.push(Math.random() * 0.18 + 0.08);
                 } else {
                     // M型星（赤色矮星、最も多い - 76%）
                     const mSubtype = Math.random();
                     if (mSubtype < 0.3) {
                         // 初期M型（明るい赤）
                         starColors.push(1, 0.7, 0.5);
-                        starSizes.push(Math.random() * 1.5 + 0.7);
+                        starSizes.push(Math.random() * 0.15 + 0.07);
                     } else if (mSubtype < 0.7) {
                         // 中期M型（中程度の赤）
                         starColors.push(1, 0.6, 0.4);
-                        starSizes.push(Math.random() * 1.2 + 0.5);
+                        starSizes.push(Math.random() * 0.12 + 0.05);
                     } else {
                         // 後期M型（暗い赤）
                         starColors.push(0.9, 0.5, 0.3);
-                        starSizes.push(Math.random() * 0.8 + 0.3);
+                        starSizes.push(Math.random() * 0.08 + 0.03);
                     }
                 }
                 
@@ -1526,23 +1529,23 @@
                 if (brightType < 0.25) {
                     // 青い星形成領域・O型/B型星
                     starColors.push(0.7, 0.85, 1);
-                    starSizes.push(Math.random() * 3 + 1.5);
+                    starSizes.push(Math.random() * 0.3 + 0.15);
                 } else if (brightType < 0.5) {
                     // 白い明るい星・A型星
                     starColors.push(1, 1, 0.95);
-                    starSizes.push(Math.random() * 2.5 + 1.8);
+                    starSizes.push(Math.random() * 0.25 + 0.18);
                 } else if (brightType < 0.7) {
                     // 黄色い巨星・G型/F型星
                     starColors.push(1, 0.95, 0.8);
-                    starSizes.push(Math.random() * 2.8 + 2);
+                    starSizes.push(Math.random() * 0.28 + 0.2);
                 } else if (brightType < 0.85) {
                     // 赤い散光星雲・超巨星
                     starColors.push(1, 0.6, 0.6);
-                    starSizes.push(Math.random() * 2.2 + 1.5);
+                    starSizes.push(Math.random() * 0.22 + 0.15);
                 } else {
                     // オレンジ色の巨星・K型星
                     starColors.push(1, 0.8, 0.5);
-                    starSizes.push(Math.random() * 2 + 1.3);
+                    starSizes.push(Math.random() * 0.2 + 0.13);
                 }
             }
             
@@ -1862,22 +1865,22 @@
                 // サイズを大幅に縮小して点光源のように見せる
                 if (starType < 0.4) {
                     // 赤色矮星（最も多い）
-                    size = 0.02 + Math.random() * 0.03;
+                    size = 0.005 + Math.random() * 0.008;
                     color = new THREE.Color(0xFF8866);
                     intensity = 0.2;
                 } else if (starType < 0.7) {
                     // 太陽型星
-                    size = 0.025 + Math.random() * 0.035;
+                    size = 0.008 + Math.random() * 0.012;
                     color = new THREE.Color(0xFFFFDD);
                     intensity = 0.3;
                 } else if (starType < 0.85) {
                     // 青色星
-                    size = 0.03 + Math.random() * 0.04;
+                    size = 0.010 + Math.random() * 0.015;
                     color = new THREE.Color(0xDDEEFF);
                     intensity = 0.4;
                 } else {
                     // 巨星（稀）
-                    size = 0.04 + Math.random() * 0.05;
+                    size = 0.012 + Math.random() * 0.018;
                     color = new THREE.Color(0xFFDD88);
                     intensity = 0.35;
                 }
@@ -2202,17 +2205,17 @@
             // オリオン座を作成
             const orionStars = [
                 // ベテルギウス（左肩）
-                { name: 'ベテルギウス', pos: [-30, 25, -80], color: 0xFF6644, size: 0.15 },
+                { name: 'ベテルギウス', pos: [-30, 25, -80], color: 0xFF6644, size: 0.015 },
                 // リゲル（右足）
-                { name: 'リゲル', pos: [25, -25, -80], color: 0xAADDFF, size: 0.12 },
+                { name: 'リゲル', pos: [25, -25, -80], color: 0xAADDFF, size: 0.012 },
                 // ベラトリックス（右肩）
-                { name: 'ベラトリックス', pos: [20, 15, -80], color: 0xDDEEFF, size: 0.08 },
+                { name: 'ベラトリックス', pos: [20, 15, -80], color: 0xDDEEFF, size: 0.008 },
                 // オリオンベルト
-                { name: 'アルニタク', pos: [-8, 0, -80], color: 0xDDEEFF, size: 0.09 },
-                { name: 'アルニラム', pos: [0, 0, -80], color: 0xDDEEFF, size: 0.09 },
-                { name: 'ミンタカ', pos: [8, 0, -80], color: 0xDDEEFF, size: 0.08 },
+                { name: 'アルニタク', pos: [-8, 0, -80], color: 0xDDEEFF, size: 0.009 },
+                { name: 'アルニラム', pos: [0, 0, -80], color: 0xDDEEFF, size: 0.009 },
+                { name: 'ミンタカ', pos: [8, 0, -80], color: 0xDDEEFF, size: 0.008 },
                 // 剣
-                { name: 'オリオン星雲', pos: [0, -15, -80], color: 0xFF99DD, size: 0.1 }
+                { name: 'オリオン星雲', pos: [0, -15, -80], color: 0xFF99DD, size: 0.01 }
             ];
             
             orionStars.forEach(star => {
@@ -2235,13 +2238,13 @@
             
             // 北斗七星を作成
             const bigDipperStars = [
-                { pos: [-60, 40, -90], color: 0xFFFFAA, size: 0.1 },
-                { pos: [-50, 45, -90], color: 0xFFFFAA, size: 0.09 },
-                { pos: [-40, 42, -90], color: 0xFFFFAA, size: 0.08 },
-                { pos: [-30, 40, -90], color: 0xFFFFAA, size: 0.09 },
-                { pos: [-20, 35, -90], color: 0xFFFFAA, size: 0.08 },
-                { pos: [-15, 25, -90], color: 0xFFFFAA, size: 0.09 },
-                { pos: [-10, 15, -90], color: 0xFFFFAA, size: 0.08 }
+                { pos: [-60, 40, -90], color: 0xFFFFAA, size: 0.01 },
+                { pos: [-50, 45, -90], color: 0xFFFFAA, size: 0.009 },
+                { pos: [-40, 42, -90], color: 0xFFFFAA, size: 0.008 },
+                { pos: [-30, 40, -90], color: 0xFFFFAA, size: 0.009 },
+                { pos: [-20, 35, -90], color: 0xFFFFAA, size: 0.008 },
+                { pos: [-15, 25, -90], color: 0xFFFFAA, size: 0.009 },
+                { pos: [-10, 15, -90], color: 0xFFFFAA, size: 0.008 }
             ];
             
             bigDipperStars.forEach((star, index) => {
@@ -2259,11 +2262,11 @@
             
             // カシオペア座を作成（W字型）
             const cassiopeiaStars = [
-                { pos: [60, 50, -85], color: 0xDDEEFF, size: 0.09 },
-                { pos: [55, 55, -85], color: 0xDDEEFF, size: 0.08 },
-                { pos: [50, 52, -85], color: 0xDDEEFF, size: 0.1 },
-                { pos: [45, 58, -85], color: 0xDDEEFF, size: 0.08 },
-                { pos: [40, 55, -85], color: 0xDDEEFF, size: 0.09 }
+                { pos: [60, 50, -85], color: 0xDDEEFF, size: 0.009 },
+                { pos: [55, 55, -85], color: 0xDDEEFF, size: 0.008 },
+                { pos: [50, 52, -85], color: 0xDDEEFF, size: 0.01 },
+                { pos: [45, 58, -85], color: 0xDDEEFF, size: 0.008 },
+                { pos: [40, 55, -85], color: 0xDDEEFF, size: 0.009 }
             ];
             
             cassiopeiaStars.forEach((star, index) => {
@@ -3621,7 +3624,7 @@
             }
 
             // 両手グリップでのスケール調整（ビッグバンアニメーション中は無効）
-            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging && !bigBangAnimation.active) {
+            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging && !bigBangAnimation.active && !bigBangAnimation.waiting) {
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
                 leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
@@ -4028,10 +4031,10 @@
         // 移動対象となる宇宙要素のリスト
         let universeElements = [];
 
-        // ビッグバンアニメーション開始関数
+        // ビッグバンアニメーション開始関数（2秒待機後に開始）
         function startBigBangAnimation() {
-            bigBangAnimation.active = true;
-            bigBangAnimation.startTime = Date.now();
+            bigBangAnimation.waiting = true;
+            bigBangAnimation.waitStartTime = Date.now();
             bigBangAnimation.currentScale = bigBangAnimation.startScale;
             
             // 全ての宇宙要素を初期の極小サイズに設定
@@ -4044,14 +4047,28 @@
             // scaleFactorも初期値に設定
             scaleFactor = bigBangAnimation.startScale;
             
-            console.log('🌌 MRセッション開始！ビッグバンで宇宙が誕生します...');
+            console.log('🌌 MRセッション開始！2秒後にビッグバンで宇宙が誕生します...');
         }
 
         // ビッグバンアニメーション更新関数
         function updateBigBangAnimation() {
+            const currentTime = Date.now();
+            
+            // 待機中の処理
+            if (bigBangAnimation.waiting) {
+                const waitElapsed = currentTime - bigBangAnimation.waitStartTime;
+                if (waitElapsed >= bigBangAnimation.waitDuration) {
+                    // 待機終了、アニメーション開始
+                    bigBangAnimation.waiting = false;
+                    bigBangAnimation.active = true;
+                    bigBangAnimation.startTime = currentTime;
+                    console.log('💥 ビッグバン開始！宇宙が誕生します...');
+                }
+                return;
+            }
+            
             if (!bigBangAnimation.active) return;
             
-            const currentTime = Date.now();
             const elapsed = currentTime - bigBangAnimation.startTime;
             const progress = Math.min(elapsed / bigBangAnimation.duration, 1);
             
