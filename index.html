@@ -288,9 +288,7 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
-        let universeScaleFactor = 1; // 宇宙全体のスケール
-        let selectedPlanetForNavigation = null; // ナビゲーション用に選択された惑星
-        let planetCenteredMode = false; // 惑星中心モード
+        let selectedPlanet = null; // 選択中の惑星（情報パネル表示中）
 
         // 惑星データ
         const planetData = [
@@ -3081,19 +3079,6 @@
             // 効果音を再生
             playInfoPanelSound();
             
-            // 惑星中心モードを開始
-            const planetIndex = planetData.name === '太陽' ? 0 : 
-                               planetData.name === '水星' ? 1 :
-                               planetData.name === '金星' ? 2 :
-                               planetData.name === '地球' ? 3 :
-                               planetData.name === '火星' ? 4 :
-                               planetData.name === '木星' ? 5 :
-                               planetData.name === '土星' ? 6 :
-                               planetData.name === '天王星' ? 7 :
-                               planetData.name === '海王星' ? 8 : null;
-            
-            setPlanetCenteredMode(planetIndex);
-            
             // 強制的に既存パネルをクリーンアップ
             forceCleanupPanel();
             
@@ -3105,9 +3090,6 @@
         
         function forceCleanupPanel() {
             console.log('Force cleanup panel, current panel:', !!planetInfoPanel);
-            
-            // 惑星中心モードも終了
-            setPlanetCenteredMode(null);
             
             if (planetInfoPanel) {
                 try {
@@ -3155,6 +3137,7 @@
             panelClosing = false;
             panelFadeAnimation.opacity = 0;
             panelFadeAnimation.target = 0;
+            selectedPlanet = null; // 選択された惑星をクリア
             
             // 全てのコントローラーのカーソルを再表示
             if (controllers && controllers.length > 0) {
@@ -3173,6 +3156,9 @@
         
         function createNewInfoPanel(planetData) {
             console.log('Creating new info panel for:', planetData.name);
+            
+            // 選択された惑星を記録
+            selectedPlanet = planets.find(p => p.data.name === planetData.name);
             
             // 効果音は show3DPlanetInfo で再生済みなのでここでは再生しない
             
@@ -3214,9 +3200,6 @@
 
         function hide3DPlanetInfo() {
             console.log('hide3DPlanetInfo called, panel exists:', !!planetInfoPanel, 'closing:', panelClosing, 'visible:', planetInfoVisible);
-            
-            // 惑星中心モードを終了
-            setPlanetCenteredMode(null);
             
             if (planetInfoPanel && !panelClosing) {
                 // クローズ処理中フラグを設定
@@ -3604,33 +3587,35 @@
                 });
             }
 
-            // 片手グリップでのドラッグ移動（ユーザー位置を移動または惑星中心移動）
+            // 片手グリップでのドラッグ移動（ユーザー位置を移動）
             if (isDragging && controllers.length > 0) {
                 const activeController = gripStates.left ? controllers[0] : controllers[1];
                 if (activeController) {
                     const currentPosition = new THREE.Vector3();
                     currentPosition.setFromMatrixPosition(activeController.matrixWorld);
                     
-                    const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
-                    
-                    if (planetCenteredMode && selectedPlanetForNavigation !== null) {
-                        // 惑星中心モード：惑星を中心とした軌道移動
-                        const planetPosition = getPlanetWorldPosition(selectedPlanetForNavigation);
+                    if (planetInfoVisible && selectedPlanet && selectedPlanet.mesh) {
+                        // 惑星選択中：惑星中心へのズーム移動のみ
+                        const planetWorldPosition = new THREE.Vector3();
+                        selectedPlanet.mesh.getWorldPosition(planetWorldPosition);
                         
-                        // 横方向の移動を軌道回転に変換
-                        const horizontalDelta = deltaPosition.x * 2; // 感度調整
-                        const verticalDelta = deltaPosition.y * 2;
+                        const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
+                        // Y軸の移動量を惑星への接近/離脱に変換
+                        const zoomFactor = deltaPosition.y * -10; // Y軸の動きを拡大
                         
-                        // 太陽系グループを惑星中心に回転
-                        const tempPosition = solarSystemGroup.position.clone();
-                        solarSystemGroup.position.sub(planetPosition);
-                        solarSystemGroup.rotateY(-horizontalDelta * 0.01);
-                        solarSystemGroup.rotateX(-verticalDelta * 0.01);
-                        solarSystemGroup.position.add(planetPosition);
+                        // 惑星に向かう方向ベクトルを計算
+                        const directionToPlanet = new THREE.Vector3().subVectors(planetWorldPosition, userStartPosition).normalize();
                         
-                        console.log(`惑星中心移動: ${planetData[selectedPlanetForNavigation].name}を中心とした回転`);
+                        // 惑星方向にのみ移動
+                        const movementVector = directionToPlanet.multiplyScalar(zoomFactor);
+                        userPosition.copy(userStartPosition).add(movementVector);
+                        
+                        // カメラとシーン全体の位置を更新
+                        updateUserPosition();
                     } else {
-                        // 通常モード：自由な平行移動
+                        // 通常の平行移動
+                        const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
+                        // 移動方向を反転させてユーザーが移動している感覚にする
                         deltaPosition.multiplyScalar(-5);
                         userPosition.copy(userStartPosition).add(deltaPosition);
                         
@@ -3640,7 +3625,7 @@
                 }
             }
 
-            // 両手グリップでのスケール調整（宇宙全体または惑星中心）
+            // 両手グリップでのスケール調整（常に動作）
             if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging) {
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
@@ -3650,37 +3635,45 @@
                 
                 if (lastDistance > 0 && currentDistance > 0) {
                     const scaleChange = currentDistance / lastDistance;
+                    scaleFactor *= scaleChange;
                     
-                    if (planetCenteredMode && selectedPlanetForNavigation !== null) {
-                        // 惑星中心モード：選択された惑星を中心とした拡大縮小
-                        const planetPosition = getPlanetWorldPosition(selectedPlanetForNavigation);
+                    // スケール制限を解除（自由な拡大縮小を許可）
+                    // scaleFactor = Math.max(0.1, Math.min(10, scaleFactor));
+                    
+                    // 惑星選択中は惑星中心にスケール、それ以外は宇宙全体をスケール
+                    if (planetInfoVisible && selectedPlanet && selectedPlanet.mesh) {
+                        // 惑星中心を基準にしたスケール
+                        const planetWorldPosition = new THREE.Vector3();
+                        selectedPlanet.mesh.getWorldPosition(planetWorldPosition);
                         
-                        // 太陽系グループ全体をスケール
-                        scaleFactor *= scaleChange;
-                        solarSystemGroup.scale.setScalar(scaleFactor);
-                        
-                        // 惑星位置を基準点として維持するための位置調整
-                        const newPlanetPosition = getPlanetWorldPosition(selectedPlanetForNavigation);
-                        const positionDiff = new THREE.Vector3().subVectors(planetPosition, newPlanetPosition);
-                        solarSystemGroup.position.add(positionDiff);
-                        
-                        console.log(`惑星中心スケール: ${planetData[selectedPlanetForNavigation].name} - ${scaleFactor.toFixed(2)}`);
+                        // 各要素を惑星中心を基準にスケール
+                        universeElements.forEach(element => {
+                            if (element && element.scale) {
+                                // 現在の位置を取得
+                                const currentPos = element.position.clone();
+                                
+                                // 惑星からの相対位置を計算
+                                const relativePos = currentPos.sub(planetWorldPosition);
+                                
+                                // スケールを適用
+                                element.scale.setScalar(scaleFactor);
+                                
+                                // 惑星を中心にした位置に移動
+                                const newPos = relativePos.multiplyScalar(scaleChange).add(planetWorldPosition);
+                                element.position.copy(newPos);
+                            }
+                        });
                     } else {
-                        // 通常モード：宇宙全体の拡大縮小
-                        universeScaleFactor *= scaleChange;
-                        
-                        // スケール制限を緩く設定（極端な値を防ぐ）
-                        universeScaleFactor = Math.max(0.01, Math.min(1000, universeScaleFactor));
-                        
-                        // 宇宙全体にスケールを適用
-                        applyUniverseScale();
-                        
-                        console.log(`宇宙全体スケール: ${universeScaleFactor.toFixed(2)}`);
+                        // 通常の宇宙全体スケール
+                        universeElements.forEach(element => {
+                            if (element && element.scale) {
+                                element.scale.setScalar(scaleFactor);
+                            }
+                        });
                     }
                     
-                    // UI更新（表示用）
-                    const displayScale = planetCenteredMode ? scaleFactor : universeScaleFactor;
-                    document.getElementById('scale-value').textContent = displayScale.toFixed(2);
+                    // UI更新
+                    document.getElementById('scale-value').textContent = scaleFactor.toFixed(2);
                 }
                 
                 lastDistance = currentDistance;
@@ -4088,45 +4081,7 @@
             if (element && element.position) {
                 // 元の位置を保存
                 element.originalPosition = element.position.clone();
-                // 元のスケールも保存
-                if (element.scale) {
-                    element.originalScale = element.scale.clone();
-                }
                 universeElements.push(element);
-            }
-        }
-
-        // 宇宙全体のスケールを適用する関数
-        function applyUniverseScale() {
-            universeElements.forEach(element => {
-                if (element && element.scale && element.originalScale) {
-                    element.scale.copy(element.originalScale).multiplyScalar(universeScaleFactor);
-                } else if (element && element.scale) {
-                    element.scale.setScalar(universeScaleFactor);
-                }
-            });
-        }
-
-        // 惑星中心の位置を取得する関数
-        function getPlanetWorldPosition(planetIndex) {
-            if (!planets[planetIndex]) return new THREE.Vector3();
-            
-            const planet = planets[planetIndex];
-            const worldPosition = new THREE.Vector3();
-            planet.getWorldPosition(worldPosition);
-            return worldPosition;
-        }
-
-        // 惑星中心モードの設定
-        function setPlanetCenteredMode(planetIndex) {
-            if (planetIndex !== null && planets[planetIndex]) {
-                selectedPlanetForNavigation = planetIndex;
-                planetCenteredMode = true;
-                console.log('惑星中心モード開始:', planetData[planetIndex].name);
-            } else {
-                selectedPlanetForNavigation = null;
-                planetCenteredMode = false;
-                console.log('惑星中心モード終了');
             }
         }
     </script>
