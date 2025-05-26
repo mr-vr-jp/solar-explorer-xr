@@ -1202,14 +1202,14 @@
             return new THREE.CanvasTexture(canvas);
         }
 
-        // MRモード用星空作成（VR時さらに5倍増加）
+        // MRモード用星空作成（VR時5倍増加）
         function createStarField() {
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = [];
             const starSizes = [];
             const starColors = [];
             
-            for (let i = 0; i < 625000; i++) { // 125,000から625,000にさらに5倍増加
+            for (let i = 0; i < 125000; i++) { // 25,000から125,000に5倍増加
                 // 全方向に均等分布
                 const radius = 50 + Math.random() * 350;
                 const theta = Math.random() * Math.PI * 2;
@@ -1262,18 +1262,18 @@
             return new THREE.Points(starGeometry, starMaterial);
         }
 
-        // 天の川銀河の星空作成（VR時さらに5倍増加・水平密度は自然に調整済み）
+        // 天の川銀河の星空作成（VR時5倍増加・水平密度は自然に調整済み）
         function createSpaceStarField() {
             const starGeometry = new THREE.BufferGeometry();
             const starPositions = [];
             const starColors = [];
             const starSizes = [];
             
-            for (let i = 0; i < 3750000; i++) { // 750,000から3,750,000にさらに5倍増加
+            for (let i = 0; i < 750000; i++) { // 150,000から750,000に5倍増加
                 // より自然で広大な宇宙空間の星空を作成
                 let radius, x, y, z;
                 
-                if (i < 750000) { // 20%が近距離の均等分布（さらに5倍）
+                if (i < 150000) { // 20%が近距離の均等分布（5倍）
                     // 太陽系周辺の星々（全方向に均等配置）
                     radius = 50 + Math.random() * 200;
                 const theta = Math.random() * Math.PI * 2;
@@ -1283,7 +1283,7 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else if (i < 1875000) { // 30%が天の川銀河円盤部分（さらに5倍・水平密度調整済み）
+                } else if (i < 375000) { // 30%が天の川銀河円盤部分（5倍・水平密度調整済み）
                     // 天の川銀河の美しい渦巻き構造（水平密集を避ける）
                     const armNum = Math.floor(Math.random() * 4); // 4本の主要渦巻き腕
                     let armAngle;
@@ -1336,7 +1336,7 @@
                         y = y_height * 1.5; // 腕間領域をより厚く
                     }
                     
-                } else if (i < 3000000) { // 30%が球状銀河ハロー部分（さらに5倍）
+                } else if (i < 600000) { // 30%が球状銀河ハロー部分（5倍）
                     // 銀河ハロー（全方向に球状分布）
                     radius = 400 + Math.random() * 1200;
                     const theta = Math.random() * Math.PI * 2;
@@ -1346,7 +1346,7 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else if (i < 3375000) { // 10%が超遠距離星（さらに5倍）
+                } else if (i < 675000) { // 10%が超遠距離星（5倍）
                     // 非常に遠い星々（宇宙の広がりを演出）
                     radius = 1500 + Math.random() * 1500;
                     const theta = Math.random() * Math.PI * 2;
@@ -1356,7 +1356,7 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else { // 10%が銀河中心バルジ（さらに5倍）
+                } else { // 10%が銀河中心バルジ（5倍）
                     // 銀河中心のバルジ（楕円体分布、自然な形状）
                     const bulgeRadius = 15 + Math.random() * 100;
                     const theta = Math.random() * Math.PI * 2;
@@ -1445,11 +1445,11 @@
                 starSizes[starSizes.length - 1] = lastSize * distanceFactor;
             }
             
-            // 明るい星域・星雲を全宇宙に配置（VR時さらに5倍増加で200,000個の明るい星）
-            for (let i = 0; i < 200000; i++) {
+            // 明るい星域・星雲を全宇宙に配置（VR時5倍増加で40,000個の明るい星）
+            for (let i = 0; i < 40000; i++) {
                 let x, y, z;
                 
-                if (i < 40000) { // 20%が渦巻き腕（さらに5倍・水平密度調整済み）
+                if (i < 8000) { // 20%が渦巻き腕（5倍・水平密度調整済み）
                     // 天の川の渦巻き腕に沿った明るい星域（HII領域・星形成領域）
                     const armNum = Math.floor(Math.random() * 4);
                     let armAngle;
@@ -1473,7 +1473,7 @@
                     const heightVariation = (Math.random() - 0.5) * 80; // 高さをさらに広げる
                     y = heightVariation;
                     
-                } else if (i < 120000) { // 40%が中距離（さらに5倍）
+                } else if (i < 24000) { // 40%が中距離（5倍）
                     // 全方向に散らばった明るい星（中距離）
                     const radius = 150 + Math.random() * 700;
                     const theta = Math.random() * Math.PI * 2;
@@ -1483,7 +1483,7 @@
                     y = radius * Math.sin(phi) * Math.sin(theta);
                     z = radius * Math.cos(phi);
                     
-                } else if (i < 180000) { // 30%が遠距離（さらに5倍）
+                } else if (i < 36000) { // 30%が遠距離（5倍）
                     // 遠距離の明るい星（全方向）
                     const radius = 800 + Math.random() * 1200;
                     const theta = Math.random() * Math.PI * 2;
@@ -1494,7 +1494,7 @@
                     z = radius * Math.cos(phi);
                     
                 } else {
-                    // 超遠距離の明るい星・クエーサー（宇宙の端）10%（さらに5倍）
+                    // 超遠距離の明るい星・クエーサー（宇宙の端）10%（5倍）
                     const radius = 2000 + Math.random() * 2000;
                     const theta = Math.random() * Math.PI * 2;
                     const phi = Math.acos(2 * Math.random() - 1);
@@ -1558,180 +1558,6 @@
             });
             
             return new THREE.Mesh(geometry, material);
-        }
-
-        // 星雲を作成（散光星雲、暗黒星雲、惑星状星雲など）
-        function createNebulae() {
-            const nebulaGroup = new THREE.Group();
-            const nebulaCount = 300; // 適度な数の星雲
-            
-            for (let i = 0; i < nebulaCount; i++) {
-                let nebulaType, size, color, opacity, distance;
-                
-                // 星雲タイプの決定
-                const typeRand = Math.random();
-                if (typeRand < 0.4) {
-                    // 散光星雲（HII領域）- 赤・ピンク
-                    nebulaType = 'emission';
-                    size = 15 + Math.random() * 40;
-                    color = new THREE.Color().setHSL(0.9 + Math.random() * 0.1, 0.8, 0.6); // 赤～ピンク
-                    opacity = 0.3 + Math.random() * 0.4;
-                    distance = 200 + Math.random() * 800;
-                } else if (typeRand < 0.65) {
-                    // 反射星雲 - 青
-                    nebulaType = 'reflection';
-                    size = 10 + Math.random() * 25;
-                    color = new THREE.Color().setHSL(0.6 + Math.random() * 0.1, 0.7, 0.5); // 青
-                    opacity = 0.2 + Math.random() * 0.3;
-                    distance = 150 + Math.random() * 600;
-                } else if (typeRand < 0.8) {
-                    // 惑星状星雲 - 緑・青
-                    nebulaType = 'planetary';
-                    size = 5 + Math.random() * 15;
-                    color = new THREE.Color().setHSL(0.3 + Math.random() * 0.3, 0.8, 0.6); // 緑～青
-                    opacity = 0.4 + Math.random() * 0.4;
-                    distance = 100 + Math.random() * 400;
-                } else if (typeRand < 0.9) {
-                    // 超新星残骸 - 多色
-                    nebulaType = 'supernova';
-                    size = 20 + Math.random() * 60;
-                    color = new THREE.Color().setHSL(Math.random(), 0.8, 0.7); // ランダム色
-                    opacity = 0.25 + Math.random() * 0.35;
-                    distance = 300 + Math.random() * 1000;
-                } else {
-                    // 暗黒星雲 - 暗い
-                    nebulaType = 'dark';
-                    size = 25 + Math.random() * 50;
-                    color = new THREE.Color(0x111111); // 非常に暗い
-                    opacity = 0.6 + Math.random() * 0.3;
-                    distance = 100 + Math.random() * 500;
-                }
-                
-                // 位置の決定（天の川の渦巻き腕に沿って配置）
-                let x, y, z;
-                if (i < nebulaCount * 0.7) {
-                    // 70%は渦巻き腕付近に配置
-                    const armNum = Math.floor(Math.random() * 4);
-                    let armAngle;
-                    if (armNum === 0) armAngle = 0;
-                    else if (armNum === 1) armAngle = Math.PI / 2;
-                    else if (armNum === 2) armAngle = Math.PI;
-                    else armAngle = 3 * Math.PI / 2;
-                    
-                    const spiralTightness = 0.1;
-                    const spiralAngle = armAngle + distance * spiralTightness;
-                    const armDeviation = (Math.random() - 0.5) * Math.PI / 2;
-                    const finalAngle = spiralAngle + armDeviation;
-                    
-                    x = distance * Math.cos(finalAngle);
-                    z = distance * Math.sin(finalAngle);
-                    y = (Math.random() - 0.5) * 60; // 垂直分布
-                } else {
-                    // 30%は全方向にランダム配置
-                    const theta = Math.random() * Math.PI * 2;
-                    const phi = Math.acos(2 * Math.random() - 1);
-                    
-                    x = distance * Math.sin(phi) * Math.cos(theta);
-                    y = distance * Math.sin(phi) * Math.sin(theta);
-                    z = distance * Math.cos(phi);
-                }
-                
-                // 星雲のジオメトリとマテリアル
-                let geometry;
-                if (nebulaType === 'planetary') {
-                    // 惑星状星雲は球状
-                    geometry = new THREE.SphereGeometry(size, 16, 12);
-                } else {
-                    // その他は不規則な形状
-                    geometry = new THREE.SphereGeometry(size, 12, 8);
-                    
-                    // 不規則な形状を作成
-                    const vertices = geometry.attributes.position.array;
-                    for (let j = 0; j < vertices.length; j += 3) {
-                        const factor = 0.4 + Math.random() * 1.2;
-                        vertices[j] *= factor;
-                        vertices[j + 1] *= factor;
-                        vertices[j + 2] *= factor;
-                    }
-                    geometry.attributes.position.needsUpdate = true;
-                }
-                
-                const material = new THREE.MeshBasicMaterial({
-                    color: color,
-                    transparent: true,
-                    opacity: opacity,
-                    side: THREE.DoubleSide,
-                    blending: nebulaType === 'dark' ? THREE.NormalBlending : THREE.AdditiveBlending
-                });
-                
-                const nebula = new THREE.Mesh(geometry, material);
-                nebula.position.set(x, y, z);
-                
-                // 回転の設定
-                nebula.rotation.x = Math.random() * Math.PI * 2;
-                nebula.rotation.y = Math.random() * Math.PI * 2;
-                nebula.rotation.z = Math.random() * Math.PI * 2;
-                
-                // ゆっくりした回転アニメーション
-                nebula.userData = {
-                    rotationSpeed: (Math.random() - 0.5) * 0.001,
-                    type: nebulaType
-                };
-                
-                nebulaGroup.add(nebula);
-            }
-            
-            // 有名な星雲を特別に追加
-            const famousNebulae = [
-                {name: 'オリオン大星雲', x: 250, y: -20, z: 180, size: 35, color: 0xFF6B9D, type: 'emission'},
-                {name: 'かに星雲', x: -200, y: 15, z: 220, size: 25, color: 0x88AAFF, type: 'supernova'},
-                {name: 'リング星雲', x: 180, y: 30, z: -160, size: 12, color: 0x66FF88, type: 'planetary'},
-                {name: 'わし星雲', x: -180, y: -25, z: 200, size: 40, color: 0xFF8866, type: 'emission'},
-                {name: 'ばら星雲', x: 220, y: 18, z: -140, size: 45, color: 0xFF4488, type: 'emission'},
-                {name: 'ヴェール星雲', x: -250, y: 35, z: -180, size: 80, color: 0x88FFAA, type: 'supernova'}
-            ];
-            
-            famousNebulae.forEach(nebulaData => {
-                let geometry;
-                if (nebulaData.type === 'planetary') {
-                    geometry = new THREE.SphereGeometry(nebulaData.size, 20, 16);
-                } else {
-                    geometry = new THREE.SphereGeometry(nebulaData.size, 16, 12);
-                    
-                    // 不規則な形状
-                    const vertices = geometry.attributes.position.array;
-                    for (let j = 0; j < vertices.length; j += 3) {
-                        const factor = 0.6 + Math.random() * 0.8;
-                        vertices[j] *= factor;
-                        vertices[j + 1] *= factor;
-                        vertices[j + 2] *= factor;
-                    }
-                    geometry.attributes.position.needsUpdate = true;
-                }
-                
-                const material = new THREE.MeshBasicMaterial({
-                    color: nebulaData.color,
-                    transparent: true,
-                    opacity: 0.4,
-                    side: THREE.DoubleSide,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                const nebula = new THREE.Mesh(geometry, material);
-                nebula.position.set(nebulaData.x, nebulaData.y, nebulaData.z);
-                
-                nebula.userData = {
-                    name: nebulaData.name,
-                    rotationSpeed: (Math.random() - 0.5) * 0.0005,
-                    type: nebulaData.type,
-                    famous: true
-                };
-                
-                nebulaGroup.add(nebula);
-            });
-            
-            solarSystemGroup.add(nebulaGroup);
-            return nebulaGroup;
         }
 
         // 小惑星帯を作成（火星と木星の間）
@@ -2757,9 +2583,6 @@
             // カイパーベルトを作成（海王星の外側）
             createKuiperBelt();
             
-            // 星雲を作成（散光星雲、惑星状星雲、暗黒星雲など）
-            createNebulae();
-            
             // 太陽系外の恒星を作成
             createDistantStars();
             
@@ -2912,6 +2735,9 @@
                 solarSystemGroup.add(planet);
             });
 
+            // 流れ星システムを初期化
+            initMeteorSystem();
+            
             setupXRControllers();
             animate();
             
@@ -3660,33 +3486,21 @@
                 });
             });
 
-            // 小惑星、カイパーベルト天体、星雲のアニメーション
+            // 小惑星とカイパーベルト天体のアニメーション
             solarSystemGroup.children.forEach(child => {
                 if (child.isGroup) {
                     child.children.forEach(object => {
                         if (object.userData && object.userData.rotationSpeed) {
-                            // 星雲の場合はゆっくりとした回転
-                            if (object.userData.type && (object.userData.type.includes('emission') || 
-                                                        object.userData.type.includes('reflection') || 
-                                                        object.userData.type.includes('planetary') || 
-                                                        object.userData.type.includes('supernova') || 
-                                                        object.userData.type.includes('dark'))) {
-                                // 星雲のゆっくりとした回転アニメーション
-                                object.rotation.x += object.userData.rotationSpeed;
-                                object.rotation.y += object.userData.rotationSpeed * 0.8;
-                                object.rotation.z += object.userData.rotationSpeed * 0.6;
-                            } else {
-                                // 小惑星・カイパーベルト天体の自転
-                                object.rotation.x += object.userData.rotationSpeed;
-                                object.rotation.y += object.userData.rotationSpeed * 0.7;
-                                object.rotation.z += object.userData.rotationSpeed * 0.3;
-                                
-                                // 公転（小惑星とカイパーベルト天体）
-                                if (object.userData.orbitSpeed) {
-                                    object.userData.angle += object.userData.orbitSpeed;
-                                    object.position.x = Math.cos(object.userData.angle) * object.userData.distance;
-                                    object.position.z = Math.sin(object.userData.angle) * object.userData.distance;
-                                }
+                            // 自転
+                            object.rotation.x += object.userData.rotationSpeed;
+                            object.rotation.y += object.userData.rotationSpeed * 0.7;
+                            object.rotation.z += object.userData.rotationSpeed * 0.3;
+                            
+                            // 公転（小惑星とカイパーベルト天体）
+                            if (object.userData.orbitSpeed) {
+                                object.userData.angle += object.userData.orbitSpeed;
+                                object.position.x = Math.cos(object.userData.angle) * object.userData.distance;
+                                object.position.z = Math.sin(object.userData.angle) * object.userData.distance;
                             }
                         }
                     });
@@ -3708,6 +3522,9 @@
                     });
                 }
             });
+
+            // 流れ星システムの更新
+            updateMeteors(0.016); // 約60FPSを想定した固定デルタタイム
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
             // 情報パネル表示中もレイキャストは継続（ハイライト処理のみ停止）
@@ -4023,6 +3840,159 @@
                     child.visible = visible;
                 }
             });
+        }
+
+        // 流れ星システム
+        let meteors = [];
+        let meteorGroup = new THREE.Group();
+        let lastMeteorTime = 0;
+        const meteorFrequency = 2000; // 2秒に1回程度の頻度（ミリ秒）
+        const maxMeteors = 15; // 同時に存在する流れ星の最大数
+
+        // 流れ星の作成
+        function createMeteor() {
+            // 流れ星のジオメトリ（長細い形状）
+            const meteorGeometry = new THREE.CylinderGeometry(0.02, 0.001, 1.5, 8);
+            
+            // 流れ星のマテリアル（光るような効果）
+            const meteorMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.9,
+                emissive: 0xffffcc,
+                emissiveIntensity: 0.3
+            });
+
+            const meteor = new THREE.Mesh(meteorGeometry, meteorMaterial);
+            
+            // 流れ星の軌跡エフェクト
+            const trailGeometry = new THREE.BufferGeometry();
+            const trailPositions = [];
+            const trailColors = [];
+            const trailOpacities = [];
+            
+            for (let i = 0; i < 20; i++) {
+                trailPositions.push(0, 0, 0);
+                const alpha = 1 - (i / 20);
+                trailColors.push(1, 1, 0.8); // 黄白色
+                trailOpacities.push(alpha);
+            }
+            
+            trailGeometry.setAttribute('position', new THREE.Float32BufferAttribute(trailPositions, 3));
+            trailGeometry.setAttribute('color', new THREE.Float32BufferAttribute(trailColors, 3));
+            trailGeometry.setAttribute('opacity', new THREE.Float32BufferAttribute(trailOpacities, 1));
+            
+            const trailMaterial = new THREE.PointsMaterial({
+                size: 0.1,
+                transparent: true,
+                vertexColors: true,
+                opacity: 0.7,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const trail = new THREE.Points(trailGeometry, trailMaterial);
+            
+            // 流れ星グループ
+            const meteorSystem = new THREE.Group();
+            meteorSystem.add(meteor);
+            meteorSystem.add(trail);
+            
+            // ランダムな開始位置と方向を設定
+            const startDistance = 150 + Math.random() * 100; // 150-250の距離
+            const angle = Math.random() * Math.PI * 2;
+            const height = -20 + Math.random() * 40; // -20から20の高さ
+            
+            meteorSystem.position.set(
+                Math.cos(angle) * startDistance,
+                height,
+                Math.sin(angle) * startDistance
+            );
+            
+            // 中心に向かう方向を計算
+            const direction = new THREE.Vector3(0, 0, 0).sub(meteorSystem.position).normalize();
+            
+            // 流れ星を方向に向ける
+            meteor.lookAt(new THREE.Vector3().addVectors(meteorSystem.position, direction));
+            
+            // 速度と寿命を設定
+            meteorSystem.userData = {
+                velocity: direction.multiplyScalar(2 + Math.random() * 3), // 2-5の速度
+                life: 1.0,
+                maxLife: 3 + Math.random() * 2, // 3-5秒の寿命
+                trailPositions: [],
+                trail: trail,
+                meteor: meteor
+            };
+            
+            return meteorSystem;
+        }
+
+        // 流れ星の更新
+        function updateMeteors(deltaTime) {
+            // 新しい流れ星を生成
+            const currentTime = Date.now();
+            if (currentTime - lastMeteorTime > meteorFrequency + Math.random() * meteorFrequency) {
+                if (meteors.length < maxMeteors) {
+                    const meteor = createMeteor();
+                    meteors.push(meteor);
+                    meteorGroup.add(meteor);
+                    lastMeteorTime = currentTime;
+                }
+            }
+            
+            // 既存の流れ星を更新
+            for (let i = meteors.length - 1; i >= 0; i--) {
+                const meteor = meteors[i];
+                const userData = meteor.userData;
+                
+                // 位置更新
+                meteor.position.add(userData.velocity.clone().multiplyScalar(deltaTime));
+                
+                // 軌跡の更新
+                userData.trailPositions.unshift(meteor.position.clone());
+                if (userData.trailPositions.length > 20) {
+                    userData.trailPositions.pop();
+                }
+                
+                // 軌跡の位置を更新
+                const positions = userData.trail.geometry.attributes.position.array;
+                for (let j = 0; j < userData.trailPositions.length && j < 20; j++) {
+                    const pos = userData.trailPositions[j];
+                    positions[j * 3] = pos.x;
+                    positions[j * 3 + 1] = pos.y;
+                    positions[j * 3 + 2] = pos.z;
+                }
+                userData.trail.geometry.attributes.position.needsUpdate = true;
+                
+                // 寿命の減少
+                userData.life -= deltaTime / userData.maxLife;
+                
+                // フェードアウト効果
+                const opacity = Math.max(0, userData.life);
+                userData.meteor.material.opacity = opacity;
+                userData.trail.material.opacity = opacity * 0.7;
+                
+                // 距離チェック（中心から遠すぎる場合は削除）
+                const distance = meteor.position.length();
+                
+                // 寿命切れまたは遠すぎる場合は削除
+                if (userData.life <= 0 || distance > 300) {
+                    meteorGroup.remove(meteor);
+                    meteors.splice(i, 1);
+                    
+                    // メモリリークを防ぐためにジオメトリとマテリアルを破棄
+                    userData.meteor.geometry.dispose();
+                    userData.meteor.material.dispose();
+                    userData.trail.geometry.dispose();
+                    userData.trail.material.dispose();
+                }
+            }
+        }
+
+        // 流れ星システムの初期化
+        function initMeteorSystem() {
+            scene.add(meteorGroup);
+            registerUniverseElement(meteorGroup);
         }
 
         // 移動対象となる宇宙要素のリスト
