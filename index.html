@@ -191,15 +191,16 @@
         </div>
 
         <button id="xr-button">
-            🥽 MR太陽系を開始
+            🚀 VRワープで太陽系へ
         </button>
 
         <div id="instructions">
-            <h3 class="highlight" style="margin: 0 0 10px 0;">🌟 操作方法</h3>
+            <h3 class="highlight" style="margin: 0 0 10px 0;">🚀 ワープ体験</h3>
+            <div>• 遥か彼方からVRで開始</div>
+            <div>• 太陽系までワープ移動</div>
+            <div>• 到着後、自動でMRに切り替え</div>
             <div>• 移動：片手グリップ+ドラッグ</div>
             <div>• 拡大/縮小：両手グリップ</div>
-            <div>• 惑星クリック：VR+情報表示</div>
-            <div>• 空間クリック：MR復帰</div>
         </div>
 
         <div id="troubleshooting">
@@ -289,6 +290,187 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
+
+        // ワープエフェクトシステム
+        let warpEffect = {
+            active: false,
+            phase: 'waiting', // 'waiting', 'accelerating', 'cruising', 'decelerating', 'arrived'
+            startTime: 0,
+            waitDuration: 1000, // 1秒待機
+            accelerateDuration: 2000, // 2秒で加速
+            cruiseDuration: 3000, // 3秒で移動
+            decelerateDuration: 2000, // 2秒で減速
+            totalDuration: 8000, // 合計8秒
+            startPosition: new THREE.Vector3(0, 1.6, -500), // 遥か彼方からスタート
+            targetPosition: new THREE.Vector3(0, 1.6, 5), // 最終位置
+            currentPosition: new THREE.Vector3(),
+            speed: 0,
+            maxSpeed: 150 // 最大速度
+        };
+
+        // MRへの切り替えエフェクト
+        let mrTransition = {
+            active: false,
+            progress: 0,
+            duration: 3000, // 3秒でMRに切り替え
+            startTime: 0
+        };
+
+        // ワープエフェクトの計算
+        function updateWarpEffect() {
+            if (!warpEffect.active) return;
+
+            const currentTime = Date.now();
+            const elapsed = currentTime - warpEffect.startTime;
+
+            // フェーズ判定
+            if (elapsed < warpEffect.waitDuration) {
+                warpEffect.phase = 'waiting';
+            } else if (elapsed < warpEffect.waitDuration + warpEffect.accelerateDuration) {
+                warpEffect.phase = 'accelerating';
+            } else if (elapsed < warpEffect.waitDuration + warpEffect.accelerateDuration + warpEffect.cruiseDuration) {
+                warpEffect.phase = 'cruising';
+            } else if (elapsed < warpEffect.totalDuration) {
+                warpEffect.phase = 'decelerating';
+            } else {
+                warpEffect.phase = 'arrived';
+                warpEffect.active = false;
+                // ワープ完了後、MR切り替えを開始
+                startMRTransition();
+                return;
+            }
+
+            // 待機フェーズ
+            if (warpEffect.phase === 'waiting') {
+                warpEffect.currentPosition.copy(warpEffect.startPosition);
+                warpEffect.speed = 0;
+                return;
+            }
+
+            // 移動時間の計算
+            const moveStartTime = warpEffect.waitDuration;
+            const moveDuration = warpEffect.totalDuration - warpEffect.waitDuration;
+            const moveElapsed = elapsed - moveStartTime;
+            const moveProgress = Math.min(1, moveElapsed / moveDuration);
+
+            // カーブを描く進行度（イージング関数）
+            let easedProgress;
+            if (warpEffect.phase === 'accelerating') {
+                const phaseProgress = (elapsed - warpEffect.waitDuration) / warpEffect.accelerateDuration;
+                easedProgress = 0.5 * phaseProgress * phaseProgress; // 加速カーブ
+            } else if (warpEffect.phase === 'cruising') {
+                const prevProgress = 0.5 * 1 * 1; // 加速終了時の進行度
+                const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration) / warpEffect.cruiseDuration;
+                easedProgress = prevProgress + phaseProgress * 0.3; // 線形移動
+            } else if (warpEffect.phase === 'decelerating') {
+                const prevProgress = 0.5 + 0.3; // 巡航終了時の進行度
+                const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration - warpEffect.cruiseDuration) / warpEffect.decelerateDuration;
+                easedProgress = prevProgress + 0.2 * (1 - 0.5 * (1 - phaseProgress) * (1 - phaseProgress)); // 減速カーブ
+            }
+
+            // 位置の補間
+            warpEffect.currentPosition.lerpVectors(warpEffect.startPosition, warpEffect.targetPosition, easedProgress);
+            userPosition.copy(warpEffect.currentPosition);
+            updateUserPosition();
+
+            // 速度の計算（視覚効果用）
+            if (warpEffect.phase === 'accelerating') {
+                const phaseProgress = (elapsed - warpEffect.waitDuration) / warpEffect.accelerateDuration;
+                warpEffect.speed = warpEffect.maxSpeed * phaseProgress;
+            } else if (warpEffect.phase === 'cruising') {
+                warpEffect.speed = warpEffect.maxSpeed;
+            } else if (warpEffect.phase === 'decelerating') {
+                const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration - warpEffect.cruiseDuration) / warpEffect.decelerateDuration;
+                warpEffect.speed = warpEffect.maxSpeed * (1 - phaseProgress);
+            }
+        }
+
+        // MRへの切り替えを開始
+        function startMRTransition() {
+            mrTransition.active = true;
+            mrTransition.startTime = Date.now();
+            mrTransition.progress = 0;
+        }
+
+        // MR切り替えエフェクトの更新
+        function updateMRTransition() {
+            if (!mrTransition.active) return;
+
+            const elapsed = Date.now() - mrTransition.startTime;
+            mrTransition.progress = Math.min(1, elapsed / mrTransition.duration);
+
+            // VRからMRへの滑らかな切り替え
+            const progress = mrTransition.progress;
+            
+            // 宇宙背景のフェードアウト
+            if (spaceStars && spaceStars.material) {
+                spaceStars.material.opacity = Math.max(0, 1 - progress);
+            }
+            if (backgroundSphere && backgroundSphere.material) {
+                backgroundSphere.material.opacity = Math.max(0, 1 - progress);
+            }
+            
+            // 通常の星空のフェードイン
+            if (originalStars && originalStars.material) {
+                originalStars.material.opacity = Math.min(1, progress);
+            }
+
+            // 完了処理
+            if (mrTransition.progress >= 1) {
+                mrTransition.active = false;
+                
+                // MRモードに完全切り替え完了
+                spaceMode = false;
+                
+                // 表示状態の最終調整
+                if (spaceStars) {
+                    spaceStars.visible = false;
+                    spaceStars.material.opacity = 0;
+                }
+                if (backgroundSphere) {
+                    backgroundSphere.visible = false;
+                    backgroundSphere.material.opacity = 0;
+                }
+                if (originalStars) {
+                    originalStars.visible = true;
+                    originalStars.material.opacity = 1;
+                }
+                
+                // 軌道線を表示
+                toggleOrbitVisibility(true);
+            }
+        }
+
+        // ワープエフェクトを開始
+        function startWarpEffect() {
+            warpEffect.active = true;
+            warpEffect.phase = 'waiting';
+            warpEffect.startTime = Date.now();
+            warpEffect.currentPosition.copy(warpEffect.startPosition);
+            userPosition.copy(warpEffect.startPosition);
+            
+            // 最初はVRモードで開始
+            spaceMode = true;
+            
+            // VRモード用の表示状態を設定
+            if (spaceStars) {
+                spaceStars.visible = true;
+                spaceStars.material.opacity = 1;
+            }
+            if (backgroundSphere) {
+                backgroundSphere.visible = true;
+                backgroundSphere.material.opacity = 1;
+            }
+            if (originalStars) {
+                originalStars.visible = false;
+                originalStars.material.opacity = 0;
+            }
+            
+            // VRモードでは軌道線を非表示
+            toggleOrbitVisibility(false);
+            
+            updateUserPosition();
+        }
 
         // 惑星データ
         const planetData = [
@@ -2538,9 +2720,6 @@
             solarSystemGroup.position.set(0, 1, -2);
             scene.add(solarSystemGroup);
             registerUniverseElement(solarSystemGroup);
-            
-            // 初期ユーザー位置を設定
-            updateUserPosition();
 
             // 星空
             const stars = createStarField();
@@ -3321,388 +3500,7 @@
             clearHighlight(1);
         }
 
-        // ワープエフェクト用の変数
-        let warpState = {
-            active: false,
-            phase: 'idle', // 'idle', 'waiting', 'warping', 'arriving', 'completed'
-            progress: 0,
-            speed: 0,
-            startPosition: new THREE.Vector3(),
-            targetPosition: new THREE.Vector3(0, 1.6, 5),
-            currentPosition: new THREE.Vector3(),
-            startTime: 0,
-            waitTime: 1000, // 1秒待機
-            warpDuration: 4000, // 4秒でワープ
-            isVRMode: true
-        };
-
-        // ワープエフェクト用の星のトレイル
-        let warpStarTrails = [];
-        let warpStarGroup = null;
-
-        // 初期ワープエフェクトのセットアップ
-        function setupWarpEffect() {
-            // 非常に遠い位置に設定（太陽系の1000倍の距離）
-            const distance = 1000;
-            const angle = Math.random() * Math.PI * 2;
-            warpState.startPosition.set(
-                Math.cos(angle) * distance,
-                50 + Math.random() * 100, // 上方向からのアプローチ
-                Math.sin(angle) * distance
-            );
-
-            // ワープエフェクト用の星のトレイルを作成
-            createWarpStarTrails();
-            
-            // 初期位置にカメラを設定
-            userPosition.copy(warpState.startPosition);
-            warpState.currentPosition.copy(warpState.startPosition);
-        }
-
-        // ワープ用星のトレイル作成
-        function createWarpStarTrails() {
-            if (warpStarGroup) {
-                scene.remove(warpStarGroup);
-            }
-            
-            warpStarGroup = new THREE.Group();
-            warpStarTrails = [];
-
-            // ワープ中に見える星のトレイルを作成
-            for (let i = 0; i < 300; i++) {
-                const geometry = new THREE.BufferGeometry();
-                const positions = [];
-                const colors = [];
-                
-                // 各星のトレイルは複数のポイントで構成
-                const trailLength = 20 + Math.random() * 30;
-                for (let j = 0; j < trailLength; j++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = 10 + Math.random() * 800;
-                    const height = (Math.random() - 0.5) * 400;
-                    
-                    // トレイル方向の軌跡
-                    const trailOffset = j * 2;
-                    positions.push(
-                        Math.cos(angle) * radius,
-                        height,
-                        Math.sin(angle) * radius - trailOffset
-                    );
-                    
-                    // カラフルな星の色（青、白、黄、赤の恒星色）
-                    const starType = Math.random();
-                    let r, g, b;
-                    if (starType < 0.1) {
-                        // 青色巨星
-                        r = 0.6; g = 0.8; b = 1.0;
-                    } else if (starType < 0.3) {
-                        // 白色星
-                        r = 1.0; g = 1.0; b = 1.0;
-                    } else if (starType < 0.7) {
-                        // 黄色星
-                        r = 1.0; g = 1.0; b = 0.7;
-                    } else {
-                        // 赤色巨星
-                        r = 1.0; g = 0.7; b = 0.5;
-                    }
-                    
-                    const intensity = 1 - (j / trailLength);
-                    colors.push(r * intensity, g * intensity, b * intensity);
-                }
-                
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                
-                const material = new THREE.PointsMaterial({
-                    size: 0.3 + Math.random() * 1.0,
-                    transparent: true,
-                    opacity: 0,
-                    vertexColors: true,
-                    blending: THREE.AdditiveBlending
-                });
-                
-                const starTrail = new THREE.Points(geometry, material);
-                starTrail.userData = {
-                    originalAngle: Math.random() * Math.PI * 2,
-                    speed: 0.5 + Math.random() * 2.0,
-                    radius: 100 + Math.random() * 500
-                };
-                
-                warpStarTrails.push(starTrail);
-                warpStarGroup.add(starTrail);
-            }
-            
-            // ワープトンネルエフェクト
-            const tunnelGeometry = new THREE.CylinderGeometry(50, 200, 1000, 32, 1, true);
-            const tunnelMaterial = new THREE.MeshBasicMaterial({
-                color: 0x001133,
-                transparent: true,
-                opacity: 0,
-                side: THREE.BackSide,
-                blending: THREE.AdditiveBlending
-            });
-            const warpTunnel = new THREE.Mesh(tunnelGeometry, tunnelMaterial);
-            warpTunnel.rotation.x = Math.PI / 2;
-            warpStarGroup.add(warpTunnel);
-            warpStarTrails.push(warpTunnel);
-            
-            scene.add(warpStarGroup);
-        }
-
-        // ワープエフェクトの開始
-        function startWarp() {
-            warpState.active = true;
-            warpState.phase = 'waiting';
-            warpState.startTime = Date.now();
-            warpState.progress = 0;
-            warpState.speed = 0;
-            
-            // ワープ開始音
-            playWarpSound();
-            
-            console.log('ワープエフェクト開始 - 1秒待機後にワープ開始');
-        }
-
-        // ワープ音響効果
-        function playWarpSound() {
-            if (!audioContext) {
-                try {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                } catch (error) {
-                    return;
-                }
-            }
-
-            try {
-                const now = audioContext.currentTime;
-                
-                // 低周波ワープサウンド（宇宙の広がりを表現）
-                const warpOsc = audioContext.createOscillator();
-                const warpGain = audioContext.createGain();
-                warpOsc.connect(warpGain);
-                warpGain.connect(audioContext.destination);
-                
-                warpOsc.frequency.setValueAtTime(40, now);
-                warpOsc.frequency.exponentialRampToValueAtTime(200, now + 3);
-                warpOsc.frequency.exponentialRampToValueAtTime(80, now + 6);
-                warpOsc.type = 'sawtooth';
-                
-                warpGain.gain.setValueAtTime(0, now);
-                warpGain.gain.linearRampToValueAtTime(0.3, now + 1);
-                warpGain.gain.linearRampToValueAtTime(0.2, now + 4);
-                warpGain.gain.exponentialRampToValueAtTime(0.001, now + 6);
-                
-                // 高周波エフェクト（星の通過音）
-                const starOsc = audioContext.createOscillator();
-                const starGain = audioContext.createGain();
-                starOsc.connect(starGain);
-                starGain.connect(audioContext.destination);
-                
-                starOsc.frequency.setValueAtTime(1000, now + 1);
-                starOsc.frequency.exponentialRampToValueAtTime(3000, now + 2);
-                starOsc.frequency.exponentialRampToValueAtTime(1500, now + 5);
-                starOsc.type = 'sine';
-                
-                starGain.gain.setValueAtTime(0, now);
-                starGain.gain.linearRampToValueAtTime(0.15, now + 1.5);
-                starGain.gain.exponentialRampToValueAtTime(0.001, now + 5);
-                
-                // 到着音（美しいハーモニー）
-                const arrivalOsc = audioContext.createOscillator();
-                const arrivalGain = audioContext.createGain();
-                arrivalOsc.connect(arrivalGain);
-                arrivalGain.connect(audioContext.destination);
-                
-                arrivalOsc.frequency.setValueAtTime(440, now + 5);
-                arrivalOsc.frequency.exponentialRampToValueAtTime(880, now + 6);
-                arrivalOsc.type = 'triangle';
-                
-                arrivalGain.gain.setValueAtTime(0, now + 5);
-                arrivalGain.gain.linearRampToValueAtTime(0.2, now + 5.5);
-                arrivalGain.gain.exponentialRampToValueAtTime(0.001, now + 7);
-                
-                // 再生開始
-                warpOsc.start(now);
-                warpOsc.stop(now + 6);
-                
-                starOsc.start(now + 1);
-                starOsc.stop(now + 5);
-                
-                arrivalOsc.start(now + 5);
-                arrivalOsc.stop(now + 7);
-                
-            } catch (error) {
-                console.log('ワープ音響エフェクトエラー:', error);
-            }
-        }
-
-        // ワープエフェクトの更新
-        function updateWarpEffect() {
-            if (!warpState.active) return;
-
-            const currentTime = Date.now();
-            const elapsedTime = currentTime - warpState.startTime;
-
-            switch (warpState.phase) {
-                case 'waiting':
-                    // 1秒待機
-                    if (elapsedTime >= warpState.waitTime) {
-                        warpState.phase = 'warping';
-                        warpState.startTime = currentTime;
-                        console.log('ワープ開始');
-                    }
-                    break;
-
-                case 'warping':
-                    // ワープ中のアニメーション
-                    const warpProgress = Math.min(1, elapsedTime / warpState.warpDuration);
-                    
-                    // イージング関数（加速→減速のカーブ）
-                    const easedProgress = easeInOutCubic(warpProgress);
-                    
-                    // 位置の補間
-                    warpState.currentPosition.lerpVectors(
-                        warpState.startPosition,
-                        warpState.targetPosition,
-                        easedProgress
-                    );
-                    
-                    // ユーザー位置を更新
-                    userPosition.copy(warpState.currentPosition);
-                    
-                    // 星のトレイルエフェクト
-                    updateWarpStarTrails(warpProgress);
-                    
-                    // ワープ完了チェック
-                    if (warpProgress >= 1) {
-                        warpState.phase = 'arriving';
-                        warpState.startTime = currentTime;
-                        console.log('太陽系到着 - MRモードに移行開始');
-                    }
-                    break;
-
-                case 'arriving':
-                    // 到着時のMR移行
-                    const arrivalProgress = Math.min(1, elapsedTime / 2000); // 2秒でMR移行
-                    
-                    if (arrivalProgress >= 1) {
-                        warpState.phase = 'completed';
-                        warpState.active = false;
-                        
-                        // ワープエフェクトのクリーンアップ
-                        cleanupWarpEffect();
-                        
-                        // MRモードに移行
-                        transitionToMRMode();
-                        
-                        console.log('ワープエフェクト完了 - MRモード開始');
-                    }
-                    break;
-            }
-        }
-
-        // ワープ用星のトレイル更新
-        function updateWarpStarTrails(progress) {
-            warpStarTrails.forEach((trail, index) => {
-                if (trail.material) {
-                    // ワープ進行に応じて透明度を調整（より自然な曲線）
-                    const opacity = Math.sin(progress * Math.PI) * (0.4 + Math.sin(progress * Math.PI * 2) * 0.3);
-                    trail.material.opacity = Math.max(0, opacity);
-                    
-                    // トンネルエフェクトの場合
-                    if (trail.geometry && trail.geometry.type === 'CylinderGeometry') {
-                        trail.material.opacity = Math.sin(progress * Math.PI) * 0.3;
-                        trail.rotation.z += progress * 0.005;
-                        return;
-                    }
-                    
-                    // 星のトレイルを動かす（より複雑な動き）
-                    if (trail.userData) {
-                        const speed = progress * trail.userData.speed;
-                        const time = Date.now() * 0.001;
-                        
-                        // 螺旋状の動き
-                        trail.rotation.y += speed * 0.01;
-                        trail.rotation.z += speed * 0.005;
-                        
-                        // 位置の変化（前進効果）
-                        trail.position.z = Math.sin(time + trail.userData.originalAngle) * 50 - progress * 100;
-                        
-                        // 位置をリセット
-                        if (trail.position.z < -200) {
-                            trail.position.z = 200;
-                        }
-                        
-                        // サイズの変化（ドップラー効果のような）
-                        if (trail.material.size !== undefined) {
-                            trail.material.size = (0.3 + Math.random() * 1.0) * (1 + progress * 2);
-                        }
-                    } else {
-                        // 基本的な星の動き
-                        const speed = progress * 8;
-                        trail.rotation.z += speed * 0.02;
-                        trail.position.z -= speed;
-                        
-                        if (trail.position.z < -100) {
-                            trail.position.z = 100;
-                        }
-                    }
-                }
-            });
-        }
-
-        // ワープエフェクトのクリーンアップ
-        function cleanupWarpEffect() {
-            if (warpStarGroup) {
-                scene.remove(warpStarGroup);
-                warpStarGroup = null;
-            }
-            warpStarTrails = [];
-        }
-
-        // MRモードへの移行
-        async function transitionToMRMode() {
-            if (!xrActive) return;
-            
-            try {
-                // 現在のセッションを終了してMRセッションを開始
-                if (renderer.xr.getSession()) {
-                    const currentSession = renderer.xr.getSession();
-                    await currentSession.end();
-                }
-                
-                // MRセッションを開始
-                setTimeout(async () => {
-                    try {
-                        const sessionInit = { 
-                            requiredFeatures: ['local-floor'],
-                            optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection']
-                        };
-                        
-                        const arSession = await navigator.xr.requestSession('immersive-ar', sessionInit);
-                        await renderer.xr.setSession(arSession);
-                        
-                        // コントローラーを再セットアップ
-                        setupXRControllers();
-                        
-                        console.log('MRモードに正常に移行しました');
-                        
-                    } catch (error) {
-                        console.log('AR失敗、VRモードを継続:', error);
-                    }
-                }, 500);
-                
-            } catch (error) {
-                console.log('MR移行エラー:', error);
-            }
-        }
-
-        // イージング関数
-        function easeInOutCubic(t) {
-            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-        }
-
-        // XRセッション開始（VRモードから開始）
+        // XRセッション開始
         async function startXRSession() {
             if (!xrSupported || !dataLoaded) return;
 
@@ -3717,29 +3515,28 @@
                     }
                 }
 
-                // 最初は必ずVRモードで開始
-                const sessionInit = { 
+                let sessionInit = { 
                     requiredFeatures: ['local-floor'],
                     optionalFeatures: ['hand-tracking', 'anchors', 'plane-detection']
                 };
                 
                 let session;
+                // まずVRモードで開始する
                 try {
-                    // VRセッションを開始
                     session = await navigator.xr.requestSession('immersive-vr', sessionInit);
                 } catch (vrError) {
-                    // VR失敗時はARで開始
+                    // VRが使用できない場合はARで開始
                     session = await navigator.xr.requestSession('immersive-ar', sessionInit);
                 }
 
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 
-                // ワープエフェクトの初期化
-                setupWarpEffect();
-                
                 // XRセッション開始後にコントローラーをセットアップ
                 setupXRControllers();
+                
+                // ワープエフェクトを開始
+                startWarpEffect();
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -3747,18 +3544,8 @@
                 document.getElementById('troubleshooting').style.display = 'none';
                 document.getElementById('info-panel').style.display = 'block';
 
-                // ワープエフェクト開始
-                setTimeout(() => {
-                    startWarp();
-                }, 500); // 0.5秒後にワープ開始
-
                 session.addEventListener('end', () => {
                     xrActive = false;
-                    
-                    // ワープエフェクトのクリーンアップ
-                    cleanupWarpEffect();
-                    warpState.active = false;
-                    warpState.phase = 'idle';
                     
                     // BGM停止
                     if (bgMusic) {
@@ -3779,9 +3566,6 @@
                     document.getElementById('instructions').style.display = 'block';
                     document.getElementById('troubleshooting').style.display = 'block';
                     document.getElementById('info-panel').style.display = 'none';
-                    
-                    // ユーザー位置をリセット
-                    userPosition.set(0, 1.6, 5);
                 });
 
             } catch (error) {
@@ -3797,6 +3581,9 @@
 
             // ワープエフェクトの更新
             updateWarpEffect();
+            
+            // MR切り替えエフェクトの更新
+            updateMRTransition();
 
             // 太陽のスケールアニメーション
             if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
