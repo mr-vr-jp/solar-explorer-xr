@@ -1962,6 +1962,9 @@
             // 有名な星座を作成
             createConstellations();
             
+            // レンズフレアシステムを初期化
+            initLensFlare();
+            
             // 惑星作成
             planetData.forEach((data, index) => {
                 const geometry = new THREE.SphereGeometry(data.size, 64, 32); // より高品質なジオメトリ
@@ -2756,6 +2759,9 @@
                 }
             });
 
+            // レンズフレア更新
+            updateLensFlare();
+
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
             // 情報パネル表示中もレイキャストは継続（ハイライト処理のみ停止）
             if (xrActive && controllers.length > 0) {
@@ -3068,6 +3074,226 @@
 
         // 移動対象となる宇宙要素のリスト
         let universeElements = [];
+        let lensFlareGroup = null; // レンズフレアグループ
+        let lensFlareElements = []; // レンズフレア要素の配列
+
+        // レンズフレア用テクスチャ作成
+        function createLensFlareTexture(type, size = 128) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            const centerX = size / 2;
+            const centerY = size / 2;
+            
+            switch(type) {
+                case 'main':
+                    // メインフレア（太陽の直接光）
+                    const mainGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size/2);
+                    mainGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+                    mainGradient.addColorStop(0.1, 'rgba(255, 255, 200, 0.8)');
+                    mainGradient.addColorStop(0.3, 'rgba(255, 220, 100, 0.6)');
+                    mainGradient.addColorStop(0.6, 'rgba(255, 180, 50, 0.3)');
+                    mainGradient.addColorStop(1, 'rgba(255, 150, 0, 0)');
+                    ctx.fillStyle = mainGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    break;
+                    
+                case 'ring':
+                    // リング状フレア
+                    const ringGradient = ctx.createRadialGradient(centerX, centerY, size*0.2, centerX, centerY, size*0.5);
+                    ringGradient.addColorStop(0, 'rgba(100, 200, 255, 0)');
+                    ringGradient.addColorStop(0.3, 'rgba(150, 220, 255, 0.4)');
+                    ringGradient.addColorStop(0.6, 'rgba(200, 240, 255, 0.6)');
+                    ringGradient.addColorStop(0.8, 'rgba(150, 200, 255, 0.3)');
+                    ringGradient.addColorStop(1, 'rgba(100, 150, 255, 0)');
+                    ctx.fillStyle = ringGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    break;
+                    
+                case 'hex':
+                    // 六角形フレア（絞りの形）
+                    ctx.fillStyle = 'rgba(0, 150, 255, 0.4)';
+                    ctx.beginPath();
+                    for(let i = 0; i < 6; i++) {
+                        const angle = (i / 6) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle) * size * 0.3;
+                        const y = centerY + Math.sin(angle) * size * 0.3;
+                        if(i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // 中央の明るい部分
+                    const hexGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size*0.2);
+                    hexGradient.addColorStop(0, 'rgba(200, 255, 255, 0.6)');
+                    hexGradient.addColorStop(1, 'rgba(100, 200, 255, 0)');
+                    ctx.fillStyle = hexGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    break;
+                    
+                case 'ghost':
+                    // ゴーストフレア（副次反射）
+                    const ghostGradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, size*0.4);
+                    ghostGradient.addColorStop(0, 'rgba(255, 200, 100, 0.5)');
+                    ghostGradient.addColorStop(0.5, 'rgba(255, 150, 50, 0.3)');
+                    ghostGradient.addColorStop(1, 'rgba(255, 100, 0, 0)');
+                    ctx.fillStyle = ghostGradient;
+                    ctx.fillRect(0, 0, size, size);
+                    break;
+                    
+                case 'streak':
+                    // 光線状フレア
+                    ctx.fillStyle = 'rgba(255, 255, 200, 0.3)';
+                    ctx.fillRect(centerX - 1, 0, 2, size); // 縦線
+                    ctx.fillRect(0, centerY - 1, size, 2); // 横線
+                    
+                    // 対角線
+                    ctx.save();
+                    ctx.translate(centerX, centerY);
+                    ctx.rotate(Math.PI / 4);
+                    ctx.fillRect(-1, -size/2, 2, size);
+                    ctx.rotate(Math.PI / 2);
+                    ctx.fillRect(-1, -size/2, 2, size);
+                    ctx.restore();
+                    break;
+            }
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // レンズフレアシステム初期化
+        function initLensFlare() {
+            lensFlareGroup = new THREE.Group();
+            lensFlareGroup.name = 'lensFlareGroup';
+            scene.add(lensFlareGroup);
+            
+            // 各種レンズフレア要素を作成
+            const flareConfigs = [
+                // メインフレア（太陽位置）
+                { type: 'main', size: 2.0, position: 1.0, color: new THREE.Color(1, 1, 0.8), opacity: 0.8 },
+                
+                // 光線フレア
+                { type: 'streak', size: 6.0, position: 1.0, color: new THREE.Color(1, 1, 0.9), opacity: 0.4 },
+                
+                // 副次フレア（画面中央側）
+                { type: 'ring', size: 0.8, position: 0.7, color: new THREE.Color(0.6, 0.8, 1), opacity: 0.5 },
+                { type: 'hex', size: 0.6, position: 0.5, color: new THREE.Color(0.8, 0.9, 1), opacity: 0.4 },
+                { type: 'ghost', size: 1.2, position: 0.3, color: new THREE.Color(1, 0.8, 0.4), opacity: 0.3 },
+                { type: 'ring', size: 0.4, position: 0.1, color: new THREE.Color(0.7, 0.9, 1), opacity: 0.6 },
+                
+                // 反対側のフレア
+                { type: 'ghost', size: 0.5, position: -0.2, color: new THREE.Color(1, 0.7, 0.3), opacity: 0.3 },
+                { type: 'ring', size: 0.3, position: -0.4, color: new THREE.Color(0.5, 0.7, 1), opacity: 0.4 }
+            ];
+            
+            flareConfigs.forEach((config, index) => {
+                const texture = createLensFlareTexture(config.type, 128);
+                const material = new THREE.SpriteMaterial({
+                    map: texture,
+                    color: config.color,
+                    transparent: true,
+                    opacity: 0, // 初期状態では非表示
+                    blending: THREE.AdditiveBlending,
+                    depthWrite: false,
+                    depthTest: false
+                });
+                
+                const sprite = new THREE.Sprite(material);
+                sprite.scale.set(config.size, config.size, 1);
+                sprite.userData = {
+                    baseOpacity: config.opacity,
+                    flarePosition: config.position,
+                    baseSize: config.size
+                };
+                
+                lensFlareElements.push(sprite);
+                lensFlareGroup.add(sprite);
+            });
+            
+            console.log('レンズフレアシステム初期化完了');
+            
+            // レンズフレアグループも宇宙要素として登録
+            registerUniverseElement(lensFlareGroup);
+        }
+
+        // レンズフレア更新（毎フレーム呼び出し）
+        function updateLensFlare() {
+            if (!lensFlareGroup || lensFlareElements.length === 0) return;
+            
+            // 太陽の位置を取得
+            const sunPlanet = planets.find(p => p.data.name === '太陽');
+            if (!sunPlanet) return;
+            
+            // 太陽のワールド座標を取得
+            const sunWorldPosition = new THREE.Vector3();
+            sunPlanet.mesh.getWorldPosition(sunWorldPosition);
+            
+            // 太陽のスクリーン座標を計算
+            const sunScreenPosition = sunWorldPosition.clone().project(camera);
+            
+            // 太陽が画面内にあるかチェック
+            const isVisible = sunScreenPosition.x >= -1 && sunScreenPosition.x <= 1 && 
+                             sunScreenPosition.y >= -1 && sunScreenPosition.y <= 1 && 
+                             sunScreenPosition.z >= 0 && sunScreenPosition.z <= 1;
+            
+            // カメラから太陽への距離を計算
+            const cameraToSun = new THREE.Vector3().subVectors(sunWorldPosition, camera.position);
+            const distance = cameraToSun.length();
+            
+            // 太陽の可視性と距離に基づく強度計算
+            let intensity = 0;
+            if (isVisible && distance > 0) {
+                // 距離による減衰（近すぎると強すぎるので調整）
+                const distanceFactor = Math.min(1, Math.max(0.1, 5 / distance));
+                
+                // 画面中央からの距離による減衰
+                const centerDistance = Math.sqrt(sunScreenPosition.x * sunScreenPosition.x + sunScreenPosition.y * sunScreenPosition.y);
+                const screenFactor = Math.max(0, 1 - centerDistance * 0.5);
+                
+                intensity = distanceFactor * screenFactor * 0.8; // 全体的な強度調整
+            }
+            
+            // 各レンズフレア要素を更新
+            lensFlareElements.forEach((sprite, index) => {
+                if (!sprite.userData) return;
+                
+                const flarePos = sprite.userData.flarePosition;
+                const baseOpacity = sprite.userData.baseOpacity;
+                
+                if (intensity > 0 && isVisible) {
+                    // フレア要素の位置を計算（太陽と画面中央を結ぶ線上）
+                    const screenX = sunScreenPosition.x * (1 - flarePos);
+                    const screenY = sunScreenPosition.y * (1 - flarePos);
+                    
+                    // スクリーン座標をワールド座標に変換
+                    const worldPosition = new THREE.Vector3(screenX, screenY, 0.99);
+                    worldPosition.unproject(camera);
+                    
+                    // カメラの向きを考慮してスプライトを配置
+                    const directionToCamera = new THREE.Vector3().subVectors(camera.position, worldPosition).normalize();
+                    worldPosition.add(directionToCamera.multiplyScalar(0.1));
+                    
+                    sprite.position.copy(worldPosition);
+                    
+                    // 透明度設定
+                    sprite.material.opacity = baseOpacity * intensity;
+                    
+                    // サイズのアニメーション（微細な変動）
+                    const sizeVariation = 1 + Math.sin(time * 3 + index) * 0.1;
+                    const finalSize = sprite.userData.baseSize * (0.8 + intensity * 0.4) * sizeVariation;
+                    sprite.scale.set(finalSize, finalSize, 1);
+                    
+                    sprite.visible = true;
+                } else {
+                    // 太陽が見えない時は非表示
+                    sprite.material.opacity = 0;
+                    sprite.visible = false;
+                }
+            });
+        }
 
         // ユーザー位置の更新
         function updateUserPosition() {
