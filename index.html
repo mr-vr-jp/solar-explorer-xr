@@ -2195,12 +2195,9 @@
         function onSelectStart(event, hand) {
             console.log('トリガー押下:', hand, 'パネル存在:', !!planetInfoPanel, '表示状態:', planetInfoVisible, 'クローズ中:', panelClosing);
             
-            // 情報パネルが存在しクローズ中でない場合は閉じる
-            if ((planetInfoPanel || planetInfoVisible) && !panelClosing) {
-                console.log('情報パネルを閉じます');
-                hide3DPlanetInfo();
-                return; // モード切り替えは行わない
-            }
+            // このコントローラーのインデックスを取得
+            const controllerIndex = hand === 'left' ? 0 : 1;
+            const thisControllerHighlight = highlightedPlanets[controllerIndex];
             
             // パネルクローズ処理中は何もしない
             if (panelClosing) {
@@ -2208,9 +2205,12 @@
                 return;
             }
             
-            // このコントローラーのインデックスを取得
-            const controllerIndex = hand === 'left' ? 0 : 1;
-            const thisControllerHighlight = highlightedPlanets[controllerIndex];
+            // 情報パネルが表示中の場合は閉じる
+            if (planetInfoPanel && planetInfoVisible) {
+                console.log('情報パネルを閉じます');
+                hide3DPlanetInfo();
+                return;
+            }
             
             if (spaceMode) {
                 // 宇宙空間モードの場合
@@ -2419,16 +2419,61 @@
         }
 
         function show3DPlanetInfo(planetData) {
-            // 既存のパネルを即座に完全削除
+            console.log('show3DPlanetInfo called for:', planetData.name, 'Current state - visible:', planetInfoVisible, 'closing:', panelClosing, 'panel exists:', !!planetInfoPanel);
+            
+            // 強制的に既存パネルをクリーンアップ
+            forceCleanupPanel();
+            
+            // 新しいパネルを作成
+            setTimeout(() => {
+                createNewInfoPanel(planetData);
+            }, 100); // 短時間待ってから作成
+        }
+        
+        function forceCleanupPanel() {
+            console.log('Force cleanup panel');
+            
             if (planetInfoPanel) {
-                removePlanetInfoPanel();
+                try {
+                    if (planetInfoPanel.parent) {
+                        planetInfoPanel.parent.remove(planetInfoPanel);
+                    }
+                    scene.remove(planetInfoPanel);
+                    
+                    if (planetInfoPanel.material) {
+                        if (planetInfoPanel.material.map) {
+                            planetInfoPanel.material.map.dispose();
+                        }
+                        planetInfoPanel.material.dispose();
+                    }
+                    
+                    if (planetInfoPanel.geometry) {
+                        planetInfoPanel.geometry.dispose();
+                    }
+                } catch (error) {
+                    console.error('Error during panel cleanup:', error);
+                }
+                
+                planetInfoPanel = null;
             }
+            
+            // 状態を完全にリセット
+            planetInfoVisible = false;
+            panelClosing = false;
+            panelFadeAnimation.opacity = 0;
+            panelFadeAnimation.target = 0;
+            
+            console.log('Panel cleanup completed');
+        }
+        
+        function createNewInfoPanel(planetData) {
+            console.log('Creating new info panel for:', planetData.name);
             
             // 効果音を再生
             playInfoPanelSound();
             
             const texture = create3DInfoPanel(planetData);
-            const geometry = new THREE.PlaneGeometry(0.35, 0.4); // サイズを調整
+            const geometry = new THREE.PlaneGeometry(0.35, 0.4);
             const material = new THREE.MeshBasicMaterial({ 
                 map: texture, 
                 transparent: true,
@@ -2442,27 +2487,26 @@
             // 左手コントローラーの位置に配置
             if (controllers.length > 0 && controllers[0]) {
                 controllers[0].add(planetInfoPanel);
-                // コントローラーから少し前方に配置
                 planetInfoPanel.position.set(0, 0.1, -0.2);
-                planetInfoPanel.rotation.x = -Math.PI / 6; // 少し下向きに
+                planetInfoPanel.rotation.x = -Math.PI / 6;
             } else {
-                // コントローラーがない場合はシーンに直接追加
                 scene.add(planetInfoPanel);
                 planetInfoPanel.position.set(-0.5, 1.8, -1);
             }
             
+            // 状態を設定
             planetInfoVisible = true;
-            
-            // クローズフラグをリセット（新しいパネル表示時）
             panelClosing = false;
             
             // フェードインアニメーション開始
             panelFadeAnimation.target = 1;
             panelFadeAnimation.opacity = 0;
+            
+            console.log('New panel created and fade-in started');
         }
 
         function hide3DPlanetInfo() {
-            console.log('hide3DPlanetInfo called, panel exists:', !!planetInfoPanel);
+            console.log('hide3DPlanetInfo called, panel exists:', !!planetInfoPanel, 'closing:', panelClosing, 'visible:', planetInfoVisible);
             
             if (planetInfoPanel && !panelClosing) {
                 // クローズ処理中フラグを設定
@@ -2474,11 +2518,19 @@
                 
                 // 表示状態を即座に更新（トリガー判定用）
                 planetInfoVisible = false;
+            } else if (!planetInfoPanel) {
+                console.log('No panel to hide, resetting states');
+                // パネルがない場合も状態をリセット
+                forceCleanupPanel();
+            } else if (panelClosing) {
+                console.log('Panel already closing');
             }
         }
 
         // パネルを完全に削除する関数
         function removePlanetInfoPanel() {
+            console.log('removePlanetInfoPanel called');
+            
             if (planetInfoPanel) {
                 if (planetInfoPanel.parent) {
                     planetInfoPanel.parent.remove(planetInfoPanel);
@@ -2498,6 +2550,7 @@
                 }
                 
                 planetInfoPanel = null;
+                console.log('Panel removed and disposed');
             }
             
             // 状態を確実にリセット
@@ -2505,6 +2558,8 @@
             panelClosing = false;
             panelFadeAnimation.opacity = 0;
             panelFadeAnimation.target = 0;
+            
+            console.log('States reset - visible:', planetInfoVisible, 'closing:', panelClosing);
         }
 
         // ハイライト効果
