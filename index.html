@@ -197,9 +197,9 @@
         <div id="instructions">
             <h3 class="highlight" style="margin: 0 0 10px 0;">🌟 操作方法</h3>
             <div>• 移動：片手グリップ+ドラッグ</div>
-            <div>• 拡大/縮小：両手グリップ</div>
-            <div>• 惑星クリック：VR+情報表示</div>
-            <div>• 空間クリック：MR復帰</div>
+            <div>• 拡大/縮小：両手グリップ（宇宙全体）</div>
+            <div>• 惑星クリック：中心変更+VR+情報表示</div>
+            <div>• 空間クリック：MR復帰+太陽中心</div>
         </div>
 
         <div id="troubleshooting">
@@ -213,6 +213,7 @@
                 🥽 MRモード：アクティブ
             </div>
             <div>スケール: <span id="scale-value">1.00</span>x</div>
+            <div>中心: <span id="scale-center">太陽</span></div>
             <div>両手グリップ: <span id="grip-status">OFF</span></div>
         </div>
 
@@ -257,7 +258,7 @@
         let controllers = []; // 配列ベースに変更
         let gripStates = { left: false, right: false };
         let lastDistance = 0;
-        let scaleFactor = 1;
+        let scaleFactor = 1; // 後方互換性のため保持（非推奨）
         let xrSupported = false;
         let xrActive = false;
         let raycaster = new THREE.Raycaster();
@@ -288,6 +289,11 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
+        
+        // 新しいスケーリングシステム用変数
+        let selectedPlanet = null; // 選択中の惑星（拡大縮小の中心）
+        let universalScaleFactor = 1; // 宇宙全体のスケール係数
+        let scaleCenter = new THREE.Vector3(0, 0, 0); // 拡大縮小の中心点
 
         // 惑星データ
         const planetData = [
@@ -2448,8 +2454,8 @@
             lensFlare.visible = true;
             lensFlare.frustumCulled = false;
             
-            // 太陽系のスケールに応じてレンズフレア全体のサイズを調整
-            const currentScale = solarSystemGroup.scale.x || 1; // 現在のスケール値
+            // 宇宙全体のスケールに応じてレンズフレア全体のサイズを調整
+            const currentScale = universalScaleFactor || 1; // 現在のスケール値
             lensFlare.scale.setScalar(currentScale);
             
             // 各フレア要素の透明度と位置を調整（安定性向上・距離非依存）
@@ -2537,6 +2543,9 @@
             solarSystemGroup.position.set(0, 1, -2);
             scene.add(solarSystemGroup);
             registerUniverseElement(solarSystemGroup);
+            
+            // 初期スケール中心を太陽に設定
+            selectPlanetForScaling(null);
             
             // 初期ユーザー位置を設定
             updateUserPosition();
@@ -2869,6 +2878,9 @@
             if (spaceMode) {
                 // 宇宙空間モードの場合
                 if (thisControllerHighlight) {
+                    // 惑星をスケール中心として選択
+                    selectPlanetForScaling(thisControllerHighlight);
+                    
                     // このコントローラーでハイライトされている惑星の情報表示
                     console.log('惑星情報を表示:', thisControllerHighlight.data.name);
                     show3DPlanetInfo(thisControllerHighlight.data);
@@ -2882,10 +2894,16 @@
             
             // MRモードでの操作
             if (thisControllerHighlight) {
+                // 惑星をスケール中心として選択
+                selectPlanetForScaling(thisControllerHighlight);
+                
                 // このコントローラーでハイライトされている惑星情報を記録してVRモードに切り替え
                 console.log('VRモードに切り替え:', thisControllerHighlight.data.name);
                 pendingPlanetInfo = thisControllerHighlight.data;
                 toggleSpaceMode();
+            } else {
+                // 何もハイライトされていない場合は太陽中心に戻す
+                selectPlanetForScaling(null);
             }
         }
 
@@ -3452,6 +3470,15 @@
                 spaceStars.rotation.z = spaceRotation * 0.1;
             }
 
+            // 選択された惑星の位置が変わった場合はスケール中心を更新
+            if (selectedPlanet && selectedPlanet.mesh) {
+                const worldPosition = new THREE.Vector3();
+                selectedPlanet.mesh.getWorldPosition(worldPosition);
+                if (!worldPosition.equals(scaleCenter)) {
+                    scaleCenter.copy(worldPosition);
+                }
+            }
+
             // 惑星の軌道運動と自転（常に動作）
             planets.forEach((planet) => {
                 if (planet.data.distance > 0) {
@@ -3599,7 +3626,7 @@
                 }
             }
 
-            // 両手グリップでのスケール調整（常に動作）
+            // 両手グリップでの宇宙全体スケール調整（常に動作）
             if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging) {
                 const leftPos = new THREE.Vector3();
                 const rightPos = new THREE.Vector3();
@@ -3609,15 +3636,23 @@
                 
                 if (lastDistance > 0 && currentDistance > 0) {
                     const scaleChange = currentDistance / lastDistance;
-                    scaleFactor *= scaleChange;
+                    universalScaleFactor *= scaleChange;
                     
                     // スケール制限を解除（自由な拡大縮小を許可）
-                    // scaleFactor = Math.max(0.1, Math.min(10, scaleFactor));
+                    // universalScaleFactor = Math.max(0.1, Math.min(10, universalScaleFactor));
                     
-                    solarSystemGroup.scale.setScalar(scaleFactor);
+                    // 選択された惑星またはデフォルトの太陽中心でスケール中心を更新
+                    if (selectedPlanet && selectedPlanet.mesh) {
+                        const worldPosition = new THREE.Vector3();
+                        selectedPlanet.mesh.getWorldPosition(worldPosition);
+                        scaleCenter.copy(worldPosition);
+                    }
+                    
+                    // 宇宙全体のスケーリングを適用
+                    applyUniversalScale();
                     
                     // UI更新
-                    document.getElementById('scale-value').textContent = scaleFactor.toFixed(2);
+                    document.getElementById('scale-value').textContent = universalScaleFactor.toFixed(2);
                 }
                 
                 lastDistance = currentDistance;
@@ -4023,9 +4058,69 @@
         // 宇宙要素を登録する関数
         function registerUniverseElement(element) {
             if (element && element.position) {
-                // 元の位置を保存
+                // 元の位置とスケールを保存
                 element.originalPosition = element.position.clone();
+                element.originalScale = element.scale ? element.scale.clone() : new THREE.Vector3(1, 1, 1);
                 universeElements.push(element);
+            }
+        }
+
+        // 宇宙全体のスケーリング関数
+        function applyUniversalScale() {
+            universeElements.forEach(element => {
+                if (element && element.scale && element.originalScale) {
+                    // スケール中心からの相対位置を計算
+                    const relativePosition = new THREE.Vector3().subVectors(element.originalPosition, scaleCenter);
+                    
+                    // スケールを適用した新しい相対位置
+                    const scaledPosition = relativePosition.multiplyScalar(universalScaleFactor);
+                    
+                    // 新しい絶対位置を設定
+                    element.position.copy(scaleCenter).add(scaledPosition);
+                    
+                    // 要素自体のスケールも適用
+                    element.scale.copy(element.originalScale).multiplyScalar(universalScaleFactor);
+                }
+            });
+        }
+
+        // 惑星選択とスケール中心の設定
+        function selectPlanetForScaling(planet) {
+            selectedPlanet = planet;
+            
+            if (planet && planet.mesh) {
+                // 選択された惑星のワールド座標を取得
+                const worldPosition = new THREE.Vector3();
+                planet.mesh.getWorldPosition(worldPosition);
+                scaleCenter.copy(worldPosition);
+                
+                // UI更新
+                const scaleCenterElement = document.getElementById('scale-center');
+                if (scaleCenterElement) {
+                    scaleCenterElement.textContent = planet.data.name;
+                    scaleCenterElement.style.color = '#ffaa00'; // 選択中は橙色
+                }
+                
+                console.log(`拡大縮小中心を${planet.data.name}に設定:`, scaleCenter);
+            } else {
+                // 惑星未選択の場合は太陽を中心に
+                const sunPlanet = planets.find(p => p.data.name === '太陽');
+                if (sunPlanet && sunPlanet.mesh) {
+                    const worldPosition = new THREE.Vector3();
+                    sunPlanet.mesh.getWorldPosition(worldPosition);
+                    scaleCenter.copy(worldPosition);
+                } else {
+                    scaleCenter.set(0, 0, 0);
+                }
+                
+                // UI更新
+                const scaleCenterElement = document.getElementById('scale-center');
+                if (scaleCenterElement) {
+                    scaleCenterElement.textContent = '太陽';
+                    scaleCenterElement.style.color = '#ffffff'; // デフォルトは白色
+                }
+                
+                console.log('拡大縮小中心を太陽に設定:', scaleCenter);
             }
         }
     </script>
