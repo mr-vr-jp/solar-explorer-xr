@@ -183,9 +183,9 @@
     <div id="container">
         <div id="loading">
             <div style="text-align: center;">
-                <div>🌌 宇宙を創造中...</div>
+                <div>🌌 MR太陽系を準備中...</div>
                 <div style="margin-top: 20px; font-size: 16px;">
-                    ビッグバン準備中...
+                    WebXRセッションを初期化しています
                 </div>
             </div>
         </div>
@@ -2758,10 +2758,6 @@
             initMeteorSystem();
 
             setupXRControllers();
-            
-            // ビッグバンアニメーションを開始
-            startBigBangAnimation();
-            
             animate();
             
             // データ読み込み完了
@@ -3371,6 +3367,9 @@
                 
                 // XRセッション開始後にコントローラーをセットアップ
                 setupXRControllers();
+
+                // ビッグバンアニメーションを開始
+                startBigBangAnimation();
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -4045,7 +4044,7 @@
             // scaleFactorも初期値に設定
             scaleFactor = bigBangAnimation.startScale;
             
-            console.log('🌌 ビッグバンアニメーション開始！');
+            console.log('🌌 MRセッション開始！ビッグバンで宇宙が誕生します...');
         }
 
         // ビッグバンアニメーション更新関数
