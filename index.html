@@ -2164,9 +2164,10 @@
         
         // レーザーポインター作成関数
         function createControllerRay(controller, color) {
+            // 長いレーザーを作成（途切れないように）
             const geometry = new THREE.BufferGeometry().setFromPoints([
                 new THREE.Vector3(0, 0, 0),
-                new THREE.Vector3(0, 0, -3)
+                new THREE.Vector3(0, 0, -50) // 長いレーザー
             ]);
             const material = new THREE.LineBasicMaterial({ 
                 color: color, 
@@ -2176,19 +2177,43 @@
 
             const ray = new THREE.Line(geometry, material);
             ray.userData.isRay = true;
+            ray.userData.originalLength = 50; // 元の長さを記録
             controller.add(ray);
             
-            // カーソル（レイの先端）
-            const cursorGeometry = new THREE.SphereGeometry(0.01, 8, 8);
-            const cursorMaterial = new THREE.MeshBasicMaterial({ 
-                color: color,
-                emissive: color,
-                emissiveIntensity: 0.5
-            });
-            const cursor = new THREE.Mesh(cursorGeometry, cursorMaterial);
-            cursor.position.set(0, 0, -3);
-            cursor.userData.isCursor = true;
-            ray.add(cursor);
+            // カーソル（丸い部分）は削除
+        }
+        
+        // レーザーポインターの長さを調整する関数
+        function updateControllerRayLength(controller, intersects) {
+            const ray = controller.children.find(child => child.userData.isRay);
+            if (!ray) return;
+            
+            let targetLength = ray.userData.originalLength; // デフォルトの長さ
+            
+            if (intersects.length > 0) {
+                // 最も近い交差点までの距離
+                targetLength = Math.min(intersects[0].distance, ray.userData.originalLength);
+            }
+            
+            // ジオメトリを更新
+            const positions = ray.geometry.attributes.position.array;
+            positions[5] = -targetLength; // z座標を更新
+            ray.geometry.attributes.position.needsUpdate = true;
+        }
+        
+        // 情報パネル表示中のカーソル表示制御
+        function updateControllerRayVisibility(controller, controllerIndex) {
+            const ray = controller.children.find(child => child.userData.isRay);
+            if (!ray) return;
+            
+            // 情報パネルが表示中で、かつそのパネルがこのコントローラーに付いている場合は非表示
+            if (planetInfoVisible && planetInfoPanel && 
+                controllers.length > 0 && controllers[0] === controller && 
+                planetInfoPanel.parent === controller) {
+                ray.visible = false;
+            } else {
+                ray.visible = true;
+            }
         }
 
         // XRイベントハンドラー
@@ -2421,6 +2446,9 @@
         function show3DPlanetInfo(planetData) {
             console.log('show3DPlanetInfo called for:', planetData.name, 'Current state - visible:', planetInfoVisible, 'closing:', panelClosing, 'panel exists:', !!planetInfoPanel);
             
+            // 効果音を再生
+            playInfoPanelSound();
+            
             // 強制的に既存パネルをクリーンアップ
             forceCleanupPanel();
             
@@ -2479,6 +2507,18 @@
             panelClosing = false;
             panelFadeAnimation.opacity = 0;
             panelFadeAnimation.target = 0;
+            
+            // 全てのコントローラーのカーソルを再表示
+            if (controllers && controllers.length > 0) {
+                controllers.forEach(controller => {
+                    if (controller) {
+                        const ray = controller.children.find(child => child.userData.isRay);
+                        if (ray) {
+                            ray.visible = true;
+                        }
+                    }
+                });
+            }
             
             console.log('Panel cleanup completed - all states reset');
         }
@@ -2862,6 +2902,12 @@
                             const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
                             const intersects = raycaster.intersectObjects(planetMeshes);
                             
+                            // レーザーポインターの長さを調整
+                            updateControllerRayLength(controller, intersects);
+                            
+                            // 情報パネル表示中のカーソル制御
+                            updateControllerRayVisibility(controller, index);
+                            
                             // 情報パネル表示中はハイライト処理をスキップ
                             if (!planetInfoVisible) {
                                 if (intersects.length > 0) {
@@ -3094,7 +3140,7 @@
                 oscillator1.type = 'sine';
                 
                 gainNode1.gain.setValueAtTime(0, now);
-                gainNode1.gain.linearRampToValueAtTime(0.15, now + 0.02);
+                gainNode1.gain.linearRampToValueAtTime(0.05, now + 0.02); // 0.15 → 0.05 に音量を下げる
                 gainNode1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
                 
                 // ハーモニー音（第5度）
@@ -3108,7 +3154,7 @@
                 oscillator2.type = 'sine';
                 
                 gainNode2.gain.setValueAtTime(0, now);
-                gainNode2.gain.linearRampToValueAtTime(0.08, now + 0.02);
+                gainNode2.gain.linearRampToValueAtTime(0.03, now + 0.02); // 0.08 → 0.03 に音量を下げる
                 gainNode2.gain.exponentialRampToValueAtTime(0.001, now + 1.0);
                 
                 // 微細な響き（オクターブ上）
@@ -3121,7 +3167,7 @@
                 oscillator3.type = 'triangle';
                 
                 gainNode3.gain.setValueAtTime(0, now);
-                gainNode3.gain.linearRampToValueAtTime(0.04, now + 0.01);
+                gainNode3.gain.linearRampToValueAtTime(0.02, now + 0.01); // 0.04 → 0.02 に音量を下げる
                 gainNode3.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
                 
                 // 再生開始
