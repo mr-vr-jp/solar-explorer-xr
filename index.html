@@ -266,8 +266,17 @@
         let planetInfoVisible = false;
         let isDragging = false;
         let dragStartPosition = new THREE.Vector3();
-        let userStartPosition = new THREE.Vector3();
         let userPosition = new THREE.Vector3(0, 1.6, 5); // ユーザーの仮想位置
+        let userStartPosition = new THREE.Vector3(0, 100, 300); // 太陽系から離れた初期位置
+        let warpMenu = null; // ワープメニュー
+        let warpInProgress = false; // ワープ中フラグ
+        let warpAnimation = {
+            active: false,
+            startPosition: new THREE.Vector3(),
+            targetPosition: new THREE.Vector3(),
+            progress: 0,
+            duration: 3.0 // 3秒でワープ
+        };
         let planetInfoPanel = null;
         let sunScaleAnimation = { target: 1, current: 1, speed: 0.05 };
         let panelFadeAnimation = { opacity: 0, target: 0, speed: 0.15 };
@@ -289,23 +298,6 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
-        
-        // 惑星フォーカス機能の変数
-        let focusedPlanet = null; // フォーカス中の惑星
-        let planetSpeedMultiplier = 1.0; // 惑星速度のマルチプライヤー
-        let planetSpeedTarget = 1.0; // 目標速度（アニメーション用）
-        let speedTransitionDuration = 1.0; // 速度変化のアニメーション時間（秒）
-        let speedTransitionTimer = 0; // 速度変化のタイマー
-        let isSpeedTransitioning = false; // 速度変化中かどうか
-        let orbitRadius = 5.0; // 惑星中心移動時の軌道半径
-        let orbitAngle = 0; // 軌道角度
-        
-        // 視点移動アニメーション用の変数
-        let isViewTransitioning = false; // 視点移動中かどうか
-        let viewTransitionTimer = 0; // 視点移動のタイマー
-        let viewTransitionDuration = 2.0; // 視点移動のアニメーション時間（秒）
-        let viewStartPosition = new THREE.Vector3(); // 移動開始位置
-        let viewTargetPosition = new THREE.Vector3(); // 移動目標位置
 
         // 惑星データ
         const planetData = [
@@ -2556,7 +2548,8 @@
             scene.add(solarSystemGroup);
             registerUniverseElement(solarSystemGroup);
             
-            // 初期ユーザー位置を設定
+            // 初期ユーザー位置を太陽系から離れた場所に設定
+            userPosition.copy(userStartPosition);
             updateUserPosition();
 
             // 星空
@@ -2867,6 +2860,30 @@
         function onSelectStart(event, hand) {
             console.log('トリガー押下:', hand, 'パネル存在:', !!planetInfoPanel, '表示状態:', planetInfoVisible, 'クローズ中:', panelClosing);
             
+            // ワープメニューが表示中の場合はボタンチェック
+            if (warpMenu) {
+                const controllerIndex = hand === 'left' ? 0 : 1;
+                const controller = controllers[controllerIndex];
+                if (controller) {
+                    const tempMatrix = new THREE.Matrix4();
+                    tempMatrix.identity().extractRotation(controller.matrixWorld);
+                    const rayDirection = new THREE.Vector3(0, 0, -1);
+                    rayDirection.applyMatrix4(tempMatrix);
+                    
+                    raycaster.set(controller.position, rayDirection);
+                    const intersects = raycaster.intersectObjects(warpMenu.children, true);
+                    
+                    if (intersects.length > 0) {
+                        const intersectedObject = intersects[0].object;
+                        if (intersectedObject.userData.isWarpButton) {
+                            console.log('ワープボタンがクリックされました');
+                            startWarp();
+                            return;
+                        }
+                    }
+                }
+            }
+            
             // このコントローラーのインデックスを取得
             const controllerIndex = hand === 'left' ? 0 : 1;
             const thisControllerHighlight = highlightedPlanets[controllerIndex];
@@ -3099,17 +3116,6 @@
             // 強制的に既存パネルをクリーンアップ
             forceCleanupPanel();
             
-            // フォーカス惑星を設定
-            focusedPlanet = planets.find(p => p.data.name === planetData.name);
-            
-            // 惑星の動きを徐々に停止
-            startPlanetSpeedTransition(0.0);
-            
-            // フォーカス惑星中心の軌道移動を初期化
-            if (focusedPlanet) {
-                initOrbitMovement();
-            }
-            
             // 新しいパネルを作成
             setTimeout(() => {
                 createNewInfoPanel(planetData);
@@ -3165,10 +3171,6 @@
             panelClosing = false;
             panelFadeAnimation.opacity = 0;
             panelFadeAnimation.target = 0;
-            
-            // フォーカス惑星もリセット
-            focusedPlanet = null;
-            startPlanetSpeedTransition(1.0);
             
             // 全てのコントローラーのカーソルを再表示
             if (controllers && controllers.length > 0) {
@@ -3238,21 +3240,11 @@
                 console.log('フェードアウトアニメーション開始');
                 
                 // 表示状態を即座に更新（トリガー判定用）
-                planetInfoVisible = false;
-                
-                // フォーカス惑星をクリア
-                focusedPlanet = null;
-                
-                // 惑星の動きを徐々に再開
-                startPlanetSpeedTransition(1.0);
-                
+            planetInfoVisible = false;
             } else if (!planetInfoPanel) {
                 console.log('No panel to hide, resetting states');
                 // パネルがない場合も状態をリセット
                 forceCleanupPanel();
-                // フォーカス惑星もクリア
-                focusedPlanet = null;
-                startPlanetSpeedTransition(1.0);
             } else if (panelClosing) {
                 console.log('Panel already closing');
             }
@@ -3396,6 +3388,9 @@
                 // XRセッション開始後にコントローラーをセットアップ
                 setupXRControllers();
 
+                // ワープメニューを表示
+                showWarpMenu();
+
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
                 document.getElementById('instructions').style.display = 'none';
@@ -3420,6 +3415,13 @@
                     // 保留中の惑星情報もクリア
                     pendingPlanetInfo = null;
                     
+                    // ワープメニューをクリーンアップ
+                    hideWarpMenu();
+                    
+                    // ワープアニメーションをリセット
+                    warpAnimation.active = false;
+                    warpInProgress = false;
+                    
                     document.getElementById('xr-button').style.display = 'block';
                     document.getElementById('instructions').style.display = 'block';
                     document.getElementById('troubleshooting').style.display = 'block';
@@ -3433,9 +3435,16 @@
 
         // アニメーションループ
         let time = 0;
+        let lastTime = Date.now();
         function animate() {
             renderer.setAnimationLoop(animate);
+            const currentTime = Date.now();
+            const deltaTime = (currentTime - lastTime) / 1000; // 秒単位
+            lastTime = currentTime;
             time += 0.01;
+
+            // ワープアニメーション更新
+            updateWarpAnimation(deltaTime);
 
             // 太陽のスケールアニメーション
             if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
@@ -3495,29 +3504,10 @@
                 spaceStars.rotation.z = spaceRotation * 0.1;
             }
 
-            // 惑星速度のアニメーション制御
-            if (isSpeedTransitioning) {
-                speedTransitionTimer += 0.016; // 固定タイムステップ
-                const progress = Math.min(speedTransitionTimer / speedTransitionDuration, 1.0);
-                
-                // イージング関数（スムーズな加減速）
-                const easedProgress = progress < 0.5 
-                    ? 2 * progress * progress 
-                    : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-                
-                const startSpeed = planetSpeedMultiplier;
-                planetSpeedMultiplier = startSpeed + (planetSpeedTarget - startSpeed) * easedProgress;
-                
-                if (progress >= 1.0) {
-                    isSpeedTransitioning = false;
-                    planetSpeedMultiplier = planetSpeedTarget;
-                }
-            }
-
-            // 惑星の軌道運動と自転（速度制御対応）
+            // 惑星の軌道運動と自転（常に動作）
             planets.forEach((planet) => {
                 if (planet.data.distance > 0) {
-                    planet.angle += planet.data.speed * planetSpeedMultiplier;
+                    planet.angle += planet.data.speed;
                     planet.mesh.position.x = Math.cos(planet.angle) * planet.data.distance;
                     planet.mesh.position.z = Math.sin(planet.angle) * planet.data.distance;
                 }
@@ -3644,57 +3634,50 @@
                 });
             }
 
-            // 視点移動アニメーション更新
-            updateViewTransition();
-            
-            // フォーカス惑星制御（情報パネル表示中）
-            if (focusedPlanet && planetInfoVisible) {
-                updateFocusedPlanetMovement();
-            } else {
-                // 通常の移動制御（情報パネル非表示時のみ）
-                
-                // 片手グリップでのドラッグ移動（ユーザー位置を移動）
-                if (isDragging && controllers.length > 0) {
-                    const activeController = gripStates.left ? controllers[0] : controllers[1];
-                    if (activeController) {
-                        const currentPosition = new THREE.Vector3();
-                        currentPosition.setFromMatrixPosition(activeController.matrixWorld);
-                        
-                        const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
-                        // 移動方向を反転させてユーザーが移動している感覚にする
-                        deltaPosition.multiplyScalar(-5);
-                        userPosition.copy(userStartPosition).add(deltaPosition);
-                        
-                        // カメラとシーン全体の位置を更新
-                        updateUserPosition();
-                    }
+            // 片手グリップでのドラッグ移動（ユーザー位置を移動）
+            if (isDragging && controllers.length > 0) {
+                const activeController = gripStates.left ? controllers[0] : controllers[1];
+                if (activeController) {
+                    const currentPosition = new THREE.Vector3();
+                    currentPosition.setFromMatrixPosition(activeController.matrixWorld);
+                    
+                    const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
+                    // 移動方向を反転させてユーザーが移動している感覚にする
+                    deltaPosition.multiplyScalar(-5);
+                    userPosition.copy(userStartPosition).add(deltaPosition);
+                    
+                    // カメラとシーン全体の位置を更新
+                    updateUserPosition();
                 }
+            }
 
-                // 両手グリップでのスケール調整（通常モード）
-                if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging) {
-                    const leftPos = new THREE.Vector3();
-                    const rightPos = new THREE.Vector3();
-                    leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
-                    rightPos.setFromMatrixPosition(controllers[1].matrixWorld);
-                    const currentDistance = leftPos.distanceTo(rightPos);
+            // 両手グリップでのスケール調整（常に動作）
+            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging) {
+                const leftPos = new THREE.Vector3();
+                const rightPos = new THREE.Vector3();
+                leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
+                rightPos.setFromMatrixPosition(controllers[1].matrixWorld);
+                const currentDistance = leftPos.distanceTo(rightPos);
+                
+                if (lastDistance > 0 && currentDistance > 0) {
+                    const scaleChange = currentDistance / lastDistance;
+                    scaleFactor *= scaleChange;
                     
-                    if (lastDistance > 0 && currentDistance > 0) {
-                        const scaleChange = currentDistance / lastDistance;
-                        scaleFactor *= scaleChange;
-                        
-                        // 宇宙全体をスケール（太陽系、遠くの星、銀河、小惑星などすべて）
-                        universeElements.forEach(element => {
-                            if (element && element.scale) {
-                                element.scale.setScalar(scaleFactor);
-                            }
-                        });
-                        
-                        // UI更新
-                        document.getElementById('scale-value').textContent = scaleFactor.toFixed(2);
-                    }
+                    // スケール制限を解除（自由な拡大縮小を許可）
+                    // scaleFactor = Math.max(0.1, Math.min(10, scaleFactor));
                     
-                    lastDistance = currentDistance;
+                    // 宇宙全体をスケール（太陽系、遠くの星、銀河、小惑星などすべて）
+                    universeElements.forEach(element => {
+                        if (element && element.scale) {
+                            element.scale.setScalar(scaleFactor);
+                        }
+                    });
+                    
+                    // UI更新
+                    document.getElementById('scale-value').textContent = scaleFactor.toFixed(2);
                 }
+                
+                lastDistance = currentDistance;
             }
 
             renderer.render(scene, camera);
@@ -4073,6 +4056,176 @@
             registerUniverseElement(meteorGroup);
         }
 
+        // ワープメニューの作成
+        function createWarpMenu() {
+            const menuGroup = new THREE.Group();
+            
+            // メニューパネルの背景
+            const panelGeometry = new THREE.PlaneGeometry(1.5, 0.8);
+            const panelMaterial = new THREE.MeshBasicMaterial({
+                color: 0x001133,
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide
+            });
+            const panel = new THREE.Mesh(panelGeometry, panelMaterial);
+            menuGroup.add(panel);
+            
+            // パネルの枠線
+            const borderGeometry = new THREE.EdgesGeometry(panelGeometry);
+            const borderMaterial = new THREE.LineBasicMaterial({ 
+                color: 0x00ffaa,
+                linewidth: 3
+            });
+            const border = new THREE.LineSegments(borderGeometry, borderMaterial);
+            menuGroup.add(border);
+            
+            // タイトルテキスト（3D）
+            const titleGeometry = new THREE.PlaneGeometry(1.2, 0.15);
+            const titleCanvas = document.createElement('canvas');
+            titleCanvas.width = 512;
+            titleCanvas.height = 64;
+            const titleCtx = titleCanvas.getContext('2d');
+            titleCtx.fillStyle = '#001133';
+            titleCtx.fillRect(0, 0, titleCanvas.width, titleCanvas.height);
+            titleCtx.font = 'bold 28px Arial';
+            titleCtx.fillStyle = '#00ffaa';
+            titleCtx.textAlign = 'center';
+            titleCtx.fillText('🌌 太陽系へワープ', titleCanvas.width/2, titleCanvas.height/2 + 10);
+            
+            const titleTexture = new THREE.CanvasTexture(titleCanvas);
+            const titleMaterial = new THREE.MeshBasicMaterial({
+                map: titleTexture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const title = new THREE.Mesh(titleGeometry, titleMaterial);
+            title.position.y = 0.25;
+            menuGroup.add(title);
+            
+            // ワープボタン
+            const buttonGeometry = new THREE.PlaneGeometry(0.8, 0.2);
+            const buttonCanvas = document.createElement('canvas');
+            buttonCanvas.width = 512;
+            buttonCanvas.height = 128;
+            const buttonCtx = buttonCanvas.getContext('2d');
+            
+            // ボタンの背景グラデーション
+            const gradient = buttonCtx.createLinearGradient(0, 0, 0, buttonCanvas.height);
+            gradient.addColorStop(0, '#00ccff');
+            gradient.addColorStop(1, '#0088cc');
+            buttonCtx.fillStyle = gradient;
+            buttonCtx.fillRect(0, 0, buttonCanvas.width, buttonCanvas.height);
+            
+            // ボタンの枠線
+            buttonCtx.strokeStyle = '#ffffff';
+            buttonCtx.lineWidth = 4;
+            buttonCtx.strokeRect(0, 0, buttonCanvas.width, buttonCanvas.height);
+            
+            // ボタンテキスト
+            buttonCtx.font = 'bold 32px Arial';
+            buttonCtx.fillStyle = '#ffffff';
+            buttonCtx.textAlign = 'center';
+            buttonCtx.shadowColor = '#000000';
+            buttonCtx.shadowBlur = 4;
+            buttonCtx.fillText('🚀 ワープ開始', buttonCanvas.width/2, buttonCanvas.height/2 + 12);
+            
+            const buttonTexture = new THREE.CanvasTexture(buttonCanvas);
+            const buttonMaterial = new THREE.MeshBasicMaterial({
+                map: buttonTexture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+            button.position.y = -0.1;
+            button.userData.isWarpButton = true;
+            menuGroup.add(button);
+            
+            // 説明テキスト
+            const descGeometry = new THREE.PlaneGeometry(1.3, 0.1);
+            const descCanvas = document.createElement('canvas');
+            descCanvas.width = 512;
+            descCanvas.height = 48;
+            const descCtx = descCanvas.getContext('2d');
+            descCtx.fillStyle = 'transparent';
+            descCtx.fillRect(0, 0, descCanvas.width, descCanvas.height);
+            descCtx.font = '16px Arial';
+            descCtx.fillStyle = '#aaaaaa';
+            descCtx.textAlign = 'center';
+            descCtx.fillText('コントローラーのトリガーで選択', descCanvas.width/2, descCanvas.height/2 + 6);
+            
+            const descTexture = new THREE.CanvasTexture(descCanvas);
+            const descMaterial = new THREE.MeshBasicMaterial({
+                map: descTexture,
+                transparent: true,
+                side: THREE.DoubleSide
+            });
+            const desc = new THREE.Mesh(descGeometry, descMaterial);
+            desc.position.y = -0.35;
+            menuGroup.add(desc);
+            
+            // メニューの位置をユーザーの正面に配置
+            menuGroup.position.set(0, 1.6, -2);
+            menuGroup.rotation.x = 0;
+            
+            return menuGroup;
+        }
+
+        // ワープメニューの表示
+        function showWarpMenu() {
+            if (warpMenu) {
+                scene.remove(warpMenu);
+            }
+            warpMenu = createWarpMenu();
+            scene.add(warpMenu);
+        }
+
+        // ワープメニューの非表示
+        function hideWarpMenu() {
+            if (warpMenu) {
+                scene.remove(warpMenu);
+                warpMenu = null;
+            }
+        }
+
+        // ワープアニメーション開始
+        function startWarp() {
+            if (warpAnimation.active) return;
+            
+            hideWarpMenu();
+            warpAnimation.active = true;
+            warpAnimation.progress = 0;
+            warpAnimation.startPosition.copy(userPosition);
+            warpAnimation.targetPosition.set(0, 1.6, 5); // 太陽系内の位置
+            warpInProgress = true;
+        }
+
+        // イージング関数（カーブした加速・減速）
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        // ワープアニメーション更新
+        function updateWarpAnimation(deltaTime) {
+            if (!warpAnimation.active) return;
+            
+            warpAnimation.progress += deltaTime / warpAnimation.duration;
+            
+            if (warpAnimation.progress >= 1.0) {
+                // ワープ完了
+                warpAnimation.progress = 1.0;
+                warpAnimation.active = false;
+                warpInProgress = false;
+                userPosition.copy(warpAnimation.targetPosition);
+            } else {
+                // イージングを適用してスムーズな加速・減速
+                const easedProgress = easeInOutCubic(warpAnimation.progress);
+                userPosition.lerpVectors(warpAnimation.startPosition, warpAnimation.targetPosition, easedProgress);
+            }
+            
+            updateUserPosition();
+        }
+
         // 移動対象となる宇宙要素のリスト
         let universeElements = [];
 
@@ -4100,166 +4253,6 @@
                 // 元の位置を保存
                 element.originalPosition = element.position.clone();
                 universeElements.push(element);
-            }
-        }
-
-        // 惑星速度の遷移を開始する関数
-        function startPlanetSpeedTransition(targetSpeed) {
-            planetSpeedTarget = targetSpeed;
-            speedTransitionTimer = 0;
-            isSpeedTransitioning = true;
-            console.log('惑星速度遷移開始:', planetSpeedMultiplier, '->', planetSpeedTarget);
-        }
-
-        // フォーカス惑星中心の軌道移動を初期化
-        function initOrbitMovement() {
-            if (!focusedPlanet) return;
-            
-            // フォーカス惑星のワールド座標を正しく取得
-            const planetPos = new THREE.Vector3();
-            
-            // 太陽系グループの変換も考慮してワールド座標を計算
-            solarSystemGroup.updateMatrixWorld(); // マトリックス更新を確実に実行
-            const solarSystemMatrix = solarSystemGroup.matrixWorld;
-            const planetLocalPos = focusedPlanet.mesh.position.clone();
-            planetPos.copy(planetLocalPos).applyMatrix4(solarSystemMatrix);
-            
-            // 惑星との距離と適切な軌道半径を設定
-            const userToPlanet = new THREE.Vector3().subVectors(planetPos, userPosition);
-            const currentDistance = userToPlanet.length();
-            
-            // 軌道半径を設定（適切な観察距離、スケールを考慮）
-            const baseRadius = Math.max(3.0, Math.min(currentDistance * 0.8, 8.0));
-            orbitRadius = baseRadius * scaleFactor; // 現在のスケールファクターを適用
-            
-            // 惑星正面の位置を目標位置として設定（惑星を中央に見る位置）
-            viewStartPosition.copy(userPosition);
-            viewTargetPosition.set(
-                planetPos.x + orbitRadius, // 惑星の右側
-                planetPos.y,
-                planetPos.z
-            );
-            
-            // 軌道角度を設定（正面から開始）
-            orbitAngle = 0; // 正面を0度とする
-            
-            // 視点移動アニメーション開始
-            startViewTransition();
-            
-            console.log('軌道移動初期化');
-            console.log('- 惑星名:', focusedPlanet.data.name);
-            console.log('- 惑星ワールド座標:', planetPos);
-            console.log('- 軌道半径:', orbitRadius);
-            console.log('- 開始位置:', viewStartPosition);
-            console.log('- 目標位置:', viewTargetPosition);
-        }
-
-        // フォーカス惑星中心の操作制御
-        function updateFocusedPlanetMovement() {
-            if (!focusedPlanet || !planetInfoVisible) return;
-            
-            // フォーカス惑星のワールド座標を正しく取得
-            const planetPos = new THREE.Vector3();
-            
-            // 太陽系グループの変換も考慮してワールド座標を計算
-            solarSystemGroup.updateMatrixWorld(); // マトリックス更新を確実に実行
-            const solarSystemMatrix = solarSystemGroup.matrixWorld;
-            const planetLocalPos = focusedPlanet.mesh.position.clone();
-            planetPos.copy(planetLocalPos).applyMatrix4(solarSystemMatrix);
-            
-            // 両手グリップでのスケール調整（フォーカス惑星中心）
-            if (gripStates.left && gripStates.right && controllers.length >= 2 && controllers[0] && controllers[1] && !isDragging && !isViewTransitioning) {
-                const leftPos = new THREE.Vector3();
-                const rightPos = new THREE.Vector3();
-                leftPos.setFromMatrixPosition(controllers[0].matrixWorld);
-                rightPos.setFromMatrixPosition(controllers[1].matrixWorld);
-                const currentDistance = leftPos.distanceTo(rightPos);
-                
-                if (lastDistance > 0 && currentDistance > 0) {
-                    const scaleChange = currentDistance / lastDistance;
-                    scaleFactor *= scaleChange;
-                    
-                    // フォーカス惑星を中心とした拡大縮小
-                    universeElements.forEach(element => {
-                        if (element && element.scale) {
-                            element.scale.setScalar(scaleFactor);
-                        }
-                    });
-                    
-                    // ユーザー位置も惑星中心からスケール
-                    const userToPlanet = new THREE.Vector3().subVectors(userPosition, planetPos);
-                    userToPlanet.multiplyScalar(scaleChange);
-                    userPosition.copy(planetPos).add(userToPlanet);
-                    
-                    // 軌道半径も更新
-                    orbitRadius *= scaleChange;
-                    
-                    updateUserPosition();
-                    
-                    // UI更新
-                    document.getElementById('scale-value').textContent = scaleFactor.toFixed(2);
-                }
-                
-                lastDistance = currentDistance;
-            }
-            
-            // 片手グリップでの水平回転（フォーカス惑星中心、距離一定）
-            if (isDragging && controllers.length > 0 && !isViewTransitioning) {
-                const activeController = gripStates.left ? controllers[0] : controllers[1];
-                if (activeController) {
-                    const currentPosition = new THREE.Vector3();
-                    currentPosition.setFromMatrixPosition(activeController.matrixWorld);
-                    
-                    const deltaPosition = new THREE.Vector3().subVectors(currentPosition, dragStartPosition);
-                    
-                    // X軸の動きのみを角度変化に変換（水平回転のみ）
-                    const angleChange = deltaPosition.x * 3.0; // 感度調整
-                    orbitAngle += angleChange;
-                    
-                    // 新しいユーザー位置を計算（距離一定、水平回転のみ）
-                    userPosition.set(
-                        planetPos.x + Math.cos(orbitAngle) * orbitRadius,
-                        planetPos.y, // Y座標は惑星と同じ高さに固定
-                        planetPos.z + Math.sin(orbitAngle) * orbitRadius
-                    );
-                    
-                    updateUserPosition();
-                    
-                    // ドラッグ開始位置を更新（連続的な動作のため）
-                    dragStartPosition.copy(currentPosition);
-                }
-            }
-        }
-
-        // 視点移動アニメーション開始
-        function startViewTransition() {
-            isViewTransitioning = true;
-            viewTransitionTimer = 0;
-            console.log('視点移動開始:', viewStartPosition, '->', viewTargetPosition);
-        }
-
-        // 視点移動アニメーション更新
-        function updateViewTransition() {
-            if (!isViewTransitioning) return;
-            
-            viewTransitionTimer += 0.016; // 固定タイムステップ
-            const progress = Math.min(viewTransitionTimer / viewTransitionDuration, 1.0);
-            
-            // スムーズなイージング関数（加速→減速）
-            const easedProgress = progress < 0.5 
-                ? 4 * progress * progress * progress 
-                : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-            
-            // 現在の位置を補間
-            userPosition.lerpVectors(viewStartPosition, viewTargetPosition, easedProgress);
-            updateUserPosition();
-            
-            // アニメーション完了チェック
-            if (progress >= 1.0) {
-                isViewTransitioning = false;
-                userPosition.copy(viewTargetPosition);
-                updateUserPosition();
-                console.log('視点移動完了:', userPosition);
             }
         }
     </script>
