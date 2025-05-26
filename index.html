@@ -191,16 +191,15 @@
         </div>
 
         <button id="xr-button">
-            🚀 VRワープで太陽系へ
+            🥽 MR太陽系を開始
         </button>
 
         <div id="instructions">
-            <h3 class="highlight" style="margin: 0 0 10px 0;">🚀 ワープ体験</h3>
-            <div>• 遥か彼方からVRで開始</div>
-            <div>• 太陽系までワープ移動</div>
-            <div>• 到着後、自動でMRに切り替え</div>
+            <h3 class="highlight" style="margin: 0 0 10px 0;">🌟 操作方法</h3>
             <div>• 移動：片手グリップ+ドラッグ</div>
             <div>• 拡大/縮小：両手グリップ</div>
+            <div>• 惑星クリック：VR+情報表示</div>
+            <div>• 空間クリック：MR復帰</div>
         </div>
 
         <div id="troubleshooting">
@@ -290,215 +289,6 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
-
-        // ワープエフェクトシステム
-        let warpEffect = {
-            active: false,
-            phase: 'waiting', // 'waiting', 'accelerating', 'cruising', 'decelerating', 'arrived'
-            startTime: 0,
-            waitDuration: 1000, // 1秒待機
-            accelerateDuration: 2500, // 2.5秒で加速
-            cruiseDuration: 3500, // 3.5秒で移動
-            decelerateDuration: 3000, // 3秒で減速（より長く自然に）
-            totalDuration: 10000, // 合計10秒
-            startPosition: new THREE.Vector3(0, 1.6, 1000), // 手前の遥か彼方からスタート（正の値）
-            targetPosition: new THREE.Vector3(0, 1.6, 5), // 最終位置
-            currentPosition: new THREE.Vector3(),
-            speed: 0,
-            maxSpeed: 200 // 最大速度を上げて遠距離対応
-        };
-
-        // MRへの切り替えエフェクト
-        let mrTransition = {
-            active: false,
-            progress: 0,
-            duration: 3000, // 3秒でMRに切り替え
-            startTime: 0
-        };
-
-        // ワープエフェクトの計算
-        function updateWarpEffect() {
-            if (!warpEffect.active) return;
-
-            const currentTime = Date.now();
-            const elapsed = currentTime - warpEffect.startTime;
-
-            // フェーズ判定
-            if (elapsed < warpEffect.waitDuration) {
-                warpEffect.phase = 'waiting';
-            } else if (elapsed < warpEffect.waitDuration + warpEffect.accelerateDuration) {
-                warpEffect.phase = 'accelerating';
-            } else if (elapsed < warpEffect.waitDuration + warpEffect.accelerateDuration + warpEffect.cruiseDuration) {
-                warpEffect.phase = 'cruising';
-            } else if (elapsed < warpEffect.totalDuration) {
-                warpEffect.phase = 'decelerating';
-            } else {
-                warpEffect.phase = 'arrived';
-                warpEffect.active = false;
-                
-                // ワープ完了時にユーザー位置を確実に目標位置に設定
-                userPosition.copy(warpEffect.targetPosition);
-                updateUserPosition();
-                
-                console.log('ワープ完了 - ユーザー位置:', userPosition);
-                
-                // ワープ完了後、MR切り替えを開始
-                startMRTransition();
-                return;
-            }
-
-            // 待機フェーズ - 位置を固定して横方向移動を防ぐ
-            if (warpEffect.phase === 'waiting') {
-                warpEffect.currentPosition.copy(warpEffect.startPosition);
-                warpEffect.speed = 0;
-                userPosition.copy(warpEffect.currentPosition);
-                updateUserPosition();
-                return;
-            }
-
-            // 移動時間の計算
-            const moveStartTime = warpEffect.waitDuration;
-            const moveDuration = warpEffect.totalDuration - warpEffect.waitDuration;
-            const moveElapsed = elapsed - moveStartTime;
-            const moveProgress = Math.min(1, moveElapsed / moveDuration);
-
-            // より滑らかなイージング関数
-            let easedProgress;
-            if (warpEffect.phase === 'accelerating') {
-                const phaseProgress = (elapsed - warpEffect.waitDuration) / warpEffect.accelerateDuration;
-                // より滑らかな加速カーブ（cubic easing in）
-                easedProgress = 0.25 * phaseProgress * phaseProgress * phaseProgress;
-            } else if (warpEffect.phase === 'cruising') {
-                const prevProgress = 0.25; // 加速終了時の進行度
-                const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration) / warpEffect.cruiseDuration;
-                // 巡航フェーズでは進行度を多く進める
-                easedProgress = prevProgress + phaseProgress * 0.5; // 線形移動
-            } else if (warpEffect.phase === 'decelerating') {
-                const prevProgress = 0.75; // 巡航終了時の進行度
-                const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration - warpEffect.cruiseDuration) / warpEffect.decelerateDuration;
-                // より自然な減速カーブ（cubic easing out）
-                const t = 1 - phaseProgress;
-                const decelCurve = 1 - (t * t * t);
-                easedProgress = prevProgress + 0.25 * decelCurve;
-            }
-
-            // 位置の補間
-            warpEffect.currentPosition.lerpVectors(warpEffect.startPosition, warpEffect.targetPosition, easedProgress);
-            userPosition.copy(warpEffect.currentPosition);
-            updateUserPosition();
-
-            // 速度の計算（視覚効果用） - より滑らかな速度変化
-            if (warpEffect.phase === 'accelerating') {
-                const phaseProgress = (elapsed - warpEffect.waitDuration) / warpEffect.accelerateDuration;
-                // 二次関数的な加速
-                warpEffect.speed = warpEffect.maxSpeed * phaseProgress * phaseProgress;
-            } else if (warpEffect.phase === 'cruising') {
-                warpEffect.speed = warpEffect.maxSpeed;
-            } else if (warpEffect.phase === 'decelerating') {
-                const phaseProgress = (elapsed - warpEffect.waitDuration - warpEffect.accelerateDuration - warpEffect.cruiseDuration) / warpEffect.decelerateDuration;
-                // より自然な減速（cubic easing out）
-                const t = 1 - phaseProgress;
-                warpEffect.speed = warpEffect.maxSpeed * (t * t * t);
-            }
-        }
-
-        // MRへの切り替えを開始
-        function startMRTransition() {
-            mrTransition.active = true;
-            mrTransition.startTime = Date.now();
-            mrTransition.progress = 0;
-        }
-
-        // MR切り替えエフェクトの更新
-        function updateMRTransition() {
-            if (!mrTransition.active) return;
-
-            const elapsed = Date.now() - mrTransition.startTime;
-            mrTransition.progress = Math.min(1, elapsed / mrTransition.duration);
-
-            // VRからMRへの滑らかな切り替え
-            const progress = mrTransition.progress;
-            
-            // 宇宙背景のフェードアウト
-            if (spaceStars && spaceStars.material) {
-                spaceStars.material.opacity = Math.max(0, 1 - progress);
-            }
-            if (backgroundSphere && backgroundSphere.material) {
-                backgroundSphere.material.opacity = Math.max(0, 1 - progress);
-            }
-            
-            // 通常の星空のフェードイン
-            if (originalStars && originalStars.material) {
-                originalStars.material.opacity = Math.min(1, progress);
-            }
-
-            // 完了処理
-            if (mrTransition.progress >= 1) {
-                mrTransition.active = false;
-                
-                // MRモードに完全切り替え完了
-                spaceMode = false;
-                
-                // 表示状態の最終調整
-                if (spaceStars) {
-                    spaceStars.visible = false;
-                    spaceStars.material.opacity = 0;
-                }
-                if (backgroundSphere) {
-                    backgroundSphere.visible = false;
-                    backgroundSphere.material.opacity = 0;
-                }
-                if (originalStars) {
-                    originalStars.visible = true;
-                    originalStars.material.opacity = 1;
-                }
-                
-                // MRモード用のカメラとユーザー位置を設定
-                userPosition.set(0, 1.6, 5);
-                if (!xrActive) {
-                    camera.position.copy(userPosition);
-                } else {
-                    // XRモードでは宇宙要素の位置を調整
-                    updateUserPosition();
-                }
-                
-                // 軌道線を表示
-                toggleOrbitVisibility(true);
-                
-                console.log('MR切り替え完了 - カメラ位置:', camera.position, 'ユーザー位置:', userPosition);
-            }
-        }
-
-        // ワープエフェクトを開始
-        function startWarpEffect() {
-            warpEffect.active = true;
-            warpEffect.phase = 'waiting';
-            warpEffect.startTime = Date.now();
-            warpEffect.currentPosition.copy(warpEffect.startPosition);
-            userPosition.copy(warpEffect.startPosition);
-            
-            // 最初はVRモードで開始
-            spaceMode = true;
-            
-            // VRモード用の表示状態を設定
-            if (spaceStars) {
-                spaceStars.visible = true;
-                spaceStars.material.opacity = 1;
-            }
-            if (backgroundSphere) {
-                backgroundSphere.visible = true;
-                backgroundSphere.material.opacity = 1;
-            }
-            if (originalStars) {
-                originalStars.visible = false;
-                originalStars.material.opacity = 0;
-            }
-            
-            // VRモードでは軌道線を非表示
-            toggleOrbitVisibility(false);
-            
-            updateUserPosition();
-        }
 
         // 惑星データ
         const planetData = [
@@ -2748,6 +2538,9 @@
             solarSystemGroup.position.set(0, 1, -2);
             scene.add(solarSystemGroup);
             registerUniverseElement(solarSystemGroup);
+            
+            // 初期ユーザー位置を設定
+            updateUserPosition();
 
             // 星空
             const stars = createStarField();
@@ -3549,12 +3342,10 @@
                 };
                 
                 let session;
-                // まずVRモードで開始する
                 try {
-                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
-                } catch (vrError) {
-                    // VRが使用できない場合はARで開始
                     session = await navigator.xr.requestSession('immersive-ar', sessionInit);
+                } catch (arError) {
+                    session = await navigator.xr.requestSession('immersive-vr', sessionInit);
                 }
 
                 await renderer.xr.setSession(session);
@@ -3562,9 +3353,6 @@
                 
                 // XRセッション開始後にコントローラーをセットアップ
                 setupXRControllers();
-                
-                // ワープエフェクトを開始
-                startWarpEffect();
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -3606,12 +3394,6 @@
         function animate() {
             renderer.setAnimationLoop(animate);
             time += 0.01;
-
-            // ワープエフェクトの更新
-            updateWarpEffect();
-            
-            // MR切り替えエフェクトの更新
-            updateMRTransition();
 
             // 太陽のスケールアニメーション
             if (Math.abs(sunScaleAnimation.current - sunScaleAnimation.target) > 0.001) {
