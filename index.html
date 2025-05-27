@@ -74,6 +74,142 @@
             z-index: 100;
         }
 
+        #mobile-start-button {
+            position: absolute;
+            top: 60%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(45deg, #ff8800, #ff4400);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            z-index: 100;
+            display: none;
+        }
+
+        /* モバイル用コントロール */
+        #mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            display: none;
+            z-index: 1000;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .mobile-control-btn {
+            padding: 15px 20px;
+            background: rgba(0, 50, 100, 0.8);
+            color: white;
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .mobile-control-btn:active {
+            background: rgba(0, 255, 136, 0.3);
+            transform: scale(0.95);
+        }
+
+        #mobile-joystick {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            background: rgba(0, 50, 100, 0.6);
+            border: 2px solid rgba(0, 255, 136, 0.5);
+            border-radius: 50%;
+            display: none;
+            z-index: 1001;
+            backdrop-filter: blur(10px);
+        }
+
+        #mobile-joystick-handle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #00ff88, #0088ff);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: none;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.8);
+        }
+
+        #zoom-controls {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1001;
+        }
+
+        .zoom-btn {
+            width: 60px;
+            height: 60px;
+            background: rgba(0, 50, 100, 0.8);
+            color: white;
+            border: 1px solid rgba(0, 255, 136, 0.5);
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .zoom-btn:active {
+            background: rgba(0, 255, 136, 0.3);
+            transform: scale(0.9);
+        }
+
+        #mobile-info {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 20, 40, 0.9);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            display: none;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        /* タッチデバイス検出時の調整 */
+        @media (hover: none) and (pointer: coarse) {
+            .mobile-control-btn, .zoom-btn {
+                min-height: 48px;
+                min-width: 48px;
+            }
+        }
+
         #xr-button:disabled {
             background: #666666;
             cursor: not-allowed;
@@ -194,12 +330,24 @@
             🥽 太陽系探索XRを開始
         </button>
 
+        <button id="mobile-start-button">
+            📱 太陽系探索を開始
+        </button>
+
         <div id="instructions">
             <h3 class="highlight" style="margin: 0 0 10px 0;">🌟 操作方法</h3>
-            <div>• 移動：片手グリップ+ドラッグ</div>
-            <div>• 拡大/縮小：両手グリップ</div>
-            <div>• 惑星トリガー：VR+情報表示</div>
-            <div>• 空間トリガー：MR復帰</div>
+            <div id="vr-instructions">
+                <div>• 移動：片手グリップ+ドラッグ</div>
+                <div>• 拡大/縮小：両手グリップ</div>
+                <div>• 惑星トリガー：VR+情報表示</div>
+                <div>• 空間トリガー：MR復帰</div>
+            </div>
+            <div id="mobile-instructions" style="display: none;">
+                <div>• 移動：画面ドラッグ</div>
+                <div>• 拡大/縮小：ピンチジェスチャー</div>
+                <div>• 惑星選択：タップ</div>
+                <div>• 回転：2本指ドラッグ</div>
+            </div>
         </div>
 
         <div id="troubleshooting">
@@ -246,6 +394,30 @@
             </div>
         </div>
 
+        <!-- モバイル用コントロール -->
+        <div id="mobile-joystick">
+            <div id="mobile-joystick-handle"></div>
+        </div>
+
+        <div id="zoom-controls">
+            <button class="zoom-btn" id="zoom-in">+</button>
+            <button class="zoom-btn" id="zoom-out">−</button>
+        </div>
+
+        <div id="mobile-controls">
+            <button class="mobile-control-btn" id="space-mode-btn">🌌 宇宙モード</button>
+            <button class="mobile-control-btn" id="info-btn">ℹ️ 情報</button>
+            <button class="mobile-control-btn" id="reset-btn">🔄 リセット</button>
+        </div>
+
+        <div id="mobile-info">
+            <div class="highlight" style="margin-bottom: 10px;">
+                📱 モバイルモード：アクティブ
+            </div>
+            <div>スケール: <span id="mobile-scale-value">1.00</span>x</div>
+            <div>位置: <span id="mobile-position">0, 0, 5</span></div>
+        </div>
+
         <!-- BGM -->
         <audio id="bgm" loop preload="auto" style="display: none;">
             <source src="Mystical Cosmos.mp3" type="audio/mpeg">
@@ -289,6 +461,33 @@
         let bgMusic = null; // BGM用
         let audioContext = null; // Web Audio API用
         let panelClosing = false; // 情報パネルがクローズ処理中かどうか
+
+        // モバイル対応関連の変数
+        let isMobile = false;
+        let mobileActive = false;
+        let touchState = {
+            touching: false,
+            touches: [],
+            lastTouchDistance: 0,
+            dragStart: { x: 0, y: 0 },
+            joystickActive: false,
+            joystickStart: { x: 0, y: 0 },
+            twoFingerRotation: false,
+            lastRotationAngle: 0
+        };
+        let mobileControls = {
+            moveSpeed: 0.1,
+            zoomSpeed: 0.05,
+            rotationSpeed: 0.01,
+            joystickSensitivity: 0.02
+        };
+        let mouse = new THREE.Vector2();
+        let mobilePlanetInfo = null;
+        let cameraControls = {
+            rotation: { x: 0, y: 0 },
+            distance: 10,
+            target: new THREE.Vector3(0, 0, 0)
+        };
 
         // 惑星データ
         const planetData = [
@@ -3642,10 +3841,28 @@
         // イベントリスナー
         window.addEventListener('resize', onWindowResize);
         document.getElementById('xr-button').addEventListener('click', startXRSession);
+        document.getElementById('mobile-start-button').addEventListener('click', startMobileMode);
 
         // 初期化開始
-        checkXRSupport().then(() => {
-            init();
+        window.addEventListener('load', () => {
+            // デバイス検出
+            isMobile = detectMobileDevice();
+            
+            if (isMobile) {
+                // モバイルデバイスの場合
+                document.getElementById('xr-button').style.display = 'none';
+                document.getElementById('mobile-start-button').style.display = 'block';
+                document.getElementById('vr-instructions').style.display = 'none';
+                document.getElementById('mobile-instructions').style.display = 'block';
+                
+                console.log('Mobile device detected');
+                init(); // 直接初期化
+            } else {
+                // デスクトップの場合、既存のWebXR処理
+                checkXRSupport().then(() => {
+                    init();
+                });
+            }
         });
 
         // 宇宙空間モード切り替え
@@ -4033,6 +4250,409 @@
                 element.originalPosition = element.position.clone();
                 universeElements.push(element);
             }
+        }
+
+        // デバイス検出
+        function detectMobileDevice() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const mobileKeywords = ['android', 'iphone', 'ipad', 'mobile', 'phone', 'tablet'];
+            const isMobileUA = mobileKeywords.some(keyword => userAgent.includes(keyword));
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            const hasSmallScreen = window.innerWidth <= 1024;
+            
+            return isMobileUA || (isTouchDevice && hasSmallScreen);
+        }
+
+        // モバイルモード開始
+        function startMobileMode() {
+            mobileActive = true;
+            
+            // UI要素の表示切り替え
+            document.getElementById('xr-button').style.display = 'none';
+            document.getElementById('mobile-start-button').style.display = 'none';
+            document.getElementById('instructions').style.display = 'none';
+            document.getElementById('troubleshooting').style.display = 'none';
+            document.getElementById('loading').style.display = 'none';
+            
+            // モバイル用UI表示
+            document.getElementById('mobile-controls').style.display = 'flex';
+            document.getElementById('mobile-joystick').style.display = 'block';
+            document.getElementById('zoom-controls').style.display = 'flex';
+            document.getElementById('mobile-info').style.display = 'block';
+            
+            // BGM開始
+            startBGM();
+            
+            // タッチイベント設定
+            setupMobileTouchEvents();
+            
+            // カメラ位置初期化
+            camera.position.set(0, 1.6, 10);
+            camera.lookAt(0, 0, 0);
+            
+            console.log('Mobile mode started');
+        }
+
+        // タッチイベント設定
+        function setupMobileTouchEvents() {
+            const container = document.getElementById('container');
+            
+            // 基本タッチイベント
+            container.addEventListener('touchstart', onTouchStart, { passive: false });
+            container.addEventListener('touchmove', onTouchMove, { passive: false });
+            container.addEventListener('touchend', onTouchEnd, { passive: false });
+            
+            // マウスイベント（デスクトップテスト用）
+            container.addEventListener('mousedown', onMouseDown);
+            container.addEventListener('mousemove', onMouseMove);
+            container.addEventListener('mouseup', onMouseUp);
+            container.addEventListener('wheel', onMouseWheel, { passive: false });
+            
+            // ジョイスティック
+            setupJoystick();
+            
+            // ズームボタン
+            document.getElementById('zoom-in').addEventListener('touchstart', () => adjustZoom(0.1));
+            document.getElementById('zoom-out').addEventListener('touchstart', () => adjustZoom(-0.1));
+            
+            // その他のボタン
+            document.getElementById('space-mode-btn').addEventListener('click', toggleSpaceMode);
+            document.getElementById('info-btn').addEventListener('click', toggleMobileInfo);
+            document.getElementById('reset-btn').addEventListener('click', resetMobileView);
+        }
+
+        // タッチ開始
+        function onTouchStart(event) {
+            event.preventDefault();
+            
+            touchState.touches = Array.from(event.touches);
+            touchState.touching = true;
+            
+            if (touchState.touches.length === 1) {
+                // 単一タッチ - ドラッグまたは惑星選択
+                const touch = touchState.touches[0];
+                touchState.dragStart.x = touch.clientX;
+                touchState.dragStart.y = touch.clientY;
+                
+                // 惑星選択チェック
+                checkPlanetSelection(touch.clientX, touch.clientY);
+            } else if (touchState.touches.length === 2) {
+                // 2本指 - ピンチズームまたは回転
+                const touch1 = touchState.touches[0];
+                const touch2 = touchState.touches[1];
+                
+                touchState.lastTouchDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                touchState.lastRotationAngle = Math.atan2(
+                    touch2.clientY - touch1.clientY,
+                    touch2.clientX - touch1.clientX
+                );
+                
+                touchState.twoFingerRotation = true;
+            }
+        }
+
+        // タッチ移動
+        function onTouchMove(event) {
+            event.preventDefault();
+            
+            if (!touchState.touching) return;
+            
+            const touches = Array.from(event.touches);
+            
+            if (touches.length === 1 && touchState.touches.length === 1) {
+                // 単一タッチドラッグ - カメラ移動
+                const touch = touches[0];
+                const deltaX = touch.clientX - touchState.dragStart.x;
+                const deltaY = touch.clientY - touchState.dragStart.y;
+                
+                moveCameraMobile(deltaX, deltaY);
+                
+                touchState.dragStart.x = touch.clientX;
+                touchState.dragStart.y = touch.clientY;
+                
+            } else if (touches.length === 2) {
+                // 2本指 - ピンチズーム・回転
+                const touch1 = touches[0];
+                const touch2 = touches[1];
+                
+                const currentDistance = Math.hypot(
+                    touch2.clientX - touch1.clientX,
+                    touch2.clientY - touch1.clientY
+                );
+                
+                const currentAngle = Math.atan2(
+                    touch2.clientY - touch1.clientY,
+                    touch2.clientX - touch1.clientX
+                );
+                
+                // ピンチズーム
+                if (touchState.lastTouchDistance > 0) {
+                    const zoomDelta = (currentDistance - touchState.lastTouchDistance) * mobileControls.zoomSpeed;
+                    adjustZoom(zoomDelta * 0.01);
+                }
+                
+                // 回転
+                if (touchState.twoFingerRotation) {
+                    const rotationDelta = currentAngle - touchState.lastRotationAngle;
+                    rotateCameraMobile(rotationDelta);
+                }
+                
+                touchState.lastTouchDistance = currentDistance;
+                touchState.lastRotationAngle = currentAngle;
+            }
+        }
+
+        // タッチ終了
+        function onTouchEnd(event) {
+            event.preventDefault();
+            
+            touchState.touching = false;
+            touchState.touches = [];
+            touchState.twoFingerRotation = false;
+            touchState.lastTouchDistance = 0;
+        }
+
+        // マウスイベント（デスクトップテスト用）
+        function onMouseDown(event) {
+            touchState.touching = true;
+            touchState.dragStart.x = event.clientX;
+            touchState.dragStart.y = event.clientY;
+            
+            // 惑星選択チェック
+            checkPlanetSelection(event.clientX, event.clientY);
+        }
+
+        function onMouseMove(event) {
+            if (!touchState.touching) return;
+            
+            const deltaX = event.clientX - touchState.dragStart.x;
+            const deltaY = event.clientY - touchState.dragStart.y;
+            
+            moveCameraMobile(deltaX, deltaY);
+            
+            touchState.dragStart.x = event.clientX;
+            touchState.dragStart.y = event.clientY;
+        }
+
+        function onMouseUp(event) {
+            touchState.touching = false;
+        }
+
+        function onMouseWheel(event) {
+            event.preventDefault();
+            const zoomDelta = event.deltaY * -0.001;
+            adjustZoom(zoomDelta);
+        }
+
+        // カメラ移動（モバイル）
+        function moveCameraMobile(deltaX, deltaY) {
+            const sensitivity = mobileControls.moveSpeed;
+            
+            // カメラの右向きベクトルと上向きベクトルを計算
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            
+            const right = new THREE.Vector3();
+            right.crossVectors(camera.up, cameraDirection).normalize();
+            
+            const up = new THREE.Vector3();
+            up.crossVectors(cameraDirection, right).normalize();
+            
+            // 移動ベクトルを計算
+            const moveVector = new THREE.Vector3();
+            moveVector.addScaledVector(right, -deltaX * sensitivity);
+            moveVector.addScaledVector(up, deltaY * sensitivity);
+            
+            // ユーザー位置を更新
+            userPosition.add(moveVector);
+            updateUserPositionMobile();
+        }
+
+        // カメラ回転（モバイル）
+        function rotateCameraMobile(deltaAngle) {
+            cameraControls.rotation.y += deltaAngle;
+            
+            // カメラ位置を更新
+            const x = Math.sin(cameraControls.rotation.y) * cameraControls.distance;
+            const z = Math.cos(cameraControls.rotation.y) * cameraControls.distance;
+            
+            camera.position.set(
+                userPosition.x + x,
+                userPosition.y,
+                userPosition.z + z
+            );
+            
+            camera.lookAt(userPosition);
+        }
+
+        // ズーム調整
+        function adjustZoom(delta) {
+            scaleFactor += delta;
+            scaleFactor = Math.max(0.1, Math.min(50, scaleFactor));
+            
+            // 宇宙全体をスケール
+            universeElements.forEach(element => {
+                if (element && element.scale) {
+                    element.scale.setScalar(scaleFactor);
+                }
+            });
+            
+            // UI更新
+            document.getElementById('mobile-scale-value').textContent = scaleFactor.toFixed(2);
+        }
+
+        // 惑星選択チェック
+        function checkPlanetSelection(screenX, screenY) {
+            // スクリーン座標を正規化デバイス座標に変換
+            mouse.x = (screenX / window.innerWidth) * 2 - 1;
+            mouse.y = -(screenY / window.innerHeight) * 2 + 1;
+            
+            // レイキャスティング
+            raycaster.setFromCamera(mouse, camera);
+            
+            // 惑星メッシュのみをチェック
+            const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
+            const intersects = raycaster.intersectObjects(planetMeshes);
+            
+            if (intersects.length > 0) {
+                const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                if (intersectedPlanet) {
+                    showMobilePlanetInfo(intersectedPlanet);
+                    playInfoPanelSound();
+                }
+            }
+        }
+
+        // モバイル惑星情報表示
+        function showMobilePlanetInfo(planet) {
+            const planetInfo = planetData.find(p => p.type === planet.type);
+            if (!planetInfo) return;
+            
+            mobilePlanetInfo = planetInfo;
+            
+            // 既存の惑星情報パネルを利用
+            document.getElementById('planet-name').textContent = planetInfo.name;
+            document.getElementById('planet-distance').textContent = planetInfo.realDistance;
+            document.getElementById('planet-size').textContent = planetInfo.realSize;
+            document.getElementById('planet-period').textContent = planetInfo.period;
+            document.getElementById('planet-feature').textContent = planetInfo.feature;
+            
+            // モバイル用に表示を調整
+            const panel = document.getElementById('planet-info');
+            panel.style.opacity = '1';
+            panel.style.visibility = 'visible';
+            panel.style.display = 'block';
+            panel.style.position = 'fixed';
+            panel.style.top = '50%';
+            panel.style.left = '50%';
+            panel.style.transform = 'translate(-50%, -50%)';
+            panel.style.maxWidth = '90%';
+            panel.style.maxHeight = '80%';
+            panel.style.overflow = 'auto';
+            
+            planetInfoVisible = true;
+            
+            // タップで閉じる
+            panel.addEventListener('click', hideMobilePlanetInfo);
+        }
+
+        // モバイル惑星情報を隠す
+        function hideMobilePlanetInfo() {
+            const panel = document.getElementById('planet-info');
+            panel.style.display = 'none';
+            panel.style.opacity = '0';
+            panel.style.visibility = 'hidden';
+            planetInfoVisible = false;
+            mobilePlanetInfo = null;
+        }
+
+        // ジョイスティック設定
+        function setupJoystick() {
+            const joystick = document.getElementById('mobile-joystick');
+            const handle = document.getElementById('mobile-joystick-handle');
+            
+            joystick.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchState.joystickActive = true;
+                const rect = joystick.getBoundingClientRect();
+                touchState.joystickStart.x = rect.left + rect.width / 2;
+                touchState.joystickStart.y = rect.top + rect.height / 2;
+            });
+            
+            joystick.addEventListener('touchmove', (e) => {
+                if (!touchState.joystickActive) return;
+                e.preventDefault();
+                
+                const touch = e.touches[0];
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const deltaX = touch.clientX - centerX;
+                const deltaY = touch.clientY - centerY;
+                const distance = Math.min(Math.hypot(deltaX, deltaY), rect.width / 2 - 20);
+                const angle = Math.atan2(deltaY, deltaX);
+                
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                
+                handle.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+                
+                // カメラ移動
+                const moveX = x * mobileControls.joystickSensitivity;
+                const moveY = y * mobileControls.joystickSensitivity;
+                moveCameraMobile(moveX, moveY);
+            });
+            
+            joystick.addEventListener('touchend', () => {
+                touchState.joystickActive = false;
+                handle.style.transform = 'translate(-50%, -50%)';
+            });
+        }
+
+        // ユーザー位置更新（モバイル）
+        function updateUserPositionMobile() {
+            if (mobileActive) {
+                camera.position.copy(userPosition);
+                
+                // UI更新
+                const pos = `${userPosition.x.toFixed(1)}, ${userPosition.y.toFixed(1)}, ${userPosition.z.toFixed(1)}`;
+                document.getElementById('mobile-position').textContent = pos;
+            }
+        }
+
+        // モバイル情報パネル切り替え
+        function toggleMobileInfo() {
+            const infoPanel = document.getElementById('mobile-info');
+            const isVisible = infoPanel.style.display !== 'none';
+            infoPanel.style.display = isVisible ? 'none' : 'block';
+        }
+
+        // モバイルビューリセット
+        function resetMobileView() {
+            userPosition.set(0, 1.6, 10);
+            cameraControls.rotation.x = 0;
+            cameraControls.rotation.y = 0;
+            cameraControls.distance = 10;
+            scaleFactor = 1;
+            
+            // 全要素のスケールリセット
+            universeElements.forEach(element => {
+                if (element && element.scale) {
+                    element.scale.setScalar(1);
+                }
+            });
+            
+            camera.position.copy(userPosition);
+            camera.lookAt(0, 0, 0);
+            
+            // UI更新
+            document.getElementById('mobile-scale-value').textContent = '1.00';
+            updateUserPositionMobile();
         }
     </script>
 </body>
