@@ -3357,11 +3357,21 @@
                 await renderer.xr.setSession(session);
                 xrActive = true;
                 
+                console.log('✅ XRセッション開始完了', { xrActive: xrActive });
+                
                 // XRセッション開始後にコントローラーをセットアップ
                 setupXRControllers();
                 
-                // モバイル入力システムを初期化
-                initMobileInput();
+                // XRセッション完全開始後にモバイル入力システムを初期化
+                setTimeout(() => {
+                    console.log('🚀 モバイル入力システム初期化を開始', {
+                        xrActive: xrActive,
+                        rendererXREnabled: renderer.xr.enabled,
+                        hasSession: !!renderer.xr.getSession(),
+                        domElement: !!renderer.domElement
+                    });
+                    initMobileInput();
+                }, 1000); // より長い遅延でXRセッションの完全開始を待つ
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -4065,32 +4075,66 @@
 
         // モバイル入力の初期化
         function initMobileInput() {
-            if (!xrActive) return; // XRセッション中のみ有効
+            console.log('🔄 モバイル入力初期化処理開始', { xrActive: xrActive });
+            
+            if (!xrActive) {
+                console.log('❌ XRセッションが開始されていません');
+                return;
+            }
 
             mobileInput.enabled = true;
             
-            // タッチイベントリスナーを追加
-            renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
-            renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
-            renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: false });
+            // より確実なイベント対象を設定（document全体とcanvas両方）
+            const targets = [document, renderer.domElement, window];
             
-            console.log('🤳 モバイル入力システム初期化完了');
+            targets.forEach(target => {
+                target.addEventListener('touchstart', onTouchStart, { passive: false });
+                target.addEventListener('touchmove', onTouchMove, { passive: false });
+                target.addEventListener('touchend', onTouchEnd, { passive: false });
+            });
+            
+            console.log('🤳 モバイル入力システム初期化完了', { 
+                enabled: mobileInput.enabled, 
+                xrActive: xrActive,
+                targets: targets.length 
+            });
+            
+            // タッチイベント動作テスト（5秒後に自動実行）
+            setTimeout(() => {
+                console.log('🧪 モバイル入力テスト実行');
+                console.log('📱 画面をタップして、ログが出力されるか確認してください');
+                console.log('📱 "📱 タッチ開始イベント発火" が表示されれば正常です');
+            }, 5000);
         }
 
         // モバイル入力の無効化
         function disableMobileInput() {
             mobileInput.enabled = false;
             
-            renderer.domElement.removeEventListener('touchstart', onTouchStart);
-            renderer.domElement.removeEventListener('touchmove', onTouchMove);
-            renderer.domElement.removeEventListener('touchend', onTouchEnd);
+            // 複数の対象からイベントリスナーを削除
+            const targets = [document, renderer.domElement, window];
             
-            console.log('🤳 モバイル入力システム無効化');
+            targets.forEach(target => {
+                target.removeEventListener('touchstart', onTouchStart);
+                target.removeEventListener('touchmove', onTouchMove);
+                target.removeEventListener('touchend', onTouchEnd);
+            });
+            
+            console.log('🤳 モバイル入力システム無効化', { enabled: mobileInput.enabled });
         }
 
         // タッチ開始
         function onTouchStart(event) {
-            if (!mobileInput.enabled) return;
+            console.log('📱 タッチ開始イベント発火', { 
+                enabled: mobileInput.enabled, 
+                xrActive: xrActive, 
+                touchCount: event.touches.length 
+            });
+            
+            if (!mobileInput.enabled) {
+                console.log('❌ モバイル入力が無効です');
+                return;
+            }
             
             event.preventDefault();
             
@@ -4190,7 +4234,16 @@
 
         // タッチ終了
         function onTouchEnd(event) {
-            if (!mobileInput.enabled) return;
+            console.log('📱 タッチ終了イベント発火', { 
+                enabled: mobileInput.enabled, 
+                xrActive: xrActive,
+                touchCount: mobileInput.touchCount 
+            });
+            
+            if (!mobileInput.enabled) {
+                console.log('❌ モバイル入力が無効です (タッチ終了)');
+                return;
+            }
             
             event.preventDefault();
             
@@ -4198,13 +4251,23 @@
             const wasShortTouch = touchDuration < mobileInput.tapThreshold;
             const wasSingleTouch = mobileInput.touchCount === 1;
             
+            console.log('📱 タップ判定', { 
+                duration: touchDuration, 
+                wasShort: wasShortTouch, 
+                wasSingle: wasSingleTouch, 
+                isDragging: mobileInput.isDragging 
+            });
+            
             // タップ判定：短時間でドラッグしていない場合
             if (wasShortTouch && wasSingleTouch && !mobileInput.isDragging) {
+                console.log('✅ タップとして認識 - 惑星選択処理開始');
                 // タップによる惑星選択
                 const touch = mobileInput.touches[0];
                 if (touch) {
                     performMobileTap(touch.startX, touch.startY);
                 }
+            } else {
+                console.log('❌ タップとして認識されませんでした');
             }
             
             // リセット
@@ -4218,10 +4281,18 @@
 
         // タップによる惑星選択
         function performMobileTap(screenX, screenY) {
+            console.log('🎯 モバイルタップ処理開始', { 
+                screenX: screenX, 
+                screenY: screenY, 
+                spaceMode: spaceMode 
+            });
+            
             // スクリーン座標を正規化デバイス座標に変換
             const mouse = new THREE.Vector2();
             mouse.x = (screenX / window.innerWidth) * 2 - 1;
             mouse.y = -(screenY / window.innerHeight) * 2 + 1;
+            
+            console.log('🎯 正規化座標', { mouseX: mouse.x, mouseY: mouse.y });
             
             // レイキャスターを設定
             raycaster.setFromCamera(mouse, camera);
@@ -4230,12 +4301,17 @@
             const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
             const intersects = raycaster.intersectObjects(planetMeshes);
             
+            console.log('🎯 レイキャスト結果', { 
+                惑星数: planetMeshes.length, 
+                交差数: intersects.length 
+            });
+            
             if (intersects.length > 0) {
                 // 惑星がタップされた場合
                 const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
                 
                 if (intersectedPlanet) {
-                    console.log('🪐 タップされた惑星:', intersectedPlanet.name);
+                    console.log('🪐 タップされた惑星:', intersectedPlanet.data.name);
                     
                     // タップ効果音
                     playMobileTapSound();
@@ -4243,15 +4319,17 @@
                     // 惑星情報を表示
                     if (spaceMode) {
                         // VRモードでは3D情報パネルを表示
-                        show3DPlanetInfo(intersectedPlanet);
+                        show3DPlanetInfo(intersectedPlanet.data);
                     } else {
                         // MRモードでは宇宙空間に切り替えてから情報表示
-                        pendingPlanetInfo = intersectedPlanet;
+                        pendingPlanetInfo = intersectedPlanet.data;
                         toggleSpaceMode();
                     }
                 }
             } else {
                 // 空間がタップされた場合
+                console.log('🌌 空間タップ検出');
+                
                 if (spaceMode) {
                     console.log('🌌 空間タップ - MRモードに復帰');
                     
