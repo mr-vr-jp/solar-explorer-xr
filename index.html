@@ -281,9 +281,9 @@
         }
 
         /* タッチ操作のためのキャンバススタイル */
-        #canvas {
+        #canvas, canvas {
             display: block;
-            touch-action: none;  /* タッチ操作を無効化してカスタム操作のみ有効に */
+            touch-action: none !important;  /* タッチ操作を無効化してカスタム操作のみ有効に */
         }
 
         /* モバイル用操作説明 */
@@ -373,6 +373,7 @@
             <div style="color: #00ff88; margin-bottom: 5px;">📱 スマートフォン対応</div>
             <div>画面をドラッグして視点変更 • ピンチでズーム</div>
             <div>惑星をタップで詳細表示</div>
+            <div id="debug-info" style="margin-top: 10px; font-size: 10px; color: #888;"></div>
         </div>
 
         <div id="info-panel" class="overlay">
@@ -2647,22 +2648,35 @@
 
         // WebXRサポートチェック
         async function checkXRSupport() {
-            if ('xr' in navigator) {
+            console.log('Checking XR support...');
+            
+            // スマートフォン/タブレットの判定を追加
+            const isMobileDevice = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                                   ('ontouchstart' in window) || 
+                                   (navigator.maxTouchPoints > 0);
+            
+            console.log('Mobile device detected:', isMobileDevice);
+            console.log('Navigator XR available:', 'xr' in navigator);
+            
+            if ('xr' in navigator && !isMobileDevice) {
                 try {
-                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
-                    xrSupported = supported;
+                    const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
+                    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
+                    xrSupported = arSupported || vrSupported;
+                    console.log('XR support - AR:', arSupported, 'VR:', vrSupported);
                 } catch (error) {
-                    try {
-                        const supported = await navigator.xr.isSessionSupported('immersive-vr');
-                        xrSupported = supported;
-                    } catch (error) {
-                        xrSupported = false;
-                    }
+                    console.log('XR support check failed:', error);
+                    xrSupported = false;
                 }
+            } else {
+                xrSupported = false;
+                console.log('XR not supported - mobile device or no XR API');
             }
 
             const button = document.getElementById('xr-button');
             button.disabled = true; // 初期状態では無効
+            
+            console.log('Final xrSupported value:', xrSupported);
             
             if (!xrSupported) {
                 setupMobileMode();
@@ -2699,10 +2713,7 @@
             warningPanel.style.border = '2px solid rgba(0, 255, 136, 0.6)';
             warningPanel.style.display = 'block';
             
-            // タッチ操作を有効化
-            setupMobileControls();
-            
-            console.log('スマートフォンモードが有効化されました');
+            console.log('スマートフォンモードが有効化されました（タッチ操作はinit後に設定）');
         }
 
         // 初期化
@@ -2730,7 +2741,12 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
-            container.appendChild(renderer.domElement);
+            
+            // キャンバス要素のスタイルを確実に設定
+            const canvas = renderer.domElement;
+            canvas.style.touchAction = 'none';
+            canvas.style.display = 'block';
+            container.appendChild(canvas);
 
             // 太陽系グループ
             solarSystemGroup = new THREE.Group();
@@ -2956,6 +2972,10 @@
             } else {
                 // スマートフォンモードの場合は直接開始
                 updateMobileCamera(); // カメラ位置を設定
+                
+                // タッチ操作を有効化（レンダラー作成後）
+                setupMobileControls();
+                
                 setTimeout(() => {
                     // BGM再生を試行
                     if (bgMusic) {
@@ -4264,7 +4284,7 @@
             isPinching: false,
             tapStartTime: 0,
             tapDelay: 200, // タップの最大時間（ミリ秒）
-            dragThreshold: 10, // ドラッグとみなす最小距離（px）
+            dragThreshold: 5, // ドラッグとみなす最小距離（px）- より反応しやすく
             lastTapTime: 0,
             doubleTapDelay: 300 // ダブルタップの間隔（ミリ秒）
         };
@@ -4274,41 +4294,65 @@
             theta: Math.PI / 2, // 垂直回転角（デフォルトで水平線）
             radius: 10, // カメラからターゲットまでの距離
             target: new THREE.Vector3(0, 0, 0), // 注視点
-            sensitivity: 0.005, // 回転感度
+            sensitivity: 0.01, // 回転感度（より敏感に）
             zoomSensitivity: 0.1 // ズーム感度
         };
 
         // スマートフォン用のタッチイベントリスナーを追加
         function setupMobileControls() {
-            if (!xrSupported) {
+            console.log('setupMobileControls called, xrSupported:', xrSupported, 'renderer:', !!renderer);
+            
+            if (!xrSupported && renderer) {
                 // XR非対応デバイスの場合のみタッチ操作を有効化
                 const canvas = renderer.domElement;
+                console.log('Canvas element:', !!canvas);
                 
-                // タッチ開始
-                canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-                
-                // タッチ移動
-                canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-                
-                // タッチ終了
-                canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-                
-                // マウス操作も対応（デスクトップブラウザ用）
-                canvas.addEventListener('mousedown', handleMouseDown, { passive: false });
-                canvas.addEventListener('mousemove', handleMouseMove, { passive: false });
-                canvas.addEventListener('mouseup', handleMouseUp, { passive: false });
-                canvas.addEventListener('wheel', handleWheel, { passive: false });
-                
-                // コンテキストメニューを無効化
-                canvas.addEventListener('contextmenu', e => e.preventDefault());
+                if (canvas) {
+                    // タッチ開始
+                    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+                    console.log('touchstart event listener added');
+                    
+                    // タッチ移動
+                    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+                    console.log('touchmove event listener added');
+                    
+                    // タッチ終了
+                    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+                    console.log('touchend event listener added');
+                    
+                    // マウス操作も対応（デスクトップブラウザ用）
+                    canvas.addEventListener('mousedown', handleMouseDown, { passive: false });
+                    canvas.addEventListener('mousemove', handleMouseMove, { passive: false });
+                    canvas.addEventListener('mouseup', handleMouseUp, { passive: false });
+                    canvas.addEventListener('wheel', handleWheel, { passive: false });
+                    
+                    // コンテキストメニューを無効化
+                    canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-                console.log('スマートフォン操作が有効化されました');
+                    console.log('スマートフォン操作が有効化されました');
+                    
+                    // テスト用のタッチ検出
+                    canvas.addEventListener('touchstart', function(e) {
+                        console.log('Touch detected!', e.touches.length, 'touches');
+                    }, { passive: true, once: true });
+                } else {
+                    console.error('Canvas element not found!');
+                }
+            } else {
+                console.log('Mobile controls not set up - xrSupported:', xrSupported, 'renderer exists:', !!renderer);
             }
         }
 
         // タッチ開始処理
         function handleTouchStart(event) {
             event.preventDefault();
+            console.log('handleTouchStart called, touches:', event.touches.length);
+            
+            // デバッグ情報を画面に表示
+            const debugInfo = document.getElementById('debug-info');
+            if (debugInfo) {
+                debugInfo.textContent = `タッチ検出: ${event.touches.length}本指 - ${new Date().toLocaleTimeString()}`;
+            }
             
             touchState.touches = Array.from(event.touches);
             touchState.isTouching = true;
@@ -4341,6 +4385,12 @@
             event.preventDefault();
             
             if (!touchState.isTouching) return;
+            
+            // デバッグ情報を画面に表示
+            const debugInfo = document.getElementById('debug-info');
+            if (debugInfo && Math.random() < 0.1) { // 10%の確率で更新（頻度を抑制）
+                debugInfo.textContent = `ドラッグ中: ${event.touches.length}本指 - ${touchState.isDragging ? 'YES' : 'NO'}`;
+            }
             
             touchState.touches = Array.from(event.touches);
             
@@ -4513,6 +4563,11 @@
             
             camera.position.set(x, y, z);
             camera.lookAt(mobileCamera.target);
+            
+            // デバッグ情報を時々表示
+            if (Math.random() < 0.01) { // 1%の確率でログ出力
+                console.log('Camera updated - position:', x.toFixed(2), y.toFixed(2), z.toFixed(2), 'radius:', mobileCamera.radius.toFixed(2));
+            }
         }
 
         // タップ処理（惑星の選択）
