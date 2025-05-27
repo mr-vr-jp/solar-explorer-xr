@@ -120,16 +120,12 @@
         }
 
         #warning-panel {
-            position: fixed;
             bottom: 20px;
             left: 20px;
             right: 20px;
             background: rgba(139, 0, 0, 0.8);
             text-align: center;
             display: none;
-            z-index: 200;
-            border-radius: 10px;
-            padding: 15px;
         }
 
         #planet-info {
@@ -181,161 +177,6 @@
         .warning {
             color: #ffaa00;
         }
-
-        /* スマートフォン用のスタイル */
-        #mobile-planet-info {
-            position: fixed !important;
-            top: 50% !important;
-            left: 50% !important;
-            transform: translate(-50%, -50%) scale(0.8) !important;
-            background: rgba(0, 20, 40, 0.98) !important;
-            border: 3px solid rgba(0, 255, 136, 1) !important;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.8) !important;
-            max-width: 90vw;
-            max-height: 80vh;
-            z-index: 999999 !important;
-            color: white !important;
-            font-family: 'Courier New', monospace !important;
-            font-size: 14px !important;
-            padding: 20px;
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            opacity: 0;
-            transition: all 0.3s ease;
-            overflow-y: auto;
-            cursor: pointer;
-        }
-
-        .mobile-info-title {
-            color: #00ff88;
-            font-size: 24px;
-            margin-bottom: 15px;
-            text-align: center;
-            text-shadow: 0 0 10px #00ff88;
-            font-weight: bold;
-        }
-
-        .mobile-info-item {
-            margin: 10px 0;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-
-        .mobile-info-label {
-            color: #ffaa00;
-            font-weight: bold;
-            min-width: 80px;
-        }
-
-        .mobile-info-value {
-            color: #ffffff;
-            flex: 1;
-            text-align: right;
-        }
-
-        .mobile-info-feature, .mobile-info-fact {
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(0, 40, 80, 0.5);
-            border-radius: 10px;
-            border-left: 4px solid #00ff88;
-        }
-
-        .mobile-feature-title, .mobile-fact-title {
-            color: #00ff88;
-            font-size: 18px;
-            margin-bottom: 10px;
-            font-weight: bold;
-        }
-
-        .mobile-feature-text, .mobile-fact-text {
-            color: #ffffff;
-            line-height: 1.6;
-            text-align: justify;
-        }
-
-        .mobile-close-info {
-            text-align: center;
-            margin-top: 20px;
-            color: #888;
-            font-size: 12px;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 5px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        /* XR非対応時のメッセージスタイル調整 */
-        #mobile-instructions {
-            position: fixed;
-            top: 55%;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-size: 14px;
-            max-width: 90vw;
-            background: rgba(0, 0, 32, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            border: 1px solid rgba(0, 255, 136, 0.3);
-            backdrop-filter: blur(10px);
-            text-align: left;
-            z-index: 100;
-            display: none;
-        }
-
-        /* タッチ操作のためのキャンバススタイル */
-        #canvas, canvas {
-            display: block;
-            touch-action: none !important;  /* タッチ操作を無効化してカスタム操作のみ有効に */
-        }
-
-        /* モバイル用操作説明 */
-        .mobile-controls-info {
-            position: fixed;
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: white;
-            font-size: 12px;
-            max-width: 90vw;
-            background: rgba(0, 40, 80, 0.9);
-            padding: 15px;
-            border-radius: 8px;
-            border: 2px solid rgba(0, 255, 136, 0.6);
-            text-align: center;
-            z-index: 100;
-            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
-            backdrop-filter: blur(10px);
-        }
-
-        /* レスポンシブ対応 */
-        @media (max-width: 768px) {
-            #mobile-planet-info {
-                max-width: 95vw;
-                font-size: 12px;
-                padding: 15px;
-            }
-            
-            .mobile-info-title {
-                font-size: 20px;
-            }
-            
-            .mobile-feature-title, .mobile-fact-title {
-                font-size: 16px;
-            }
-            
-            .mobile-info-item {
-                flex-direction: column;
-                gap: 5px;
-            }
-            
-            .mobile-info-value {
-                text-align: left;
-            }
-        }
     </style>
 </head>
 <body>
@@ -355,19 +196,16 @@
 
         <div id="instructions">
             <h3 class="highlight" style="margin: 0 0 10px 0;">🌟 操作方法</h3>
+            <div style="margin-bottom: 8px;"><strong>🎮 VRコントローラー：</strong></div>
             <div>• 移動：片手グリップ+ドラッグ</div>
             <div>• 拡大/縮小：両手グリップ</div>
             <div>• 惑星トリガー：VR+情報表示</div>
             <div>• 空間トリガー：MR復帰</div>
-        </div>
-
-        <div id="mobile-instructions">
-            <h3 class="highlight" style="margin: 0 0 15px 0; text-align: center;">📱 太陽系探索</h3>
-            <div style="margin-bottom: 8px;">🔄 <strong>視点変更</strong>：画面をドラッグ</div>
-            <div style="margin-bottom: 8px;">🔍 <strong>ズーム</strong>：2本指でピンチ</div>
-            <div style="margin-bottom: 8px;">🪐 <strong>惑星情報</strong>：惑星をタップ</div>
-            <div style="margin-bottom: 15px;">🔄 <strong>視点リセット</strong>：ダブルタップ</div>
-            <div style="text-align: center; font-size: 12px; color: #888;">画面をタッチして探索を開始してください</div>
+            <div style="margin-top: 12px; margin-bottom: 8px;"><strong>📱 スマホタッチ：</strong></div>
+            <div>• 移動：1本指ドラッグ</div>
+            <div>• 拡大/縮小：2本指ピンチ</div>
+            <div>• 惑星タップ：情報表示</div>
+            <div>• 空間タップ：モード切替</div>
         </div>
 
         <div id="troubleshooting">
@@ -375,15 +213,6 @@
                 ⚠️ またコントローラーが効かない場合<br>
                 ホームボタンを2回押して、ホーム画面を開閉してください
             </div>
-        </div>
-
-        <div class="mobile-controls-info" id="mobile-controls-info" style="display: none;">
-            <div style="color: #00ff88; margin-bottom: 8px; font-weight: bold;">📱 タッチ操作対応</div>
-            <div style="margin-bottom: 3px;">🔄 視点変更：画面をドラッグ</div>
-            <div style="margin-bottom: 3px;">🔍 ズーム：ピンチイン/アウト</div>
-            <div style="margin-bottom: 3px;">🪐 惑星情報：タップで表示</div>
-            <div style="margin-bottom: 8px;">🔄 視点リセット：ダブルタップ</div>
-            <div id="debug-info" style="font-size: 9px; color: #666; opacity: 0.7;"></div>
         </div>
 
         <div id="info-panel" class="overlay">
@@ -2658,69 +2487,29 @@
 
         // WebXRサポートチェック
         async function checkXRSupport() {
-            console.log('Checking XR support...');
-            
-            // まずWebXR APIの利用可能性をチェック
             if ('xr' in navigator) {
                 try {
-                    const arSupported = await navigator.xr.isSessionSupported('immersive-ar');
-                    const vrSupported = await navigator.xr.isSessionSupported('immersive-vr');
-                    xrSupported = arSupported || vrSupported;
-                    console.log('XR support - AR:', arSupported, 'VR:', vrSupported);
+                    const supported = await navigator.xr.isSessionSupported('immersive-ar');
+                    xrSupported = supported;
                 } catch (error) {
-                    console.log('XR support check failed:', error);
-                    xrSupported = false;
+                    try {
+                        const supported = await navigator.xr.isSessionSupported('immersive-vr');
+                        xrSupported = supported;
+                    } catch (error) {
+                        xrSupported = false;
+                    }
                 }
-            } else {
-                xrSupported = false;
-                console.log('WebXR API not available');
             }
 
             const button = document.getElementById('xr-button');
             button.disabled = true; // 初期状態では無効
             
-            console.log('Final xrSupported value:', xrSupported);
-            
             if (!xrSupported) {
-                // WebXRが利用できない場合のみスマートフォンモードを設定
-                console.log('Setting up mobile mode - WebXR not supported');
-                setupMobileMode();
+                button.textContent = 'XR非対応デバイス';
+                document.getElementById('warning-panel').style.display = 'block';
             } else {
-                // WebXRが利用可能な場合はVR/ARモードを設定
                 button.textContent = '読み込み中...';
-                // モバイル関連のUIを非表示
-                document.getElementById('mobile-controls-info').style.display = 'none';
-                document.getElementById('mobile-instructions').style.display = 'none';
-                console.log('XR mode enabled - mobile UI hidden');
             }
-        }
-
-        // スマートフォンモードのセットアップ
-        function setupMobileMode() {
-            xrSupported = false;
-            
-            // XR関連のUIを非表示
-            const xrButton = document.getElementById('xr-button');
-            xrButton.style.display = 'none';
-            document.getElementById('instructions').style.display = 'none';
-            document.getElementById('troubleshooting').style.display = 'none';
-            
-            // スマートフォン用UIを表示
-            document.getElementById('mobile-instructions').style.display = 'block';
-            document.getElementById('mobile-controls-info').style.display = 'block';
-            
-            // 警告パネルのメッセージを変更
-            const warningPanel = document.getElementById('warning-panel');
-            warningPanel.innerHTML = `
-                <div style="margin-bottom: 10px;">📱 スマートフォンモード</div>
-                <div>太陽系探索アプリが準備されています</div>
-                <div>画面をタッチして操作してください</div>
-            `;
-            warningPanel.style.background = 'rgba(0, 80, 40, 0.8)';
-            warningPanel.style.border = '2px solid rgba(0, 255, 136, 0.6)';
-            warningPanel.style.display = 'block';
-            
-            console.log('スマートフォンモードが有効化されました（タッチ操作はinit後に設定）');
         }
 
         // 初期化
@@ -2748,12 +2537,7 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             renderer.xr.enabled = true;
-            
-            // キャンバス要素のスタイルを確実に設定
-            const canvas = renderer.domElement;
-            canvas.style.touchAction = 'none';
-            canvas.style.display = 'block';
-            container.appendChild(canvas);
+            container.appendChild(renderer.domElement);
 
             // 太陽系グループ
             solarSystemGroup = new THREE.Group();
@@ -2976,23 +2760,6 @@
             if (xrSupported) {
                 xrButton.disabled = false;
                 xrButton.textContent = '🥽 MR太陽系を開始';
-                console.log('VR/ARモード有効 - XRボタン表示');
-            } else {
-                // XR非対応の場合はモバイル/デスクトップモードで開始
-                console.log('XR非対応 - モバイル/デスクトップモード開始');
-                updateMobileCamera(); // カメラ位置を設定
-                
-                // タッチ操作を有効化（レンダラー作成後、XR非対応時のみ）
-                setupMobileControls();
-                
-                setTimeout(() => {
-                    // BGM再生を試行
-                    if (bgMusic) {
-                        bgMusic.play().catch(error => {
-                            console.log('BGM autoplay prevented:', error);
-                        });
-                    }
-                }, 1000);
             }
             
             document.getElementById('loading').style.display = 'none';
@@ -3592,6 +3359,9 @@
                 
                 // XRセッション開始後にコントローラーをセットアップ
                 setupXRControllers();
+                
+                // モバイル入力システムを初期化
+                initMobileInput();
 
                 // UI更新
                 document.getElementById('xr-button').style.display = 'none';
@@ -3607,6 +3377,9 @@
                         bgMusic.pause();
                         bgMusic.currentTime = 0;
                     }
+                    
+                    // モバイル入力システムを無効化
+                    disableMobileInput();
                     
                     // 3D情報パネルを強制的にクリーンアップ
                     forceCleanupPanel();
@@ -3630,14 +3403,8 @@
 
         // アニメーションループ
         let time = 0;
-        let lastTime = performance.now();
         function animate() {
             renderer.setAnimationLoop(animate);
-            
-            const currentTime = performance.now();
-            const deltaTime = (currentTime - lastTime) / 1000; // 秒単位
-            lastTime = currentTime;
-            
             time += 0.01;
 
             // 太陽のスケールアニメーション
@@ -3774,7 +3541,7 @@
             });
 
             // 流れ星システムの更新
-            updateMeteors(deltaTime); // 実際のフレーム間時間を使用
+            updateMeteors(0.016); // 約60FPSを想定した固定デルタタイム
 
             // レイキャスト（両方のコントローラーから惑星への当たり判定）
             // 情報パネル表示中もレイキャストは継続（ハイライト処理のみ停止）
@@ -4280,386 +4047,275 @@
             }
         }
 
-        // スマートフォン対応のタッチ操作変数
-        let touchState = {
-            isTouching: false,
-            startX: 0,
-            startY: 0,
-            currentX: 0,
-            currentY: 0,
+        // ===== モバイル入力システム =====
+        let mobileInput = {
+            touching: false,
+            touchCount: 0,
             touches: [],
-            lastDistance: 0,
+            lastTouchTime: 0,
+            tapThreshold: 300, // タップとして認識する最大時間（ミリ秒）
+            moveThreshold: 10, // ドラッグとして認識する最小移動距離
             isDragging: false,
             isPinching: false,
-            tapStartTime: 0,
-            tapDelay: 200, // タップの最大時間（ミリ秒）
-            dragThreshold: 5, // ドラッグとみなす最小距離（px）- より反応しやすく
-            lastTapTime: 0,
-            doubleTapDelay: 300 // ダブルタップの間隔（ミリ秒）
+            lastPinchDistance: 0,
+            dragStart: { x: 0, y: 0 },
+            cameraStart: { x: 0, y: 0, z: 0 },
+            enabled: false
         };
 
-        let mobileCamera = {
-            phi: 0, // 水平回転角
-            theta: Math.PI / 2, // 垂直回転角（デフォルトで水平線）
-            radius: 10, // カメラからターゲットまでの距離
-            target: new THREE.Vector3(0, 0, 0), // 注視点
-            sensitivity: 0.01, // 回転感度（より敏感に）
-            zoomSensitivity: 0.1 // ズーム感度
-        };
+        // モバイル入力の初期化
+        function initMobileInput() {
+            if (!xrActive) return; // XRセッション中のみ有効
 
-        // スマートフォン用のタッチイベントリスナーを追加
-        function setupMobileControls() {
-            console.log('setupMobileControls called, xrSupported:', xrSupported, 'renderer:', !!renderer);
+            mobileInput.enabled = true;
             
-            // XR非対応かつレンダラーが存在する場合のみタッチ操作を有効化
-            if (!xrSupported && renderer) {
-                const canvas = renderer.domElement;
-                console.log('Canvas element:', !!canvas);
-                
-                if (canvas) {
-                    // タッチ開始
-                    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-                    console.log('touchstart event listener added');
-                    
-                    // タッチ移動
-                    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-                    console.log('touchmove event listener added');
-                    
-                    // タッチ終了
-                    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-                    console.log('touchend event listener added');
-                    
-                    // マウス操作も対応（デスクトップブラウザ用）
-                    canvas.addEventListener('mousedown', handleMouseDown, { passive: false });
-                    canvas.addEventListener('mousemove', handleMouseMove, { passive: false });
-                    canvas.addEventListener('mouseup', handleMouseUp, { passive: false });
-                    canvas.addEventListener('wheel', handleWheel, { passive: false });
-                    
-                    // コンテキストメニューを無効化
-                    canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-                    console.log('モバイル/デスクトップ操作が有効化されました');
-                    
-                    // テスト用のタッチ検出
-                    canvas.addEventListener('touchstart', function(e) {
-                        console.log('Touch detected!', e.touches.length, 'touches');
-                    }, { passive: true, once: true });
-                } else {
-                    console.error('Canvas element not found!');
-                }
-            } else if (xrSupported) {
-                console.log('XRが利用可能なため、モバイル操作はスキップされました');
-            } else {
-                console.log('Mobile controls not set up - renderer not ready');
-            }
+            // タッチイベントリスナーを追加
+            renderer.domElement.addEventListener('touchstart', onTouchStart, { passive: false });
+            renderer.domElement.addEventListener('touchmove', onTouchMove, { passive: false });
+            renderer.domElement.addEventListener('touchend', onTouchEnd, { passive: false });
+            
+            console.log('🤳 モバイル入力システム初期化完了');
         }
 
-        // タッチ開始処理
-        function handleTouchStart(event) {
-            event.preventDefault();
-            console.log('handleTouchStart called, touches:', event.touches.length);
+        // モバイル入力の無効化
+        function disableMobileInput() {
+            mobileInput.enabled = false;
             
-            // デバッグ情報を画面に表示
-            const debugInfo = document.getElementById('debug-info');
-            if (debugInfo) {
-                debugInfo.textContent = `タッチ検出: ${event.touches.length}本指 - ${new Date().toLocaleTimeString()}`;
+            renderer.domElement.removeEventListener('touchstart', onTouchStart);
+            renderer.domElement.removeEventListener('touchmove', onTouchMove);
+            renderer.domElement.removeEventListener('touchend', onTouchEnd);
+            
+            console.log('🤳 モバイル入力システム無効化');
+        }
+
+        // タッチ開始
+        function onTouchStart(event) {
+            if (!mobileInput.enabled) return;
+            
+            event.preventDefault();
+            
+            const touches = event.touches;
+            mobileInput.touchCount = touches.length;
+            mobileInput.touching = true;
+            mobileInput.lastTouchTime = Date.now();
+            
+            // タッチ情報を記録
+            mobileInput.touches = [];
+            for (let i = 0; i < touches.length; i++) {
+                mobileInput.touches.push({
+                    x: touches[i].clientX,
+                    y: touches[i].clientY,
+                    startX: touches[i].clientX,
+                    startY: touches[i].clientY
+                });
             }
             
-            touchState.touches = Array.from(event.touches);
-            touchState.isTouching = true;
-            touchState.tapStartTime = Date.now();
-            touchState.isDragging = false;
-            touchState.isPinching = false;
-            
-            if (touchState.touches.length === 1) {
-                // 1本指タッチ
-                const touch = touchState.touches[0];
-                touchState.startX = touch.clientX;
-                touchState.startY = touch.clientY;
-                touchState.currentX = touch.clientX;
-                touchState.currentY = touch.clientY;
-            } else if (touchState.touches.length === 2) {
-                // 2本指タッチ（ピンチ操作）
-                const touch1 = touchState.touches[0];
-                const touch2 = touchState.touches[1];
+            if (mobileInput.touchCount === 1) {
+                // シングルタッチ：ドラッグ準備
+                mobileInput.dragStart.x = touches[0].clientX;
+                mobileInput.dragStart.y = touches[0].clientY;
+                mobileInput.cameraStart.x = userPosition.x;
+                mobileInput.cameraStart.y = userPosition.y;
+                mobileInput.cameraStart.z = userPosition.z;
+            } else if (mobileInput.touchCount === 2) {
+                // ダブルタッチ：ピンチ準備
+                const touch1 = touches[0];
+                const touch2 = touches[1];
                 const distance = Math.sqrt(
                     Math.pow(touch2.clientX - touch1.clientX, 2) +
                     Math.pow(touch2.clientY - touch1.clientY, 2)
                 );
-                touchState.lastDistance = distance;
-                touchState.isPinching = true;
+                mobileInput.lastPinchDistance = distance;
+                mobileInput.isPinching = true;
             }
         }
 
-        // タッチ移動処理
-        function handleTouchMove(event) {
+        // タッチ移動
+        function onTouchMove(event) {
+            if (!mobileInput.enabled || !mobileInput.touching) return;
+            
             event.preventDefault();
             
-            if (!touchState.isTouching) return;
+            const touches = event.touches;
             
-            // デバッグ情報を画面に表示（頻度を更に抑制）
-            const debugInfo = document.getElementById('debug-info');
-            if (debugInfo && Math.random() < 0.02) { // 2%の確率で更新（頻度を大幅抑制）
-                debugInfo.textContent = `操作中: ${event.touches.length}本指${touchState.isDragging ? ' - ドラッグ' : ''}`;
-            }
-            
-            touchState.touches = Array.from(event.touches);
-            
-            if (touchState.touches.length === 1 && !touchState.isPinching) {
-                // 1本指ドラッグ（カメラ回転）
-                const touch = touchState.touches[0];
-                const deltaX = touch.clientX - touchState.currentX;
-                const deltaY = touch.clientY - touchState.currentY;
+            if (touches.length === 1 && !mobileInput.isPinching) {
+                // シングルタッチ：ドラッグ移動
+                const touch = touches[0];
+                const deltaX = touch.clientX - mobileInput.dragStart.x;
+                const deltaY = touch.clientY - mobileInput.dragStart.y;
                 
-                // ドラッグ判定
-                const distance = Math.sqrt(
-                    Math.pow(touch.clientX - touchState.startX, 2) +
-                    Math.pow(touch.clientY - touchState.startY, 2)
-                );
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
                 
-                if (distance > touchState.dragThreshold) {
-                    touchState.isDragging = true;
-                }
-                
-                if (touchState.isDragging) {
-                    // カメラ回転
-                    mobileCamera.phi -= deltaX * mobileCamera.sensitivity;
-                    mobileCamera.theta -= deltaY * mobileCamera.sensitivity;
+                if (distance > mobileInput.moveThreshold) {
+                    mobileInput.isDragging = true;
                     
-                    // 垂直角度制限
-                    mobileCamera.theta = Math.max(0.1, Math.min(Math.PI - 0.1, mobileCamera.theta));
+                    // カメラ/ユーザー位置を更新
+                    const sensitivity = 0.01;
+                    userPosition.x = mobileInput.cameraStart.x - deltaX * sensitivity;
+                    userPosition.z = mobileInput.cameraStart.z - deltaY * sensitivity;
                     
-                    updateMobileCamera();
+                    updateUserPosition();
                 }
-                
-                touchState.currentX = touch.clientX;
-                touchState.currentY = touch.clientY;
-                
-            } else if (touchState.touches.length === 2) {
-                // 2本指ピンチ（ズーム）
-                const touch1 = touchState.touches[0];
-                const touch2 = touchState.touches[1];
+            } else if (touches.length === 2) {
+                // ダブルタッチ：ピンチズーム
+                const touch1 = touches[0];
+                const touch2 = touches[1];
                 const distance = Math.sqrt(
                     Math.pow(touch2.clientX - touch1.clientX, 2) +
                     Math.pow(touch2.clientY - touch1.clientY, 2)
                 );
                 
-                if (touchState.lastDistance > 0) {
-                    const scale = distance / touchState.lastDistance;
-                    mobileCamera.radius /= scale;
+                if (mobileInput.lastPinchDistance > 0) {
+                    const scaleChange = distance / mobileInput.lastPinchDistance;
+                    scaleFactor *= scaleChange;
                     
-                    // ズーム制限
-                    mobileCamera.radius = Math.max(1, Math.min(100, mobileCamera.radius));
+                    // 宇宙全体をスケール
+                    universeElements.forEach(element => {
+                        if (element && element.scale) {
+                            element.scale.setScalar(scaleFactor);
+                        }
+                    });
                     
-                    updateMobileCamera();
+                    // UI更新
+                    const scaleDisplay = document.getElementById('scale-value');
+                    if (scaleDisplay) {
+                        scaleDisplay.textContent = scaleFactor.toFixed(2);
+                    }
                 }
                 
-                touchState.lastDistance = distance;
-                touchState.isPinching = true;
+                mobileInput.lastPinchDistance = distance;
+                mobileInput.isDragging = true; // ピンチ中はドラッグとして扱う
             }
         }
 
-        // タッチ終了処理
-        function handleTouchEnd(event) {
+        // タッチ終了
+        function onTouchEnd(event) {
+            if (!mobileInput.enabled) return;
+            
             event.preventDefault();
             
-            const currentTime = Date.now();
-            const touchDuration = currentTime - touchState.tapStartTime;
+            const touchDuration = Date.now() - mobileInput.lastTouchTime;
+            const wasShortTouch = touchDuration < mobileInput.tapThreshold;
+            const wasSingleTouch = mobileInput.touchCount === 1;
             
-            // タップ判定（短時間で指を離し、あまり動かしていない場合）
-            if (!touchState.isDragging && !touchState.isPinching && 
-                touchDuration < touchState.tapDelay && 
-                touchState.touches.length <= 1) {
-                
-                // ダブルタップ判定
-                if (currentTime - touchState.lastTapTime < touchState.doubleTapDelay) {
-                    handleDoubleTap(touchState.startX, touchState.startY);
-                    touchState.lastTapTime = 0; // ダブルタップ後はリセット
-                } else {
-                    handleTap(touchState.startX, touchState.startY);
-                    touchState.lastTapTime = currentTime;
+            // タップ判定：短時間でドラッグしていない場合
+            if (wasShortTouch && wasSingleTouch && !mobileInput.isDragging) {
+                // タップによる惑星選択
+                const touch = mobileInput.touches[0];
+                if (touch) {
+                    performMobileTap(touch.startX, touch.startY);
                 }
             }
             
-            // 状態リセット
-            touchState.isTouching = false;
-            touchState.isDragging = false;
-            touchState.isPinching = false;
-            touchState.touches = [];
-            touchState.lastDistance = 0;
+            // リセット
+            mobileInput.touching = false;
+            mobileInput.touchCount = 0;
+            mobileInput.touches = [];
+            mobileInput.isDragging = false;
+            mobileInput.isPinching = false;
+            mobileInput.lastPinchDistance = 0;
         }
 
-        // マウス操作（デスクトップ用）
-        function handleMouseDown(event) {
-            const fakeTouch = {
-                clientX: event.clientX,
-                clientY: event.clientY
-            };
-            
-            touchState.touches = [fakeTouch];
-            touchState.isTouching = true;
-            touchState.tapStartTime = Date.now();
-            touchState.isDragging = false;
-            touchState.startX = event.clientX;
-            touchState.startY = event.clientY;
-            touchState.currentX = event.clientX;
-            touchState.currentY = event.clientY;
-        }
-
-        function handleMouseMove(event) {
-            if (!touchState.isTouching) return;
-            
-            const deltaX = event.clientX - touchState.currentX;
-            const deltaY = event.clientY - touchState.currentY;
-            
-            // ドラッグ判定
-            const distance = Math.sqrt(
-                Math.pow(event.clientX - touchState.startX, 2) +
-                Math.pow(event.clientY - touchState.startY, 2)
-            );
-            
-            if (distance > touchState.dragThreshold) {
-                touchState.isDragging = true;
-            }
-            
-            if (touchState.isDragging) {
-                // カメラ回転
-                mobileCamera.phi -= deltaX * mobileCamera.sensitivity;
-                mobileCamera.theta -= deltaY * mobileCamera.sensitivity;
-                
-                // 垂直角度制限
-                mobileCamera.theta = Math.max(0.1, Math.min(Math.PI - 0.1, mobileCamera.theta));
-                
-                updateMobileCamera();
-            }
-            
-            touchState.currentX = event.clientX;
-            touchState.currentY = event.clientY;
-        }
-
-        function handleMouseUp(event) {
-            const currentTime = Date.now();
-            const touchDuration = currentTime - touchState.tapStartTime;
-            
-            // クリック判定
-            if (!touchState.isDragging && touchDuration < touchState.tapDelay) {
-                handleTap(event.clientX, event.clientY);
-            }
-            
-            touchState.isTouching = false;
-            touchState.isDragging = false;
-            touchState.touches = [];
-        }
-
-        function handleWheel(event) {
-            event.preventDefault();
-            
-            const scale = event.deltaY > 0 ? 1.1 : 0.9;
-            mobileCamera.radius *= scale;
-            
-            // ズーム制限
-            mobileCamera.radius = Math.max(1, Math.min(100, mobileCamera.radius));
-            
-            updateMobileCamera();
-        }
-
-        // カメラ位置更新
-        function updateMobileCamera() {
-            if (xrActive) return; // XRモード中は無効
-            
-            // 球面座標からカルテシアン座標に変換
-            const x = mobileCamera.radius * Math.sin(mobileCamera.theta) * Math.cos(mobileCamera.phi);
-            const y = mobileCamera.radius * Math.cos(mobileCamera.theta);
-            const z = mobileCamera.radius * Math.sin(mobileCamera.theta) * Math.sin(mobileCamera.phi);
-            
-            camera.position.set(x, y, z);
-            camera.lookAt(mobileCamera.target);
-            
-            // デバッグ情報を時々表示
-            if (Math.random() < 0.01) { // 1%の確率でログ出力
-                console.log('Camera updated - position:', x.toFixed(2), y.toFixed(2), z.toFixed(2), 'radius:', mobileCamera.radius.toFixed(2));
-            }
-        }
-
-        // タップ処理（惑星の選択）
-        function handleTap(x, y) {
+        // タップによる惑星選択
+        function performMobileTap(screenX, screenY) {
+            // スクリーン座標を正規化デバイス座標に変換
             const mouse = new THREE.Vector2();
-            mouse.x = (x / window.innerWidth) * 2 - 1;
-            mouse.y = -(y / window.innerHeight) * 2 + 1;
+            mouse.x = (screenX / window.innerWidth) * 2 - 1;
+            mouse.y = -(screenY / window.innerHeight) * 2 + 1;
             
+            // レイキャスターを設定
             raycaster.setFromCamera(mouse, camera);
             
+            // 惑星のメッシュのみをチェック
             const planetMeshes = planets.map(p => p.mesh).filter(mesh => mesh && mesh.visible);
             const intersects = raycaster.intersectObjects(planetMeshes);
             
             if (intersects.length > 0) {
+                // 惑星がタップされた場合
                 const intersectedPlanet = planets.find(p => p.mesh === intersects[0].object);
+                
                 if (intersectedPlanet) {
-                    showMobilePlanetInfo(intersectedPlanet.data);
+                    console.log('🪐 タップされた惑星:', intersectedPlanet.name);
+                    
+                    // タップ効果音
+                    playMobileTapSound();
+                    
+                    // 惑星情報を表示
+                    if (spaceMode) {
+                        // VRモードでは3D情報パネルを表示
+                        show3DPlanetInfo(intersectedPlanet);
+                    } else {
+                        // MRモードでは宇宙空間に切り替えてから情報表示
+                        pendingPlanetInfo = intersectedPlanet;
+                        toggleSpaceMode();
+                    }
+                }
+            } else {
+                // 空間がタップされた場合
+                if (spaceMode) {
+                    console.log('🌌 空間タップ - MRモードに復帰');
+                    
+                    // 情報パネルが表示中の場合は閉じる
+                    if (planetInfoVisible) {
+                        closePlanetInfo();
+                    } else {
+                        // MRモードに復帰
+                        toggleSpaceMode();
+                    }
+                } else {
+                    console.log('🌍 空間タップ - VRモードに移行');
+                    // MRモードでは宇宙空間モードに切り替え
+                    toggleSpaceMode();
                 }
             }
         }
 
-        // ダブルタップ処理（拡大・縮小リセット）
-        function handleDoubleTap(x, y) {
-            // カメラをリセット
-            mobileCamera.phi = 0;
-            mobileCamera.theta = Math.PI / 2;
-            mobileCamera.radius = 10;
-            updateMobileCamera();
+        // モバイルタップ用効果音
+        function playMobileTapSound() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (error) {
+                    return;
+                }
+            }
+
+            try {
+                const now = audioContext.currentTime;
+                
+                // 短い明るいタップ音
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(800, now);
+                oscillator.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0, now);
+                gainNode.gain.linearRampToValueAtTime(0.1, now + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                
+                oscillator.start(now);
+                oscillator.stop(now + 0.2);
+                
+            } catch (error) {
+                // エラーは無視
+            }
         }
 
-        // スマートフォン用の惑星情報表示
-        function showMobilePlanetInfo(planetData) {
-            // 効果音再生
-            playInfoPanelSound();
-            
-            // 既存のパネルを削除
-            const existingPanel = document.getElementById('mobile-planet-info');
-            if (existingPanel) {
-                existingPanel.remove();
+        // 情報パネルを閉じる
+        function closePlanetInfo() {
+            if (planetInfoVisible && planetInfoPanel) {
+                planetInfoVisible = false;
+                panelClosing = true;
+                
+                // フェードアウト開始
+                panelFadeAnimation.target = 0;
+                
+                console.log('📱 モバイル操作で情報パネルを閉じます');
             }
-            
-            // 新しいパネルを作成
-            const panel = document.createElement('div');
-            panel.id = 'mobile-planet-info';
-            panel.innerHTML = `
-                <div class="mobile-info-title">${planetData.name}</div>
-                <div class="mobile-info-item">
-                    <span class="mobile-info-label">距離:</span>
-                    <span class="mobile-info-value">${planetData.realDistance}</span>
-                </div>
-                <div class="mobile-info-item">
-                    <span class="mobile-info-label">サイズ:</span>
-                    <span class="mobile-info-value">${planetData.realSize}</span>
-                </div>
-                <div class="mobile-info-item">
-                    <span class="mobile-info-label">公転周期:</span>
-                    <span class="mobile-info-value">${planetData.period}</span>
-                </div>
-                <div class="mobile-info-feature">
-                    <div class="mobile-feature-title">✨ 特徴:</div>
-                    <div class="mobile-feature-text">${planetData.feature}</div>
-                </div>
-                <div class="mobile-info-fact">
-                    <div class="mobile-fact-title">💡 豆知識:</div>
-                    <div class="mobile-fact-text">${planetData.fact}</div>
-                </div>
-                <div class="mobile-close-info">タップで閉じる</div>
-            `;
-            
-            // パネルにタップで閉じる機能を追加
-            panel.addEventListener('click', () => {
-                panel.remove();
-            });
-            
-            document.body.appendChild(panel);
-            
-            // フェードインアニメーション
-            setTimeout(() => {
-                panel.style.opacity = '1';
-                panel.style.transform = 'translate(-50%, -50%) scale(1)';
-            }, 10);
         }
     </script>
 </body>
